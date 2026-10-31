@@ -922,6 +922,245 @@ class ESAFLPacking(PackingStrategy):
         return result
 
 
+class ESHEEPPacking:
+    """
+    ESAFL 论文 §V-B2 EP（Messages Encoding and Polynomials Packing）机制复现。
+
+    仅 PUREPY 模式使用（密文域求和聚合）。与项目自研 ESAFLPacking（53-bit
+    double 位域）不同，本类严格按论文公式实现：
+
+      EP.Setup(PP, log q0, N) → (T, pad)：
+        pad = ⌈log N⌉ + 1                    （论文下界，防同态加法进位串位）
+        T   = ⌊log p / (log q0 + pad)⌋      （每系数 slot 数）
+
+      EP.EcdPack：量化值 u ∈ [0, 2^logq0 − 1]（对称量化 + max_q 偏移，与论文
+        [⌊p·φ⁻¹(z)⌉]_{q0} 的 mod-q0 位域同构；论文用 CKKS 典范嵌入 φ 编码，
+        这里直接用整数系数——对加法同态求和二者等价，本实现精确且无 FFT 误差）。
+        每个系数 β_j 的位布局（论文 Eq. 9，slot 1 在最高位）：
+          第 i 个 slot（i ∈ [1, T−1]）存放 u_{i,j}，占 (pad + log q0) bit，
+          第 T 个 slot 为零多项式 ϑ（进位余量，论文 Eq. 8-9）。
+        β_j = Σ_{i=1}^{T−1} u_{i,j} · 2^{(T−i)(pad+logq0)} < 2^{T(pad+logq0)} ≤ p
+
+      EP.Eval：密文逐系数求和。由 pad 的选取，slot 内和 Σu < N·2^logq0
+        < 2^{logq0+pad} 不溢出本 slot 位域，因此 Σβ_j < 2^{T(pad+logq0)} ≤ p，
+        mod p 解密不破坏位域（论文 §V-B2 / Eq. 12）。
+
+      EP.DcdUnpk（本实现为 unpack_average）：移位截取各 slot（论文 Eq. 10），
+        减 N·max_q 还原有符号量化值和，除以 N 得平均，再反量化。
+
+    注意：论文 Fig. 1 说明一个明文打包 (T−1)×n 个实数（T−1 个数据 slot +
+    1 个零多项式 slot），即每系数实际数据容量为 (T−1) 个值。
+    """
+
+    def __init__(self, n: int, logq0: int, logp: int, num_clients: int,
+                 quant_clip: float = None):
+        """
+        Args:
+            n:           环维度（= 每密文系数个数 / CKKS slot_count）
+            logq0:       消息量化位宽（对应 packing.quant_bits 配置键）
+            logp:        明文模数 p = 2^logp（esafl.logp）
+            num_clients: 客户端总数 N（决定 pad 与聚合进位上界）
+            quant_clip:  固定量化裁剪值（所有客户端共享，保证 EP 密文求和
+                         语义正确：scale = quant_clip / max_q）。
+                         为 None 时退化为逐 pack 的 99.9 百分位自适应 scale
+                         （仅适用于 num_sum=1 的单密文解包，如全局状态）；
+                         密文域求和聚合时必须在配置中提供 quant_clip。
+        """
+        self.n = int(n)
+        self.logq0 = int(logq0)
+        self.logp = int(logp)
+        self.N = int(num_clients)
+        self.quant_clip = quant_clip
+        if self.N < 1:
+            raise ValueError("num_clients 必须 ≥ 1")
+        self.max_q = (1 << (self.logq0 - 1)) - 1
+        # 论文 EP.Setup：pad ≥ ⌈log N⌉ + 1
+        self.pad = (self.N - 1).bit_length() + 1
+        self.slot_bits = self.pad + self.logq0
+        # 论文 EP.Setup：T ≤ ⌊log p / (log q0 + pad)⌋
+        self.T = self.logp // self.slot_bits
+        if self.T < 2:
+            raise ValueError(
+                f"EP 参数无效：logp={logp} 过小而 logq0+pad={self.slot_bits}，"
+                f"T={self.T} < 2（至少需要 1 个数据 slot + 1 个零 slot）。"
+                f"请提高 esafl.logp 或降低 packing.quant_bits / 客户端数"
+            )
+        self.data_slots = self.T - 1  # 论文：T−1 个数据多项式 + 1 个零多项式
+        # 论文进位安全校验：N·(2^logq0 − 1) < 2^(logq0+pad)
+        assert (self.N * ((1 << self.logq0) - 1)) < (1 << (self.logq0 + self.pad))
+        self.values_per_chunk = self.n * self.data_slots
+        self.slot_mask = (1 << self.slot_bits) - 1
+        logger.info(
+            f"ESHEEPPacking 初始化: n={n}, logq0={logq0}, logp={logp}, N={self.N} | "
+            f"pad={self.pad}, T={self.T} (数据 slot {self.data_slots}), "
+            f"slot_bits={self.slot_bits}, 单密文容量={self.values_per_chunk} 值"
+        )
+
+    @property
+    def name(self) -> str:
+        return f"eshe_ep_q{self.logq0}_p{self.logp}_N{self.N}"
+
+    # ---------------- EP.EcdPack ----------------
+    def pack(self, model_update: Dict[str, torch.Tensor],
+             fixed_scale: float = None) -> Tuple[List[np.ndarray], PackingMetadata]:
+        """
+        量化 + 位域打包。
+
+        Args:
+            fixed_scale: 显式指定的量化 scale（客户端更新应使用统一的
+                         quant_clip/max_q，保证密文求和语义正确）。
+                         None 时用 quant_clip 或 99.9 百分位自适应估计
+                         （后者仅适合 num_sum=1 的单密文解包，如全局状态）。
+
+        Returns:
+            chunks: List[np.ndarray[int64]]，每个长度 n，系数 β_j < p
+            metadata: PackingMetadata（含 shapes/offsets/layer_scales/BN 明文）
+        """
+        # BatchNorm running statistics 量化敏感，按 ESAFLPacking 惯例明文保存在 metadata
+        bn_buffers = {}
+        packed_update = {}
+        for name, param in model_update.items():
+            if any(k in name for k in ("running_mean", "running_var", "num_batches_tracked")):
+                bn_buffers[name] = param.detach().cpu().numpy().copy()
+            else:
+                packed_update[name] = param
+
+        # 量化 scale = clip / max_q。EP 密文求和的正确性前提是所有客户端
+        # 共享同一 clip（配置 packing.quant_clip）；否则仅 num_sum=1 场景有意义。
+        clip_val = None
+        if fixed_scale is not None:
+            clip_val = float(fixed_scale)
+        elif self.quant_clip is not None:
+            clip_val = float(self.quant_clip)
+        else:
+            logger.warning(
+                "ESHEEPPacking: 未配置 quant_clip，使用逐 pack 自适应 scale；"
+                "EP 密文求和聚合要求所有客户端共享 scale，请配置 packing.quant_clip"
+            )
+            all_flats = [p.detach().cpu().numpy().flatten() for p in packed_update.values()]
+            if all_flats:
+                all_abs = np.concatenate([np.abs(f) for f in all_flats])
+                global_max_abs = float(np.max(all_abs))
+                clip_max = float(np.percentile(all_abs, 99.9))
+                clip_val = clip_max if clip_max >= 1e-12 else global_max_abs
+        global_scale = clip_val / self.max_q if clip_val and clip_val > 1e-12 else 1.0
+
+        all_values = []
+        shapes = {}
+        offsets = {}
+        layer_scales = {}
+        offset = 0
+        for name in sorted(packed_update.keys()):
+            param = packed_update[name]
+            flat = param.detach().cpu().numpy().flatten()
+            shapes[name] = list(param.shape)
+            offsets[name] = (offset, param.numel())
+            layer_scales[name] = global_scale
+            clipped = np.clip(flat, -global_scale * self.max_q,
+                              global_scale * self.max_q)
+            q = np.round(clipped / global_scale).astype(np.int64)
+            q = np.clip(q, -self.max_q, self.max_q)
+            all_values.extend((q + self.max_q).tolist())  # 无符号 u ∈ [0, 2^logq0−1]
+            offset += param.numel()
+
+        total_elements = len(all_values)
+        vpc = self.values_per_chunk
+        chunks = []
+        for i in range(0, total_elements, vpc):
+            group = all_values[i:i + vpc]
+            # padding 零值（编码空间 0 对应 u=max_q，即量化 0）
+            group.extend([self.max_q] * (vpc - len(group)))
+            beta = np.zeros(self.n, dtype=np.int64)
+            # 第 i 个数据 slot 占值区间 [(i-1)n, i·n)，置于位 (T-i)·slot_bits（论文 Eq.9）
+            for s in range(self.data_slots):
+                slot_vals = np.array(group[s * self.n:(s + 1) * self.n], dtype=np.int64)
+                beta |= slot_vals << ((self.T - 1 - s) * self.slot_bits)
+            chunks.append(beta)
+
+        metadata = PackingMetadata(self.name, {
+            "shapes": shapes,
+            "offsets": offsets,
+            "total_elements": total_elements,
+            "layer_scales": layer_scales,
+            "quant_bits": self.logq0,
+            "logp": self.logp,
+            "pad": self.pad,
+            "slot_bits": self.slot_bits,
+            "T": self.T,
+            "data_slots": self.data_slots,
+            "num_clients": self.N,
+            "bn_buffers": bn_buffers,
+        })
+        return chunks, metadata
+
+    # ---------------- EP.DcdUnpk（聚合平均版）----------------
+    def unpack_average(self, summed_chunks: List[np.ndarray],
+                       metadata: PackingMetadata,
+                       num_sum: int,
+                       zero_point: float = None) -> Dict[str, torch.Tensor]:
+        """
+        从"密文求和并解密"后的系数恢复聚合平均明文。
+
+        Args:
+            summed_chunks: 求和密文解密后的整数系数（每 slot 内为 N 个客户端
+                           编码值的整数和，< 2^(logq0+pad)，位域无串位）
+            metadata:      pack() 产出的元数据
+            num_sum:       参与求和的客户端数 N（论文 Eval 后除 N 得平均）
+            zero_point:    无符号编码偏移（默认 num_sum·max_q）。密文差分
+                           （delta = ct_b − ct_a）的明文是编码值之差，不含
+                           偏移，应传 0。
+        """
+        data = metadata.data
+        shapes = data["shapes"]
+        offsets = data["offsets"]
+        total_elements = data["total_elements"]
+        layer_scales = data["layer_scales"]
+        T = data.get("T", self.T)
+        slot_bits = data.get("slot_bits", self.slot_bits)
+        slot_mask = (1 << slot_bits) - 1
+        max_q = float((1 << (data.get("quant_bits", self.logq0) - 1)) - 1)
+
+        # 按 slot 提取整数和（论文 Eq.10 的移位截取），展平为值序列
+        all_sums = []
+        for chunk in summed_chunks:
+            beta = np.asarray(chunk[:self.n], dtype=np.int64)
+            for s in range(T - 1):
+                shift = (T - 1 - s) * slot_bits
+                slot = (beta >> shift) & slot_mask
+                all_sums.extend(slot.tolist())
+        all_sums = np.array(all_sums[:total_elements], dtype=np.float64)
+
+        # 减无符号偏移（默认 N·max_q）→ 有符号量化值和 → 除 N 平均 → 反量化
+        if zero_point is None:
+            zero_point = num_sum * max_q
+        q_avg = (all_sums - zero_point) / float(num_sum)
+        result = {}
+        for name in sorted(shapes.keys()):
+            off, numel = offsets[name]
+            shape = shapes[name]
+            result[name] = torch.tensor(
+                (q_avg[off:off + numel] * layer_scales[name]).reshape(shape))
+
+        for name, arr in data.get("bn_buffers", {}).items():
+            result[name] = torch.tensor(arr).clone()
+        return result
+
+    def unpack(self, decrypted_chunks: List[np.ndarray],
+               metadata: PackingMetadata) -> Dict[str, torch.Tensor]:
+        """单密文（num_sum=1）解包，用于全局状态解密等场景。"""
+        return self.unpack_average(decrypted_chunks, metadata, num_sum=1)
+
+    def create_zero_chunk(self) -> np.ndarray:
+        """编码空间的零值 chunk：每 slot u=max_q → β = max_q · Σ 2^{(T-i)slot_bits}"""
+        beta = np.zeros(self.n, dtype=np.int64)
+        for s in range(self.data_slots):
+            beta |= np.int64(self.max_q) << ((self.T - 1 - s) * self.slot_bits)
+        return beta
+
+    def get_values_per_chunk(self) -> int:
+        return self.values_per_chunk
+
+
 def create_packing_strategy(config: Dict, slot_count: int) -> PackingStrategy:
     """根据配置创建打包策略"""
     global _CONJUGATE_SUPPORTED

@@ -96,3 +96,145 @@ MNIST + LeNet with 5 clients, reaching **98.31%** test accuracy. All
 - Add communication-cost accounting that reflects multi-key ciphertext growth.
 - Update the paper's security protocol description from one-step decryption to
   partial-decryption aggregation.
+
+---
+
+# ESAFL PUREPY Mode (Pure-Python ESHE Replication)
+
+## TL;DR
+
+Setting `esafl.mode: "PUREPY"` runs the FL pipeline on a pure-Python
+replication of the ESHE scheme **and the EP packing mechanism** from the ESAFL
+paper (arXiv:2305.08599, Sec. IV / Sec. V-B2), implemented in `ckks_fed/eshe.py`
+and `ckks_fed/packing.py` (`ESHEEPPacking`). No Go DLL / TenSEAL ciphertexts
+are involved on the ESHE path: clients encrypt EP-packed integer polynomials
+into `R_q = Z_q[X]/(X^n+1)`; the server aggregates **in the ciphertext
+domain** (EP.Eval, coefficient-wise summation); one-shot decryption recovers
+per-slot integer sums; dividing by N yields the averaged update (paper-style
+uniform aggregation).
+
+## Correspondence to the paper's ESHE structure
+
+| Paper ESHE              | PUREPY implementation |
+|-------------------------|-----------------------|
+| Ring `R_q`, n power of 2 | `RingContext(n)` with CRT representation `Q = q1*q2` (two 31-bit NTT-friendly primes, `q_i = 1 mod 2n`); negacyclic multiplication via psi-twisted NTT (numpy, int64 overflow-free) |
+| Plain modulus p < q     | `p = 2^esafl.logp` (default 50), `ESHEParameters` |
+| Client key `s_i` from `chi_s` | `PurePyESHE.register_client()` -> ternary `{-1,0,1}^n` |
+| Shared key `s = sum s_i` | maintained by the backend (trusted-AS role) |
+| PRPG(t, B)              | `PRPG(seed, counter)` — deterministic regeneration from `numpy.random.SeedSequence`; **structurally equivalent but not bit-compatible** with a cryptographic PRG |
+| Enc: `[a^t*s_i + p*e_i + m_i]_q` | `PurePyESHE.encrypt_chunk(client_id, m, counter)`; `e_i` centered binomial (`esafl.eta`, default 4) |
+| Eval: `C = sum ct_i`    | `PurePyESHE.aggregate()` — coefficient-wise addition, **ciphertext-domain aggregation** |
+| Dec: `[[C - a^t*s]_q]_p` | `PurePyESHE.decrypt()` — mod Q then mod p, noise term vanishes exactly (no rescale/relinearize/bootstrapping) |
+
+## EP packing (paper Sec. V-B2) — `ESHEEPPacking`
+
+Paper formulas (arXiv:2305.08599, Sec. V-B2, Eq. 7-12), confirmed against the
+published HTML version:
+
+- **EP.Setup(PP, log q0, N) -> (T, pad)**
+  - `pad = ceil(log N) + 1` — carry headroom so homomorphic addition never
+    overflows a slot's bit field. Example: N = 25 -> pad = 6.
+  - `T = floor(log p / (log q0 + pad))` — slots per coefficient.
+    Example: log p = 50, log q0 = 10 -> T = floor(50/16) = 3.
+- **EP.EcdPack** (Eq. 8-9): each coefficient beta_j of the plaintext
+  polynomial holds T slots of `(pad + log q0)` bits; slot 1 sits at the most
+  significant bits. The paper packs **T-1 encoded message polynomials plus one
+  zero polynomial** (Fig. 1 caption: "(T-1) x n real numbers are first encoded
+  and then packed"), i.e. per-coefficient data capacity is **T-1 values**
+  (with the example parameters: 2 values/coefficient, 4096*2 = 8192 values
+  per ciphertext at n = 4096).
+  - Message encoding: the paper uses CKKS canonical embedding
+    `z_i = [floor(p*phi^-1(z_i))]_{q0}`; PUREPY uses direct symmetric
+    quantization to unsigned integers `u in [0, 2^logq0 - 1]`
+    (`u = round(clip(v)/scale) + max_q`). Both are mod-q0 integer coefficient
+    polynomials; for the additive homomorphism the semantics are identical,
+    and the direct encoding is exact (no FFT round-off).
+- **EP.Eval** (Eq. 12): `m_add = sum_i m_i`. Because `pad = ceil(log N)+1`,
+  each slot sum satisfies `sum u < N*2^logq0 < 2^(logq0+pad)`, so slots never
+  bleed into each other and `sum beta_j < 2^{T(pad+logq0)} <= p` — the summed
+  plaintext survives the mod-p decryption untouched.
+- **Aggregation -> average**: after one-shot decryption each slot holds the
+  exact integer sum of the N clients' encoded values; subtract `N*max_q`,
+  divide by N, multiply by `scale` -> averaged update. This is the paper's
+  uniform average (equal client weights); unequal data-size weighting is not
+  supported on the summed-ciphertext path (same as the paper's EP.Eval).
+
+**Shared quantization scale**: EP.Eval correctness requires all clients to
+quantize with the *same* scale. Configure `packing.quant_clip` (the clip
+value; `scale = quant_clip / max_q`); without it the packer falls back to
+per-pack adaptive scales, which is only valid for `num_sum = 1` decryption
+(server-encrypted global state). Server-side re-encryption of the global
+model uses the adaptive scale automatically (`skip_sparsification=True`).
+
+`packing.quant_bits` doubles as `log q0`. `packing.slots2` / `packing.pad_bits`
+are **not used** under PUREPY+EP (pad and T are derived from N and logp) — a
+warning is logged if they are set.
+
+## Cross-round (extended) decryption
+
+Each ciphertext carries its *mask* polynomial (`a^t*s_i` at encryption,
+summed on aggregation, subtracted on ciphertext subtraction). Decrypting any
+accumulated delta is simply `[[ct - mask]_Q]_p`, which realizes the paper's
+`[[ct - Delta_a*s]_q]_p` with `Delta_a = sum(a^(r_j) - a^(r_(j-1)))`
+automatically. `ESAFLAdapter.extended_decrypt()` therefore works for PUREPY
+without extra round context. Ciphertext *deltas* (differences of packed
+codes) carry no unsigned zero-point, so the EP unpacker is told
+`zero_point = 0` for deltas (`__zero_point__` flag set by
+`subtract_encrypted_updates`).
+
+## Integration points
+
+- `ckks_fed/packing.py` — `ESHEEPPacking`: `pack()` (EP.EcdPack),
+  `unpack_average()` (EP.DcdUnpk + average), `create_zero_chunk()`.
+- `ckks_fed/crypto.py`
+  - `CKKSManager.__init__` creates `self.purepy_eshe` and `self.ep_packing`
+    when `esafl.mode == "PUREPY"` (EP params derived from `packing.quant_bits`,
+    `esafl.logp`, and `esafl.num_clients` injected by `main.py`).
+  - `encrypt_model_update()` PUREPY branch: EP-packs the update (fixed
+    `quant_clip` scale for client uploads) and ESHE-encrypts each chunk with
+    the client's `s_i` and `counter = round_num`.
+  - `_aggregate_sparse_updates()` PUREPY branch: **EP.Eval ciphertext-domain
+    summation** (`PurePyESHE.aggregate`), no server-side decryption; result
+    carries `__num_sum__ = N`.
+  - `decrypt_model_update()` PUREPY branch: one-shot decrypt + EP
+    `unpack_average(..., num_sum=__num_sum__)`.
+  - `subtract_encrypted_updates()` and `compute_encrypted_update_size()` have
+    PUREPY branches.
+- `ckks_fed/esafl_crypto.py` — `ESAFLAdapter.extended_decrypt` handles PUREPY.
+- `main.py` — PUREPY clients train on the plaintext global model (like
+  NATIVE) and encrypt uploads with their own `s_i`; `num_clients` is injected
+  into the esafl config for EP parameter derivation.
+- Config: `esafl.mode: "PUREPY"`, optional `esafl.logp` (default 50),
+  `esafl.eta` (default 4); `packing.quant_bits` = log q0,
+  `packing.quant_clip` (recommended). `client_sampling_rate` must be 1.0
+  (ESHE full-participation constraint).
+
+## Known differences / caveats
+
+1. **numpy PRG is not bit-compatible** with the paper's PRG (documented
+   above).
+2. **Uniform aggregation only**: EP.Eval sums ciphertexts; unequal FedAvg
+   weights are not supported (weights are validated and a warning is logged
+   if they differ). Same semantic model as the paper's cross-silo setting.
+3. **Message encoding**: direct symmetric quantization into unsigned
+   `log q0`-bit integers instead of the paper's CKKS canonical embedding
+   `[floor(p*phi^-1(z))]_{q0}` — equivalent for additive homomorphism, exact
+   (no FFT).
+4. **Full participation (ESHE-PS)**: the paper requires unsampled clients to
+   upload `Enc(0)`. PUREPY provides `encrypt_zero()`; in the current
+   integration the trusted-AS backend tracks each ciphertext's mask, so
+   decryption already matches the participating set — `Enc(0)` padding is
+   available but not required by the wiring.
+5. **Performance**: NTT-based multiplication at n = 4096 costs ~2 ms per
+   polynomial product; a 25-client MNIST round adds only a few seconds.
+
+## Verified
+
+- `python -m pytest tests/test_eshe_purepy.py -v` — 16 tests green (ring ops
+  vs naive convolution, 1/5/25-client Enc->aggregate->Dec round-trips,
+  cross-round delta decryption, EP setup formulas, EP pack/unpack round-trip,
+  EP ciphertext-sum aggregation incl. all-max carry boundary, CKKSManager e2e
+  over the ciphertext-domain aggregation path, adapter extended decrypt).
+- `python main.py --config <mnist PUREPY EP, 2 rounds>` runs end-to-end with
+  accuracy in the normal MNIST-LeNet range (~82% after round 1, ~94% after
+  round 2).

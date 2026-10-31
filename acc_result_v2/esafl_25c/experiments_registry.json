@@ -1,0 +1,41 @@
+[
+  {
+    "timestamp": "20261031_185046",
+    "output_dir": "acc_result_v2/esafl_25c\\experiment_20261031_185046_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 95.94,
+      "final_test_loss": 0.3838607001646309,
+      "total_time_sec": 1854.3920767307281,
+      "total_communication_mb": 1875.0,
+      "avg_round_time_sec": 37.08784153461456,
+      "avg_upload_kb": 19200.0,
+      "avg_download_kb": 19200.0,
+      "avg_expansion_ratio": 4.425516589384594,
+      "avg_encryption_time_sec": 0.05651562767028809,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.8218574523926,
+      "total_ciphertext_blocks": 7500,
+      "prefetch_enabled": false
+    }
+  }
+]

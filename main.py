@@ -243,7 +243,8 @@ class CKKSFedExperiment:
 
         ckks_cfg = self.config['ckks'].copy()
         ckks_cfg['maser'] = self.config.get('maser', {})
-        ckks_cfg['esafl'] = self.config.get('esafl', {})
+        ckks_cfg['esafl'] = dict(self.config.get('esafl', {}))
+        ckks_cfg['esafl'].setdefault('num_clients', self.config['system']['num_clients'])
         self.ckks_manager = CKKSManager(ckks_cfg)
         ckks = self.config['ckks']
         tree([
@@ -311,7 +312,8 @@ class CKKSFedExperiment:
                 poly_modulus_degree=poly_degree)
             ckks_cfg = self.config['ckks'].copy()
             ckks_cfg['maser'] = self.config.get('maser', {})
-            ckks_cfg['esafl'] = self.config.get('esafl', {})
+            ckks_cfg['esafl'] = dict(self.config.get('esafl', {}))
+            ckks_cfg['esafl'].setdefault('num_clients', self.config['system']['num_clients'])
             client.ckks_manager = CKKSManager(ckks_cfg, context=context)
             self.clients.append(client)
         tree([
@@ -586,11 +588,15 @@ class CKKSFedExperiment:
             maser_cfg.get('multi_key', False)
         )
 
-        # ESAFL NATIVE 多密钥模式：服务器下发明文全局模型，客户端用多密钥 CKKS 加密上传
+        # ESAFL NATIVE/PUREPY 多密钥模式：服务器下发明文全局模型，客户端用各自 s_i 加密上传
         esafl_cfg = self.config.get('esafl', {})
         esafl_native_mode = (
             esafl_cfg.get('enabled', False) and
             esafl_cfg.get('mode', 'SIMULATION') == 'NATIVE'
+        )
+        esafl_purepy_mode = (
+            esafl_cfg.get('enabled', False) and
+            esafl_cfg.get('mode', 'SIMULATION') == 'PUREPY'
         )
 
         # ================================================================
@@ -600,13 +606,13 @@ class CKKSFedExperiment:
             self._ensure_xmkckks_manager(selected_clients)
 
         # ================================================================
-        # ESAFL NATIVE：实验级单例 ESHEManager
+        # ESAFL NATIVE：实验级单例 ESHEManager（PUREPY 后端已在 CKKSManager 内创建）
         # ================================================================
         if esafl_native_mode:
             self._ensure_eshe_manager(selected_clients)
 
         client_updates, client_weights, train_losses, train_accs = [], [], [], []
-        if maser_compressed_mode or esafl_native_mode:
+        if maser_compressed_mode or esafl_native_mode or esafl_purepy_mode:
             plain_global = self.server.get_global_params()
             for client in selected_clients:
                 update, loss, acc = client.local_train(global_params=plain_global, round_num=round_num)
@@ -1730,7 +1736,8 @@ class CKKSFedPrefetchExperiment(CKKSFedExperiment):
         # CKKS 管理器（统一密钥）
         ckks_cfg = self.config['ckks'].copy()
         ckks_cfg['maser'] = self.config.get('maser', {})
-        ckks_cfg['esafl'] = self.config.get('esafl', {})
+        ckks_cfg['esafl'] = dict(self.config.get('esafl', {}))
+        ckks_cfg['esafl'].setdefault('num_clients', self.config['system']['num_clients'])
         self.ckks_manager = CKKSManager(ckks_cfg)
         self.full_context_bytes = self.ckks_manager.context.get_full_context_bytes()
         ckks = self.config['ckks']
@@ -1862,7 +1869,8 @@ class CKKSFedPrefetchExperiment(CKKSFedExperiment):
             context = CKKSContext.from_full_bytes(self.full_context_bytes, poly_modulus_degree=poly_degree)
             ckks_cfg = self.config['ckks'].copy()
             ckks_cfg['maser'] = self.config.get('maser', {})
-            ckks_cfg['esafl'] = self.config.get('esafl', {})
+            ckks_cfg['esafl'] = dict(self.config.get('esafl', {}))
+            ckks_cfg['esafl'].setdefault('num_clients', self.config['system']['num_clients'])
             client.ckks_manager = CKKSManager(ckks_cfg, context=context)
             client.dl_bandwidth_kbps = self.bandwidth_simulator.get_dl_bw_kbps(i)
             client.ul_bandwidth_kbps = self.bandwidth_simulator.get_ul_bw_kbps(i)

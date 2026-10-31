@@ -728,16 +728,36 @@ maser:
 #                 MASER 的 xMK-CKKS Go 库）。每个客户端持有独立密钥，
 #                 服务器聚合后需收集各客户端的 partial decrypt 份额才能解码。
 #                 NATIVE 模式下服务器下发明文全局模型，客户端用多密钥加密上传更新。
+#   - PUREPY:     使用 ckks_fed.eshe 中的纯 Python ESHE 复现 + 论文 §V-B2
+#                 EP 打包（ckks_fed/packing.py ESHEEPPacking）。客户端用各自
+#                 s_i 加密 EP 打包的整数多项式；服务器做密文域求和聚合
+#                 （EP.Eval），one-shot 解密后 slot 内即各客户端编码值整数和，
+#                 除 N 得平均（等权 FedAvg）。
 #
 # 【约束】
 #   - SIMULATION 模式与全局掩码投票配合使用效果最佳。
 #   - NATIVE 模式当前仅支持完整参数上传（sparsification.strategy=none），
 #     不支持全局掩码投票或客户端稀疏化。
+#   - PUREPY 模式使用 EP 打包：logq0 = packing.quant_bits，pad = ⌈logN⌉+1，
+#     T = ⌊logp/(logq0+pad)⌋（slots2/pad_bits 不参与推导，设置了会告警）。
+#     密文求和聚合要求所有客户端共享量化 scale，请配置 packing.quant_clip；
+#     需要全参与（client_sampling_rate=1.0），不支持全局掩码投票。
 # ============================================================================
 esafl:
   enabled: true                      # true = 启用 ESAFL 密文 delta 路径
-  mode: "SIMULATION"                  # SIMULATION = 单密钥模拟 | NATIVE = 真实多密钥 CKKS
-  prpg_seed: 42                       # PRPG 伪随机多项式生成器种子（SIMULATION 模式用）
+  mode: "SIMULATION"                  # SIMULATION = TenSEAL 单密钥模拟（默认）
+                                      # NATIVE   = xMK-CKKS Go 多密钥（partial decryption）
+                                      # PUREPY   = 纯 Python ESHE 复现（ckks_fed/eshe.py，
+                                      #            每客户端独立 s_i、共享密钥 s=Σs_i、one-shot 解密）
+  prpg_seed: 42                       # PRPG 伪随机多项式生成器种子（SIMULATION/PUREPY 模式用）
+  # ---- 以下两项仅 PUREPY 模式生效 ----
+  logp: 50                            # 明文模数 p = 2^logp。
+                                      # EP 硬约束：T*(quant_bits+pad) ≤ logp（pad=⌈logN⌉+1），
+                                      # 典型配置 T=⌊50/(10+6)⌋=3（logq0=10、N=25），余量充足。
+                                      # 另需给聚合噪声 Σe_i 留余量（eta 越大 / 客户端越多，要求 logp 越大）。
+  eta: 4                              # 加密噪声分布 χ_e 的中心二项参数（每个噪声系数 ∈ [-eta, eta]）。
+                                      # 还原精度与噪声无关（Dec 后 mod p 精确消噪），仅影响安全性参数，
+                                      # 一般无需调整。
 
 # 四（附·三）、TEE 可信执行环境配置 (tee)
 # ============================================================================

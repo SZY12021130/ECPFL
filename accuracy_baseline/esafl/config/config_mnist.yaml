@@ -97,6 +97,8 @@ global_mask_vote:
   topk_pct: 0.1
 
 # ESAFL 配置 - 启用密文delta路径
+# mode: SIMULATION（默认，TenSEAL 单密钥模拟）| NATIVE（xMK-CKKS Go 多密钥）|
+#       PUREPY（纯 Python ESHE 复现，见 ckks_fed/eshe.py 与 docs/ESAFL_NATIVE_MULTIKEY.md）
 esafl:
   enabled: true
   mode: "SIMULATION"

@@ -20,6 +20,11 @@ NATIVE 模式：
   - NATIVE 模式下，加密 / 聚合 / 解密由 CKKSManager 直接调用 ESHEManager 完成，
     本适配器主要保留 SIMULATION 模式下的 delta 计算与扩展解密逻辑。
 
+PUREPY 模式：
+  - 使用 ckks_fed.eshe 中的纯 Python ESHE 复现（NTT 加速的 R_q 运算）。
+  - 密文自带 mask（= a^t·s_i 贡献），跨轮解密 [[ct − Δ_a·s]_q]_p 由
+    decrypt_model_update 的 [[ct − mask]_Q]_p 自动实现。
+
 密钥管理（SIMULATION）：
   - KGC 生成标准 CKKS 密钥对 (pk, sk)
   - sk 分发给所有客户端（ESAFL 风格：所有客户端共享解密密钥）
@@ -138,8 +143,8 @@ class ESAFLAdapter:
 
     Args:
         ckks_manager: CKKSManager 实例
-        mode: "SIMULATION" | "NATIVE"
-        prpg_seed: PRPG 种子（SIMULATION 模式下保留）
+        mode: "SIMULATION" | "NATIVE" | "PUREPY"
+        prpg_seed: PRPG 种子（SIMULATION/PUREPY 模式下使用）
     """
 
     def __init__(self, ckks_manager, mode: str = "SIMULATION", prpg_seed: int = 42):
@@ -233,7 +238,13 @@ class ESAFLAdapter:
         if self.mode == "SIMULATION":
             # SIMULATION: 单密钥，直接解密
             return self.ckks_manager.decrypt_model_update(encrypted_state, original_shapes)
-        
+
+        if self.mode == "PUREPY":
+            # PUREPY: ESHE 密文自带 mask（= a^t·s 的贡献，密文减法时已同步
+            # 累加 Δ_a·s 校正项），解密 [[ct − mask]_Q]_p 自动实现论文的
+            # 跨轮解密 [[ct − Δ_a·s]_q]_p，无需额外轮次上下文。
+            return self.ckks_manager.decrypt_model_update(encrypted_state, original_shapes)
+
         # NATIVE 模式（未来扩展）
         # TODO: 实现真正的扩展解密（需要访问 TenSEAL 内部多项式）
         raise NotImplementedError(
