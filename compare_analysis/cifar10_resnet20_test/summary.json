@@ -1,0 +1,11 @@
+{
+  "model": "resnet20",
+  "dataset": "cifar10",
+  "packing": "merged",
+  "vote_mode": "none",
+  "final_test_acc": 0,
+  "total_comm_mb": 0,
+  "total_ciphertexts": 0,
+  "elapsed_sec": 2037.7420291900635,
+  "test_accuracies": []
+}

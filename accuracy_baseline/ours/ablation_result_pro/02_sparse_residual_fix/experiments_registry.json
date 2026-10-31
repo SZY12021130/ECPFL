@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "20260627_153908",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\ablation_result_pro\\02_sparse_residual_fix\\experiment_20260627_153908_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 95.009987707437,
+      "final_test_loss": 0.18945545670336125,
+      "total_time_sec": 4385.871288537979,
+      "total_communication_mb": 43527.205419540405,
+      "avg_round_time_sec": 87.71742577075958,
+      "avg_upload_kb": 503067.8046875,
+      "avg_download_kb": 388369.3623046875,
+      "avg_expansion_ratio": 18.79790075973756,
+      "avg_encryption_time_sec": 0.35839319400787356,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.7803764343262,
+      "total_ciphertext_blocks": 77050,
+      "prefetch_enabled": false
+    }
+  }
+]

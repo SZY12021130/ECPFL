@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "20260604_141004",
+    "output_dir": "accuracy_threshold_v2/20260604_cifar10_threshold_pct_0.9",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 53.08,
+      "final_test_loss": 1.2567885309267954,
+      "total_time_sec": 428.59224100338383,
+      "total_communication_mb": 4294.302691459656,
+      "avg_round_time_sec": 8.571844820067678,
+      "avg_upload_kb": 85694.84068359375,
+      "avg_download_kb": 2252.4784375,
+      "avg_expansion_ratio": 3.2021192685792697,
+      "avg_encryption_time_sec": 0.1088346736907959,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.60848426818848,
+      "total_ciphertext_blocks": 13125,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.064952850341797e-05,
+      "avg_fetch_time_sec": 0.0752786539686832,
+      "avg_apply_time_sec": 0.04768744010925293,
+      "total_prefetch_download_kb": 5667481.818359375,
+      "total_fetch_download_kb": 112623.921875
+    }
+  }
+]

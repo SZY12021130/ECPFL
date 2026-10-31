@@ -1,0 +1,50 @@
+FedPHE/
+├── workspace/                # 工作目录，存储运行时数据/日志/加密相关文件
+│   ├── data/                 # 数据集存储目录
+│   ├── log/                  # 运行日志存储目录
+│   ├── encryption/           # 加密算法实现目录
+│   │   ├── paillier/         # Paillier 同态加密实现
+│   │   ├── bfv/              # BFV 同态加密实现
+│   │   └── ckks/             # CKKS 同态加密实现
+│   ├── models/               # 深度学习模型定义目录
+│   │   ├── resnet50.py       # ResNet50 模型实现
+│   │   └── model.py          # 其他模型（MNIST/CIFAR 专用）
+│   ├── utils/                # 工具函数目录
+│   │   ├── dataset/          # 数据集相关工具（未展示具体文件）
+│   │   ├── min_hash/         # MinHash/LSH 客户端选择相关实现
+│   │   └── util.py           # 通用工具（模型初始化、日志、聚类等）
+│   ├── client/               # 联邦学习客户端逻辑（训练、加密、通信）
+│   ├── server/               # 联邦学习服务端逻辑（聚合、解密、客户端选择）
+│   ├── fed/                  # 联邦学习核心流程（未展示具体文件）
+│   └── main/                 # 项目入口相关（main.py 为核心入口）
+├── requirements.txt          # 依赖配置文件
+├── LICENSE                   # 开源许可证（Apache 2.0）
+└── README.md                 # 项目说明文档
+
+目录 / 文件	核心职责
+workspace/data	存放训练 / 测试数据集，以及加密算法所需的上下文参数文件（如 CKKS/BFV 上下文）
+workspace/log	存储运行日志，记录训练过程、性能指标、错误信息等
+workspace/encryption	封装 Paillier、BFV、CKKS 三种同态加密算法的加解密逻辑
+workspace/models	定义联邦学习中使用的深度学习模型（LeNet、ResNet20/50、CNN 等）
+workspace/utils	提供通用工具：模型初始化、日志打印、数据采样、MinHash/LSH 聚类、随机数生成等
+workspace/client	实现客户端侧逻辑：本地训练、参数加密、与服务端通信、参数更新、精度测试等
+workspace/server	实现服务端侧逻辑：参数聚合、解密、客户端选择、全局模型分发等
+workspace/fed	联邦学习核心流程封装（如联邦平均、训练轮次管理，未展示具体实现）
+
+
+文件名	核心作用
+client.py	客户端核心逻辑，包含参数加密 / 解密、本地训练、与服务端通信、客户端选择参与逻辑
+server.py	服务端核心逻辑，包含参数聚合、同态解密、客户端选择（MinHash/LSH 聚类）、精度测试
+utils/min_hash.py	实现 MinHash/LSH 数据草图、聚类算法，支撑客户端选择功能
+utils/util.py	通用工具封装，如模型初始化、日志打印、随机种子设置、聚类辅助函数等
+models/resnet50.py	深度学习模型实现，支撑 CIFAR100 等数据集的训练
+
+1. 核心功能
+提供基于同态加密（Paillier/BFV/CKKS）的跨机构联邦学习能力，保障数据隐私不泄露；
+支持参数稀疏化（TopK/RandK）、客户端选择（MinHash/LSH 聚类）、打包加密等优化策略，降低通信开销和训练时间；
+兼容 MNIST、FashionMNIST、CIFAR10/CIFAR100 等主流数据集，支持多种深度学习模型（LeNet、ResNet 等）；
+具备掉队节点抗性，提升联邦学习在异构环境下的稳定性。
+2. 核心目标
+解决传统联邦学习中 “数据不出域” 与 “训练效率 / 通信开销” 的矛盾，实现隐私保护与性能的平衡；
+提供可复现的实验框架，支持自定义加密算法、稀疏化比例、客户端数量等参数，验证 FedPHE 框架的有效性；
+对比现有联邦学习加密方案（如 BatchCrypt），证明 FedPHE 在通信 footprint、训练时间上的优势。

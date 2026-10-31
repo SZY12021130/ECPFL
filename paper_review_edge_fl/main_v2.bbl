@@ -1,0 +1,175 @@
+\begin{thebibliography}{10}
+
+\bibitem{mcmahan2017communication}
+Brendan McMahan, Eider Moore, Daniel Ramage, Seth Hampson, and Blaise~Aguera
+  y~Arcas.
+\newblock Communication-efficient learning of deep networks from decentralized
+  data.
+\newblock In {\em Proceedings of the 20th International Conference on
+  Artificial Intelligence and Statistics (AISTATS)}, pages 1273--1282. PMLR,
+  2017.
+
+\bibitem{hsu2019measuring}
+Tzu-Ming~Harry Hsu, Hang Qi, and Matthew Brown.
+\newblock Measuring and mitigating the impact of non-iid data in federated
+  learning.
+\newblock {\em arXiv preprint arXiv:1909.06335}, 2019.
+
+\bibitem{zhan2020learning}
+Yue Zhan, Peng Li, Song Guo, Zicong Huo, and Boqing Gong.
+\newblock A learning-based incentive mechanism for federated learning.
+\newblock {\em IEEE Internet of Things Journal}, 7(7):6360--6368, 2020.
+
+\bibitem{sarikaya2020motivating}
+Yunus Sarikaya and Ozgur Ercetin.
+\newblock Motivating workers in federated learning: A stackelberg game
+  perspective.
+\newblock {\em IEEE Networking Letters}, 2(1):23--27, 2020.
+
+\bibitem{li2020convergence}
+Xiang Li, Kaixuan Huang, Wenhao Yang, Shusen Wang, and Zhihua Zhang.
+\newblock On the convergence of fedavg on non-iid data.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2020.
+
+\bibitem{li2020federated}
+Tian Li, Anit~Kumar Sahu, Manzil Zaheer, Maziar Sanjabi, Ameet Talwalkar, and
+  Virginia Smith.
+\newblock Federated optimization in heterogeneous networks.
+\newblock {\em Proceedings of Machine Learning and Systems}, 2:429--450, 2020.
+
+\bibitem{arivazhagan2019federated}
+M.~G. Arivazhagan, Varun Aggarwal, Anit~Kumar Singh, and Sunav Choudhary.
+\newblock Federated learning with personalization layers.
+\newblock {\em arXiv preprint arXiv:1912.00818}, 2019.
+
+\bibitem{jiang2019improving}
+Yihan Jiang, Jakub Kone{\v{c}}n{\'y}, Keith Rush, and Sreeram Kannan.
+\newblock Improving federated learning personalization via model agnostic meta
+  learning.
+\newblock {\em arXiv preprint arXiv:1909.12488}, 2019.
+
+\bibitem{dinh2020personalized}
+Canh~T. Dinh, Nguyen~H. Tran, and Tuan~Dung Nguyen.
+\newblock Personalized federated learning with moreau envelopes.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~33, 2020.
+
+\bibitem{tan2022fedproto}
+Alysa~Ziying Tan, Han Yu, Lizhen Cui, and Qiang Yang.
+\newblock Fedproto: Federated prototype learning over heterogeneous devices.
+\newblock In {\em Proceedings of the AAAI Conference on Artificial
+  Intelligence}, volume~36, pages 8449--8457, 2022.
+
+\bibitem{sattler2019robust}
+Felix Sattler, Simon Wiedemann, Klaus-Robert M{\"u}ller, and Wojciech Samek.
+\newblock Robust and communication-efficient federated learning from non-iid
+  data.
+\newblock {\em IEEE Transactions on Neural Networks and Learning Systems},
+  31(9):3400--3413, 2019.
+
+\bibitem{wang2020fedma}
+Hongyi Wang, Mikhail Yurochkin, Yuekai Sun, Dimitris Papailiopoulos, and
+  Yasaman Khazaeni.
+\newblock Federated learning with matched averaging.
+\newblock In {\em International Conference on Learning Representations (ICLR)},
+  2020.
+
+\bibitem{smith2017federated}
+Virginia Smith, Chao-Kai Chiang, Maziar Sanjabi, and Ameet Talwalkar.
+\newblock Federated multi-task learning.
+\newblock {\em Advances in Neural Information Processing Systems}, 30, 2017.
+
+\bibitem{huang2021personalized}
+Yutao Huang, Lingyang Chu, Zirui Zhou, Lanjun Lan, Bowen Liu, Jie Wang, Jian
+  Chen, and Yi~Hao.
+\newblock Personalized cross-silo federated learning on non-iid data.
+\newblock {\em Proceedings of the AAAI Conference on Artificial Intelligence},
+  35(9):7865--7873, 2021.
+
+\bibitem{lin2020ensemble}
+Tao Lin, Lingjing Kong, Sebastian~U. Stich, and Martin Jaggi.
+\newblock Ensemble distillation for robust model fusion in federated learning.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~33, 2020.
+
+\bibitem{zhu2021data}
+Ligeng Zhu, Hongzhou Lin, Yaochu Jin, and Song Han.
+\newblock Data-free knowledge distillation for heterogeneous federated
+  learning.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  12878--12889. PMLR, 2021.
+
+\bibitem{nishio2019client}
+Takayuki Nishio and Ryo Yonetani.
+\newblock Client selection for federated learning with heterogeneous resources
+  in mobile edge.
+\newblock In {\em IEEE International Conference on Communications (ICC)}, pages
+  1--7. IEEE, 2019.
+
+\bibitem{wang2020tackling}
+Jianyu Wang, Qinghua Liu, Hao Liang, Gauri Joshi, and H.~Vincent Poor.
+\newblock Tackling the objective inconsistency problem in heterogeneous
+  federated optimization.
+\newblock In {\em Advances in Neural Information Processing Systems (NeurIPS)},
+  volume~33, 2020.
+
+\bibitem{lim2020hierarchical}
+Wei Yang~Bryan Lim, Nguyen~Cong Luong, Dinh~Thai Hoang, Ying Jiao, Yutao Jia,
+  Ying-Chang Liang, Qiang Yang, Dusit Niyato, and Chunyan Miao.
+\newblock Federated learning in mobile edge networks: A comprehensive survey.
+\newblock {\em IEEE Communications Surveys \& Tutorials}, 22(3):2031--2061,
+  2020.
+
+\bibitem{geyer2017differentially}
+Robin~C. Geyer, Tassilo Klein, and Moin Nabi.
+\newblock Differentially private federated learning: A client level
+  perspective.
+\newblock {\em arXiv preprint arXiv:1712.07557}, 2017.
+
+\bibitem{wei2020federated}
+Kang Wei, Jun Li, Ming Ding, Chuan Ma, Howard~H. Yang, Farhad Farokhi, Shi Jin,
+  Tony Q.~S. Quek, and H.~Vincent~Poor.
+\newblock Federated learning with differential privacy: Algorithms and
+  performance analysis.
+\newblock {\em IEEE Transactions on Information Forensics and Security},
+  15:3454--3469, 2020.
+
+\bibitem{karimireddy2020scaffold}
+Sai~Praneeth Karimireddy, Satyen Kale, Mehryar Mohri, Sashank Reddi, Sebastian
+  Stich, and Ananda~Theertha Suresh.
+\newblock {SCAFFOLD}: Stochastic controlled averaging for federated learning.
+\newblock In {\em International Conference on Machine Learning (ICML)}, pages
+  5132--5143. PMLR, 2020.
+
+\bibitem{kairouz2021advances}
+Peter Kairouz, H.~Brendan McMahan, Brendan Avent, Aurelien Bellet, Mehdi
+  Bennis, Arjun~Nitin Bhagoji, Keith Bonawitz, Zachary Charles, Graham Cormode,
+  Rachel Cummings, Rafael~G.L. D'Oliveira, Salim~El Rouayheb, David Evans, Josh
+  Gardner, Zachary Garrett, Adria Gascon, Badih Ghazi, Phillip~B. Gibbons,
+  Marco Gruteser, Zaid Harchaoui, Chaoyang He, Lie He, Zhouyuan Huo, Ben
+  Hutchinson, Justin Hsu, Martin Jaggi, Tara Javidi, Gauri Joshi, Mikhail
+  Khodak, Jakub Konecny, Aleksandra Korolova, Farinaz Koushanfar, Sanmi Koyejo,
+  Tancrede Lepoint, Yanyao Liu, Prateek Mittal, Mehryar Mohri, Richard Nock,
+  Ayfer Ozgur, Rasmus Pagh, Mariana Raykova, Hang Qi, Daniel Ramage, Ramesh
+  Raskar, Dawn Song, Weikang Song, Sebastian~U. Stich, Ziteng Sun,
+  Ananda~Theertha Suresh, Florian Tramer, Praneeth Vepakomma, Jianyu Wang,
+  Li~Xiong, Zheng Xu, Qiang Yang, Felix~X. Yu, Han Yu, and Sen Zhao.
+\newblock Advances and open problems in federated learning.
+\newblock {\em Foundations and Trends in Machine Learning}, 14(1--2):1--210,
+  2021.
+
+\bibitem{luo2022hfel}
+Shan Luo, Xing Chen, Zhiqin Zhou, and Wentao Wu.
+\newblock {HFEL}: Joint edge association and resource allocation for
+  cost-efficient hierarchical federated edge learning.
+\newblock {\em IEEE Transactions on Mobile Computing}, 21(12):4633--4646, 2022.
+
+\bibitem{li2023survey}
+Qinbin Li, Zhaomin Wu, Xiaoyang Qu, Jingjing Xue, and Bingsheng He.
+\newblock A survey on federated learning systems: Vision, hype and reality for
+  data privacy and protection.
+\newblock {\em IEEE Transactions on Knowledge and Data Engineering},
+  35(7):7347--7372, 2023.
+
+\end{thebibliography}

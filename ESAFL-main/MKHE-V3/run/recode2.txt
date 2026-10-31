@@ -1,0 +1,41 @@
+vsize = 4020000; 
+logQ = 256; 1024; 2048; 3072
+split_num = 50; 10; 5; 3
+
+Computational time:
+encryption = XX; 2937.464ms; 3113.627ms; 2761.142ms
+cipher Add = XX; 549.11ms; 408.443ms; 300.913ms
+decryptoin = XX; 2897.469ms; 3700.692ms; 3629.38ms
+
+communication traffic: 
+plain 32, cipher 256, cipher 1024, cipher 2048, cipher 3072
+122.68MB, 200MB, 160MB, 160MB, 144MB
+_________________________________________________________________
+
+vsize = 1250000;
+logQ = 256; 1024; 2048; 3072
+split_num = XX; 3; 2; 1
+
+Computational time:
+encryption = XX; 896.092ms; 1154.136ms; 1011.798ms
+cipher Add = XX; 168.526ms; 166.932ms; 99.935ms
+decryptoin = XX; 1051.419ms; 1317.84ms; 1187.67ms
+
+communication traffic: 
+plain 32, cipher 256, cipher 1024, cipher 2048, cipher 3072
+38.15MB, 64MB, 48MB, 64MB, 48MB
+_________________________________________________________________
+
+vsize = 101770;
+logQ = 256; 1024; 2048; 3072
+split_num = XX; 1; 1; 1
+
+Computational time:
+encryption = XX; 231.592ms; 506.892ms; 696.85ms
+cipher Add = XX; 61.408ms; 80.048ms; 99.481ms
+decryptoin = XX; 264.987ms; 719.927ms; 1165.55ms
+
+communication traffic: 
+plain 32, cipher 256, cipher 1024, cipher 2048, cipher 3072
+3.11MB, 8MB, 16MB, 32MB, 48MB
+_________________________________________________________________

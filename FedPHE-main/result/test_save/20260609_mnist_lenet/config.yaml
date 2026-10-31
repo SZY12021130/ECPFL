@@ -1,0 +1,21 @@
+system:
+  num_clients: 50
+  num_selected_clients: 25
+  num_rounds: 50
+  local_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  random_seed: 42
+data:
+  dataset: mnist
+  split: noniid
+  noniid_method: dirichlet
+  alpha: 1
+model:
+  name: lenet
+encryption:
+  enabled: true
+  algorithm: ckks
+  is_batch: true
+  sparsification: topk
+  topk: 0.1

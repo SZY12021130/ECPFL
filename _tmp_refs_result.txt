@@ -1,0 +1,133 @@
+TOTAL HITS: 110
+    6x  .\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml
+    6x  .\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml
+    6x  .\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml
+    6x  .\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml
+    6x  .\accuracy_baseline\fedphe\config\config_cifar10.yaml
+    6x  .\accuracy_baseline\fedphe\config\config_fmnist.yaml
+    6x  .\accuracy_baseline\fedphe\config\config_mnist.yaml
+    6x  .\accuracy_baseline\fedphe\config\config_svhn.yaml
+    3x  .\ckks_fed\crypto.py
+   20x  .\ckks_fed\packing.py
+    1x  .\ckks_fed\server.py
+    6x  .\configs\config.yaml
+    4x  .\configs\config_temp.yaml
+    1x  .\docs\CKKS_QUANTIZATION_DEEP_MODEL_SOLUTION.md
+    4x  .\docs\PREFETCH_LOGIC_COMPARISON.md
+    4x  .\docs\PROJECT_ARCHITECTURE.md
+    1x  .\scripts\quick_test_deep_models.py
+    6x  .\tests\test_packing.py
+    6x  .\tmp_configs\none_warmup.yaml
+    6x  .\tmp_configs\union_warmup.yaml
+
+--- detail ---
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedavg+ckks\config\config_cifar10.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedavg+ckks\config\config_fmnist.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedavg+ckks\config\config_mnist.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedavg+ckks\config\config_svhn.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedphe\config\config_cifar10.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedphe\config\config_fmnist.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedphe\config\config_mnist.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\accuracy_baseline\fedphe\config\config_svhn.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\ckks_fed\crypto.py:15 [ConjugatePacking] LayerwisePacking, MergedPacking, ConjugatePacking,
+.\ckks_fed\crypto.py:358 [twotier] # 传递 packing_metadata（CRTStack/TwoTier 解密必需）
+.\ckks_fed\crypto.py:854 [twotier] # 原因：CRTStack / TwoTier / ESAFL 等整数编码对同态乘法噪声极度敏感，
+.\ckks_fed\packing.py:6 [conjugate] - conjugate:   利用复数实部/虚部分别存储两个值，slot 容量翻倍
+.\ckks_fed\packing.py:7 [twotier] - twotier:     Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\ckks_fed\packing.py:168 [ConjugatePacking] class ConjugatePacking(PackingStrategy):
+.\ckks_fed\packing.py:177 [conjugate] return "conjugate"
+.\ckks_fed\packing.py:240 [conjugate] def _check_conjugate_support() -> bool:
+.\ckks_fed\packing.py:255 [conjugate] _CONJUGATE_SUPPORTED = None
+.\ckks_fed\packing.py:258 [TwoTierPacking] class TwoTierPacking(PackingStrategy):
+.\ckks_fed\packing.py:285 [twotier] return "twotier"
+.\ckks_fed\packing.py:580 [TwoTierPacking] 相比 TwoTierPacking:
+.\ckks_fed\packing.py:581 [TwoTierPacking] - TwoTierPacking: per-block scale, block 可能跨层 → 小层精度被大层牺牲
+.\ckks_fed\packing.py:866 [conjugate] global _CONJUGATE_SUPPORTED
+.\ckks_fed\packing.py:874 [conjugate] elif strategy_name == "conjugate":
+.\ckks_fed\packing.py:875 [conjugate] if _CONJUGATE_SUPPORTED is None:
+.\ckks_fed\packing.py:876 [conjugate] _CONJUGATE_SUPPORTED = _check_conjugate_support()
+.\ckks_fed\packing.py:877 [conjugate] if not _CONJUGATE_SUPPORTED:
+.\ckks_fed\packing.py:879 [conjugate] "当前 TenSEAL 版本不支持复数编码，conjugate 策略回退到 merged"
+.\ckks_fed\packing.py:882 [ConjugatePacking] return ConjugatePacking(slot_count)
+.\ckks_fed\packing.py:883 [twotier] elif strategy_name == "twotier":
+.\ckks_fed\packing.py:885 [TwoTierPacking] logger.info(f"TwoTierPacking 初始化: quant_bits={quant_bits}, slot_count={slot_count}")
+.\ckks_fed\packing.py:886 [TwoTierPacking] return TwoTierPacking(slot_count, quant_bits=quant_bits)
+.\ckks_fed\server.py:190 [twotier] # 整数编码（CRTStack/TwoTier/ESAFL）对同态加法/乘法的噪声极度敏感，
+.\configs\config.yaml:373 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\configs\config.yaml:377 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\configs\config.yaml:378 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\configs\config.yaml:381 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\configs\config.yaml:382 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\configs\config.yaml:390 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\configs\config_temp.yaml:151 [conjugate] # packing: 模型更新打包策略（减�?ciphertext 数量�?  #   建议取�? ["layerwise", "merged", "conjugate", "twotier"]
+.\configs\config_temp.yaml:154 [conjugate] #     �?merged     = 合并所有层后统一分块加密（减少碎片，推荐�?  #     �?conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\configs\config_temp.yaml:155 [conjugate] #     �?twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching�?  #   注意: merged �?LeNet 可减少约 42% ciphertext 数量�?  #         conjugat
+.\configs\config_temp.yaml:158 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\docs\CKKS_QUANTIZATION_DEEP_MODEL_SOLUTION.md:96 [twotier] | `twotier` | per-block | 最少 | 中等深度 |
+.\docs\PREFETCH_LOGIC_COMPARISON.md:88 [twotier] - 若使用量化打包（TwoTier/CRTStack/Layerwise），触发回退：`decrypt all → plaintext avg → re-encrypt`。
+.\docs\PREFETCH_LOGIC_COMPARISON.md:146 [twotier] | **压缩策略** | TopK/STC + QSGD/EDEN/ECUQ/PowerSGD（多层组合） | CKKS 槽位打包 + TopK 稀疏化 + 量化打包（CRTStack/TwoTier/LayerwiseQuantized） |
+.\docs\PREFETCH_LOGIC_COMPARISON.md:217 [twotier] - 量化打包（CRTStack/TwoTier/LayerwiseQuantized）将浮点数量化为整数后再打包，进一步减少 batch 数。
+.\docs\PREFETCH_LOGIC_COMPARISON.md:426 [twotier] 当启用 CRTStack/TwoTier/LayerwiseQuantized 打包时：
+.\docs\PROJECT_ARCHITECTURE.md:106 [twotier] ├── packing? (Merged/TwoTier/CRTStack/LayerwiseQuantized)
+.\docs\PROJECT_ARCHITECTURE.md:281 [ConjugatePacking] | `ConjugatePacking` | 实部/虚部分存两个值，slot翻倍 | 无 | N/A |
+.\docs\PROJECT_ARCHITECTURE.md:282 [TwoTierPacking] | `TwoTierPacking` | per-block min-max量化到16-bit | 16-bit | per-block |
+.\docs\PROJECT_ARCHITECTURE.md:410 [conjugate] strategy: merged      # merged / layerwise / twotier / crtstack / layerwise_quantized / conjugate
+.\scripts\quick_test_deep_models.py:218 [twotier] parser.add_argument("--packing", default="layerwise_quantized", choices=["merged", "layerwise", "layerwise_quantized", "twotier", 
+.\tests\test_packing.py:3 [conjugate] 验证 layerwise / merged / conjugate 三种模式的正确性
+.\tests\test_packing.py:12 [ConjugatePacking] from ckks_fed.packing import create_packing_strategy, MergedPacking, ConjugatePacking
+.\tests\test_packing.py:108 [conjugate] # 测试 conjugate（如果 TenSEAL 支持）
+.\tests\test_packing.py:110 [conjugate] ct_conj = test_strategy('conjugate')
+.\tests\test_packing.py:111 [conjugate] print(f"  conjugate: {ct_conj} ciphertexts")
+.\tests\test_packing.py:114 [conjugate] print(f"\n  conjugate test skipped: {e}")
+.\tmp_configs\none_warmup.yaml:366 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\tmp_configs\none_warmup.yaml:370 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\tmp_configs\none_warmup.yaml:371 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\tmp_configs\none_warmup.yaml:374 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\tmp_configs\none_warmup.yaml:375 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\tmp_configs\none_warmup.yaml:383 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]
+.\tmp_configs\union_warmup.yaml:366 [conjugate] #   建议取值: ["layerwise", "merged", "conjugate", "twotier", "crtstack"]
+.\tmp_configs\union_warmup.yaml:370 [conjugate] #     • conjugate  = 复数共轭打包（slot 容量翻倍，密文再减半）
+.\tmp_configs\union_warmup.yaml:371 [twotier] #     • twotier    = Two-Pack CKKS 适配版（分层量化 + slot batching）
+.\tmp_configs\union_warmup.yaml:374 [conjugate] #         conjugate 需要 TenSEAL 支持复数编码，若不支持则自动回退到 merged；
+.\tmp_configs\union_warmup.yaml:375 [twotier] #         twotier 不改变密文数量，但通过 per-block 量化提升聚合精度稳定性；
+.\tmp_configs\union_warmup.yaml:383 [twotier] quant_bits: 16                    # twotier 专用: 量化比特数，建议 [8, 12, 16]

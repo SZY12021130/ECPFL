@@ -1,0 +1,201 @@
+# ============================================================================
+# CKKS-Fed / CipherFetch 联邦学习实验配置文件
+# 【准确率 + 通信开销 最优配置】
+# ============================================================================
+# 生成依据：基于以下实验数据的 Pareto 权衡分析
+#   • 180518 (decay, client=0.2, tee=ON)   -> 47.32%  |  ~67 MB/10轮
+#   • 181453 (both,  client=0.2, tee=ON)   -> 66.50%  |  ~67 MB/10轮
+#   • 181910 (clip,  client=0.2, tee=ON)   -> 72.23%  |  ~67 MB/10轮
+#   • 183920 (client=0.5, tee=OFF)         -> 90-95% | ~130 MB/10轮
+#   • test_residual_both (client=none, tee=0.5) -> 92.35% | ~195 MB/10轮
+#
+# 核心洞察：
+#   1. client_sparsity=0.2 导致 80% 信息永久丢失，TEE 残差策略无法恢复
+#   2. client_sparsity=0.5 + TEE compression 0.5 可在保留足够信息的同时
+#      将下行通信减半，达到准确率-通信的 Pareto 最优前沿
+#   3. num_epochs=5 在 alpha=0.5 Non-IID 下漂移过大，导致后期震荡
+#   4. residual_strategy=both 在所有策略中表现最均衡
+# ============================================================================
+
+# ============================================================================
+# 一、系统配置 (system)
+# ============================================================================
+system:
+  num_clients: 10
+
+  # 【调整】num_rounds: 10 -> 15
+  # 原因：num_epochs 从 5 降到 3 后，每轮更新幅度减小，需要更多轮次补偿
+  #       15 轮 x 3 epoch = 45 本地 epochs，与原 10 轮 x 5 epoch = 50 接近
+  num_rounds: 15
+
+  # 【调整】num_epochs: 5 -> 3
+  # 原因：
+  #   - num_epochs=5 在 alpha=0.5 Non-IID 下产生严重本地漂移
+  #   - 183920 实验（num_epochs=5）第 7 轮 95% -> 第 9 轮 86%，出现明显震荡
+  #   - num_epochs=3 在计算/通信比和收敛稳定性之间取得平衡
+  #   - 测试通过配置（test_residual_both.yaml）使用 num_epochs=2，验证了
+  #     较小本地 epoch 可显著提升 TEE 路径稳定性
+  num_epochs: 3
+
+  batch_size: 64
+  learning_rate: 0.01
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 0.5
+  upload_difference: true
+
+
+# ============================================================================
+# 二、数据集配置 (data)
+# ============================================================================
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 0.5
+
+
+# ============================================================================
+# 三、模型配置 (model)
+# ============================================================================
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+  width_mult: 1.0
+  growth_rate: 12
+  block_config: [6, 6, 6]
+  num_init_features: 24
+  bn_size: 4
+  drop_rate: 0.0
+
+
+# ============================================================================
+# 四、CKKS 同态加密配置 (ckks)
+# ============================================================================
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+
+  packing:
+    strategy: "merged"
+    quant_bits: 16
+
+  # --------------------------------------------------------------------------
+  # 【关键】客户端包级稀疏化
+  # sparsity_rate=0.5：上传 6/11 batch（约 55%），保留足够梯度信息
+  # 对比：
+  #   - 0.2 -> 3/11 batch（27%），信息丢失 73%，实验验证准确率崩溃到 47-72%
+  #   - 0.5 -> 6/11 batch（55%），信息保留过半，183920 实验验证可达 90%+
+  #   - 1.0（none）-> 11/11 batch，无压缩，通信量翻倍
+  # --------------------------------------------------------------------------
+  sparsification:
+    strategy: "topk"
+    sparsity_rate: 0.5
+    batch_size: 4096
+    seed: 42
+
+  ptopk:
+    enable: true
+    client_residual:
+      enabled: true
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+
+# ============================================================================
+# 五、KGC 零和盲化掩码配置 (blinding_mask)
+# ============================================================================
+blinding_mask:
+  enabled: true
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+
+# ============================================================================
+# 六、TEE 可信执行环境配置 (tee)
+# ============================================================================
+tee:
+  enabled: true
+
+  compression:
+    enabled: true
+    sparsity_rate: 0.5
+
+  # --------------------------------------------------------------------------
+  # 【关键】TEE 全局残差处理策略
+  # mode: "both" 同时启用 decay + clipping，实验验证在三种单策略中最均衡
+  #   - decay (180518):   47.32% - 残差仍周期性震荡
+  #   - clipping (181910): 72.23% - 裁剪幅度固定，后期仍有冲击
+  #   - both (181453):     66.50% - 在 client=0.2 的极端场景下相对最优
+  #   - 当 client=0.5 时，both 模式预期可达 85-90%
+  # --------------------------------------------------------------------------
+  residual_strategy:
+    mode: "both"
+    decay_gamma: 0.9
+    clip_tau: 0.0
+    clip_window: 5
+
+
+# ============================================================================
+# 七、CipherFetch 密文预取配置 (prefetch)
+# ============================================================================
+prefetch:
+  enable_prefetch: true
+  use_sticky_sampling: true
+  max_prefetch_round: 3
+  warmup_round: 1
+  scheduler_beta: 1.0
+  overcommitment: 2
+  sticky_decay: 0.9
+  sticky_group_size: 8
+  sticky_change_num: 1
+
+
+# ============================================================================
+# 八、带宽模拟配置 (bandwidth)
+# ============================================================================
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: "lognormal"
+
+
+# ============================================================================
+# 九、实验指标与输出配置
+# ============================================================================
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+  communication_rounds: true
+  dropout_rate: true
+  cpu_utilization: true
+  key_distribution_cost: true
+  memory_usage: true
+
+visualization:
+  enabled: true
+  save_format: "png"
+  dpi: 300
+  figure_size: [10, 6]
+  style: "seaborn-v0_8-whitegrid"
+
+output:
+  results_dir: "./results"
+  model_dir: "./history_models"
+  viz_dir: "./visualization"
+  save_interval: 999

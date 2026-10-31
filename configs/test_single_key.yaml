@@ -1,0 +1,90 @@
+# Minimal config to smoke-test standard single-key TenSEAL path
+
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 5
+  num_rounds: 2
+  num_epochs: 1
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cpu"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 1.0
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 1
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+ckks:
+  poly_modulus_degree: 4096
+  coeff_mod_bit_sizes: [40, 20, 40]
+  global_scale: 1048576
+  slot_packing: true
+  packing:
+    strategy: "layerwise"
+  sparsification:
+    strategy: "none"
+  ptopk:
+    enable: false
+
+blinding_mask:
+  enabled: false
+
+global_mask_vote:
+  mode: "none"
+
+adaptive_vote:
+  enabled: false
+
+maser:
+  enable: false
+
+esafl:
+  enabled: false
+  mode: "SIMULATION"
+
+tee:
+  enabled: false
+
+prefetch:
+  enable_prefetch: false
+
+bandwidth:
+  fedfetch_trace_path: null
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: "uniform"
+  filter_low_bandwidth: false
+
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+
+visualization:
+  enabled: false
+
+output:
+  results_dir: "./results"
+  model_dir: "./history_models"
+  viz_dir: "./visualization"
+  save_interval: 999

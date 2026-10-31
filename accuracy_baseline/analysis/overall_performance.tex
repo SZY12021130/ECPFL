@@ -1,0 +1,14 @@
+\subsection{Overall Performance}
+\label{subsec:accuracy}
+
+Fig.~\ref{Accuracy_compare} and Table~\ref{tab:comm-comparison} summarize convergence, test accuracy, communication volume, and training time across the four datasets.
+ECPFL converges rapidly and stably, closely following the uncompressed FedAvg+CKKS baseline and confirming that prefetching and sparsification do not degrade convergence.
+ECPFL-UN achieves 99.19\%, 91.20\%, 82.77\%, and 95.11\% on MNIST, Fashion-MNIST, CIFAR-10, and SVHN, respectively, remaining within 0.62\% of the uncompressed baseline.
+On Fashion-MNIST and CIFAR-10, it outperforms FedPHE by 4.20\% and 7.00\%, respectively, as ESP consensus selects globally relevant gradient packs instead of isolated local top-k masks.
+
+ECPFL-RK achieves the smallest total volume on MNIST and Fashion-MNIST, reducing communication by $10.7\times$ and $6.5\times$ and training time by $2.4\times$ and $3.0\times$ over FedAvg+CKKS.
+ECPFL-TH achieves the smallest total volume on CIFAR-10 and SVHN.
+On CIFAR-10, it reduces communication by $6.9\times$ and training time by $2.5\times$ over FedAvg+CKKS.
+On SVHN, it reduces training time by $5.4\times$ over FedAvg+CKKS and by $5.7\times$ over MASER.
+FedAvg+CKKS incurs the highest total volume among the single-key baselines, and MASER's partial-decryption uploads further inflate communication on SVHN.
+ECPFL addresses these issues by combining distributed consensus with asynchronous ciphertext prefetching, moving the dominant downstream traffic into idle periods while preserving aggregation correctness.

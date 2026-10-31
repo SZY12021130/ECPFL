@@ -1,0 +1,320 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[UTF8,fontset=fandol]{ctex}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[numbers]{natbib}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{enumitem}
+
+\title{\textbf{边缘联邦学习中的统计异构性与激励机制：综述与折中框架}}
+\author{作者姓名}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+边缘联邦学习(Edge Federated Learning, EFL)在释放分布式数据价值的同时，面临数据非独立同分布(Non-IID)导致的统计异构性与边缘节点参与积极性不足引发的系统异构性两大难题。本文系统综述了现有应对统计异构性的主流方法，包括个性化联邦学习、聚类分组、知识蒸馏与差分隐私等，并深入剖析其在资源受限边缘环境下的固有缺陷；同时梳理了激励机制设计面临的信息不对称、预算约束与可扩展性等实用困境。在此基础上，本文提出一个结合简单启发式客户端选择与轻量级数据保护的折中可行框架Lite-EdgeFed。最后，针对是否应放弃全局模型转向局部个性化模型的争论，本文从收敛性、泛化能力与部署成本等维度给出观点与依据。本文综述涵盖了25篇可检索的核心文献，力求为边缘联邦学习的工程实践提供理论参考。
+\end{abstract}
+
+\section{引言}
+
+随着物联网(Internet of Things, IoT)设备的爆炸式增长，海量数据在边缘节点上生成。传统集中式机器学习需要将数据上传至云端，带来隐私泄露风险与巨大的通信开销。联邦学习(Federated Learning, FL)\cite{mcmahan2017communication}作为一种分布式机器学习范式，允许客户端在本地训练模型，仅上传模型参数或梯度，从而在保护数据隐私的同时降低骨干网传输压力。自McMahan等提出FedAvg以来，联邦学习已在键盘输入预测、医疗诊断与金融风控等领域得到广泛应用。
+
+然而，将联邦学习部署至边缘网络时，设备计算能力、通信带宽与电量水平参差不齐，且数据分布呈现高度非独立同分布(Non-IID)特征。Hsu等\cite{hsu2019measuring}通过实验系统地量化了Non-IID数据对FedAvg性能的影响，发现当数据异构程度超过一定阈值时，全局模型收敛缓慢甚至性能退化。此外，边缘节点的理性自私性导致"搭便车"与"虚假汇报"问题，激励机制设计面临信息不对称、预算约束与隐私可验证性等多重困境\cite{zhan2020learning,sarikaya2020motivating}。
+
+本文围绕以下核心问题展开：(1) 现有应对统计异构性的方法在资源受限边缘环境下存在哪些缺陷？(2) 激励机制设计面临哪些实用困境？(3) 如何构建一个兼顾简单性与有效性的折中框架？(4) 全局模型与局部个性化模型孰优孰劣？
+
+\section{统计异构性及其应对方法}
+
+\subsection{问题形式化}
+
+考虑一个由$K$个边缘客户端组成的联邦学习系统，客户端$k$拥有本地数据集$\mathcal{D}_k$，其数据分布为$P_k(x,y)$。在理想IID假设下，所有客户端共享同一数据分布$P_k = P$。然而，在边缘现实中，$P_k$之间存在显著差异。标准的联邦优化目标为：
+\begin{equation}
+\min_{w} F(w) = \sum_{k=1}^{K} \frac{n_k}{n} F_k(w), \quad F_k(w) = \frac{1}{n_k}\sum_{i \in \mathcal{D}_k} \ell(w; x_i, y_i),
+\label{eq:global_obj}
+\end{equation}
+其中$n_k = |\mathcal{D}_k|$，$n = \sum_k n_k$，$\ell$为损失函数。当$P_k$差异较大时，局部目标$F_k(w)$的极小点与全局目标$F(w)$的极小点偏离严重，导致FedAvg等算法收敛至次优点或振荡\cite{li2020convergence}。
+
+Li等\cite{li2020convergence}给出了FedAvg在Non-IID设定下的收敛界。假设各客户端损失函数$L$-光滑且$\mu$-强凸，则经过$T$轮通信后，FedAvg的全局参数$w^{(T)}$满足：
+\begin{equation}
+\mathbb{E}[F(w^{(T)})] - F^* \leq \mathcal{O}\left(\frac{1}{\mu T}\right) + \mathcal{O}\left(\frac{\Gamma}{\mu}\right),
+\end{equation}
+其中$\Gamma = \sum_{k=1}^{K} \frac{n_k}{n}\|\nabla F_k(w^*)\|^2$刻画了Non-IID程度。当$\Gamma = 0$时退化为IID情形；$\Gamma$越大，收敛误差越大，收敛速率越慢。该理论结果从数学上严格说明了统计异构性对联邦学习收敛的负面作用。
+
+\subsection{个性化联邦学习}
+
+个性化联邦学习(Personalized FL, PFL)的核心思想是在全局共享表示与本地个性化头之间取得平衡。代表性工作包括：
+
+\textbf{正则化方法}。Li等\cite{li2020federated}提出FedProx，在本地目标中添加近端项约束局部模型与全局模型的偏离：
+\begin{equation}
+\min_{w} F_k(w) + \frac{\mu}{2}\|w - w^{(t)}\|^2,
+\label{eq:fedprox}
+\end{equation}
+其中$\mu > 0$控制个性化程度。当$\mu \to 0$时退化为纯本地训练；当$\mu \to \infty$时退化为FedAvg。FedProx通过引入近端正则化，使得本地更新在靠近全局模型的同时保留一定灵活性，从而在Non-IID数据上获得更稳定的收敛。
+
+\textbf{局部个性化层}。Arivazhagan等\cite{arivazhagan2019federated}提出FedPer，将深度网络划分为基础层与个性化层。全局聚合仅作用于基础层，个性化层保留在本地微调：
+\begin{equation}
+w^{(t+1)} = \begin{cases}
+\text{FedAvg}(\{w_k^{(t)}\}), & \text{若 } l \in \text{基础层} \\
+w_k^{(t)} - \eta \nabla F_k(w_k^{(t)}), & \text{若 } l \in \text{个性化层}
+\end{cases}
+\end{equation}
+实验表明，即使顶层特征高度Non-IID，底层卷积特征仍具有跨域迁移能力，因此共享底层参数而保留顶层个性化是合理的工程折中。
+
+\textbf{元学习方法}。Jiang等\cite{jiang2019improving}将模型无关元学习(MAML)引入联邦学习，使全局模型具备良好的本地适应能力。目标函数为：
+\begin{equation}
+\min_{w} \sum_{k=1}^{K} \frac{n_k}{n} F_k\big(w - \alpha \nabla F_k(w)\big),
+\end{equation}
+其中$\alpha$为本地自适应步长。然而，元学习需要多步梯度回传，显著增加了边缘设备的计算负担。Dinh等\cite{dinh2020personalized}进一步提出pFedMe，利用Moreau包络将个性化问题转化为鞍点问题，在理论上给出了收敛保证，但同样需要额外的对偶变量存储，对边缘传感器节点不友好。
+
+\textbf{原型学习}。Tan等\cite{tan2022fedproto}提出FedProto，通过交换类别原型而非完整模型参数实现个性化：
+\begin{equation}
+\mathcal{L}_k = \mathcal{L}_{\text{cls}} + \lambda \sum_{c} \|p_{k,c} - p_{g,c}\|^2,
+\end{equation}
+其中$p_{k,c}$与$p_{g,c}$分别为客户端$k$与全局原型。该方法通信量小，但原型对数据分布偏移敏感，且缺乏严格的收敛保证。
+
+\subsection{聚类与分组策略}
+
+聚类方法假设客户端可被划分为若干个同质子组，组内数据分布近似IID。Sattler等\cite{sattler2019robust}提出基于模型参数余弦相似度的分层聚类，将相似客户端归为一簇：
+\begin{equation}
+sim(w_i, w_j) = \frac{\langle w_i, w_j \rangle}{\|w_i\| \|w_j\|}, \quad \mathcal{C} = \text{Cluster}(\{w_k\}).
+\end{equation}
+各簇内独立执行FedAvg，获得簇级模型。Wang等\cite{wang2020fedma}提出FedMA，基于神经元匹配而非逐元素平均，通过匈牙利算法解决Permutation Invariance问题，适用于卷积层与全连接层。然而，聚类需要额外计算相似度矩阵，$O(K^2)$复杂度在边缘节点动态加入退出时难以维护。
+
+另一种思路是\textbf{多任务学习}。Smith等\cite{smith2017federated}将联邦学习视为共享表示下的多任务优化问题，引入MOCHA算法，利用对偶坐标上升求解。但其依赖于强凸假设，对深度神经网络难以直接适用。Huang等\cite{huang2021personalized}在跨组织场景下提出基于图相似度的个性化方法，将客户端关系建模为邻接矩阵，但图构建需要额外的元数据，在边缘隐私敏感场景下受限。
+
+\subsection{知识蒸馏与迁移学习}
+
+知识蒸馏(Knowledge Distillation, KD)允许客户端与服务器交换软标签或logits，而非完整模型参数。Lin等\cite{lin2020ensemble}提出FedDF，各客户端上传本地模型，服务器在公共数据集上通过集成蒸馏构建全局模型：
+\begin{equation}
+\mathcal{L}_{\text{KD}} = -\sum_{i} \sum_{c} p_{\text{ens}}^c(x_i) \log p_{g}^c(x_i),
+\end{equation}
+其中$p_{\text{ens}} = \frac{1}{K}\sum_k p_k(x_i)$为集成软标签。该方法降低了对称性要求，但边缘场景下公共数据集往往不可得，且服务器侧蒸馏引入了额外的计算开销。
+
+Zhu等\cite{zhu2021data}提出数据无关的知识蒸馏框架，利用生成器合成输入以替代公共数据集，在异构模型联邦学习中实现知识迁移。然而，生成器本身的训练需要大量计算资源，且合成数据质量不稳定，在边缘场景下难以部署。
+
+\subsection{资源受限边缘环境下的缺陷}
+
+上述方法在边缘部署时面临以下共性缺陷：
+
+(1) \textbf{计算开销大}。个性化联邦学习与元学习通常需要多轮本地迭代或二阶梯度计算，对仅具备ARM Cortex-M系列微控制器的边缘节点而言难以承受。Dinh等\cite{dinh2020personalized}的pFedMe需要额外存储对偶变量，内存开销翻倍。
+
+(2) \textbf{通信冗余}。聚类与分组策略需要维护额外的相似度矩阵或簇分配向量，增加了控制平面开销；知识蒸馏虽减少了单次传输量，但迭代蒸馏的轮数往往更多。Nishio等\cite{nishio2019client}指出，在无线边缘网络中，客户端选择不当会导致严重的掉队(straggler)问题，显著拖慢全局聚合进度。
+
+(3) \textbf{系统异构性}。Wang等\cite{wang2020tackling}的FedNova揭示了系统异构性（各客户端本地epoch数不同）与统计异构性之间的耦合效应。当设备计算能力差异大时，模型参数更新量差异显著，简单加权平均会导致全局目标偏移，即"目标不一致性"问题。
+
+(4) \textbf{存储需求}。客户端需要同时保存全局模型与本地个性化模型，对内存容量不足10KB的传感器节点形成严重挑战。
+
+(5) \textbf{超参数敏感}。FedProx中的$\mu$、FedProto中的$\lambda$等超参数需要根据数据异构程度动态调整，边缘端缺乏足够的验证数据支撑自动调参。
+
+\section{激励机制设计的实用困境}
+
+边缘节点的理性自私性导致"搭便车"与"虚假汇报"问题。激励机制旨在通过报酬设计激励高贡献节点参与训练。然而，现有方案面临以下困境：
+
+\subsection{信息不对称与贡献度量}
+
+准确的贡献度量是激励设计的前提。Shapley值被广泛视为公平的贡献分配准则，但其计算需要枚举所有可能的客户端子集：
+\begin{equation}
+\phi_k = \sum_{\mathcal{S} \subseteq \mathcal{K} \setminus \{k\}} \frac{|\mathcal{S}|!(K-|\mathcal{S}|-1)!}{K!} \big[ v(\mathcal{S} \cup \{k\}) - v(\mathcal{S}) \big],
+\end{equation}
+其中$v(\cdot)$为特征函数。$O(2^K)$复杂度使其在边缘场景不可行。近似方法如蒙特卡洛采样或截断Shapley值虽降低了复杂度，但引入了估计误差，理性客户端可能因报酬不公而退出。
+
+Zhan等\cite{zhan2020learning}提出基于学习的方法，训练一个贡献评估网络替代Shapley值。然而，评估网络本身需要大量历史数据训练，在系统冷启动阶段无法部署。Sarikaya等\cite{sarikaya2020motivating}从Stackelberg博弈角度设计激励合约，假设服务器为领导者，客户端为跟随者，求解均衡报酬。但其模型假设客户端的成本函数已知，且为静态博弈，与边缘环境的动态性相悖。
+
+\subsection{预算约束与动态环境}
+
+Lim等\cite{lim2020hierarchical}设计了层次化激励合约，服务器根据预算约束与客户端成本分布求解最优报酬：
+\begin{equation}
+\max_{\{r_k\}} \sum_{k} U_k(r_k, c_k) \quad \text{s.t.} \quad \sum_k r_k \leq B,
+\end{equation}
+其中$r_k$为客户端$k$的报酬，$c_k$为其成本，$B$为总预算。但该模型假设客户端成本分布已知，且为静态博弈。在边缘环境中，设备电量、信道质量与可用带宽时变，静态合约无法适应动态约束。此外，当预算有限时，高贡献节点可能因报酬不足而拒绝参与，导致模型偏倚。
+
+\subsection{隐私与可验证性矛盾}
+
+激励机制要求客户端上报本地信息（如数据量、计算成本），但这与隐私保护目标冲突。Geyer等\cite{geyer2017differentially}率先将差分隐私引入联邦学习，通过向模型参数注入高斯噪声保护客户端级隐私。Wei等\cite{wei2020federated}进一步给出了差分隐私联邦学习的收敛性分析，证明在$\varepsilon$-DP约束下，FedAvg仍能收敛，但收敛界中额外引入了噪声项$\mathcal{O}(d\log(1/\delta)/\varepsilon^2 n^2)$。
+
+然而，隐私保护与激励机制之间存在根本性矛盾：客户端需要向服务器证明其高贡献以换取高报酬，但高贡献的证明往往依赖于敏感数据（如本地样本数、梯度范数）。区块链辅助的联邦学习试图通过智能合约实现透明支付，但共识机制（如PoW、PoS）在边缘设备上开销巨大，违背了联邦学习降低通信成本的初衷。如何在保护隐私的前提下实现可验证的贡献审计，仍是开放难题。
+
+\section{折中可行框架：轻量级启发式与数据保护}
+
+鉴于上述方法在边缘场景下的部署困境，本文提出一个结合\textbf{简单启发式客户端选择}与\textbf{轻量级数据保护}的折中框架，命名为Lite-EdgeFed。其核心思想是：在有限资源下，与其追求复杂的算法最优性，不如通过合理的客户端筛选与轻量级聚合提升系统的实用鲁棒性。
+
+\subsection{框架设计}
+
+\textbf{阶段一：启发式客户端选择}。服务器在每一轮通信中，基于客户端历史响应延迟与本地损失下降速率进行简单筛选。定义客户端$k$的效用分数：
+\begin{equation}
+s_k^{(t)} = \alpha \cdot \frac{\Delta L_k^{(t)}}{\Delta L_{\max}^{(t)}} + (1-\alpha) \cdot \frac{\tau_{\max} - \tau_k^{(t)}}{\tau_{\max}},
+\label{eq:score}
+\end{equation}
+其中$\Delta L_k^{(t)} = L_k^{(t-1)} - L_k^{(t)}$为本地损失下降量，$\tau_k^{(t)}$为响应延迟，$\alpha \in [0,1]$为权衡系数。服务器选择分数最高的$m$个客户端参与本轮聚合。该启发式仅需$O(K)$比较，无需复杂优化求解。
+
+该启发式的设计动机源于两个关键观察：一是响应延迟直接反映了设备的系统异构性，高延迟设备（如低端IoT传感器）不仅上传缓慢，其本地计算质量也常因内存不足而受限；二是损失下降量体现了客户端对当前全局模型的适应度，损失下降快的客户端其数据分布与当前全局模型更匹配。将两者线性组合，避免了复杂的博弈论建模或Shapley值计算，同时兼顾了统计质量与系统效率。
+
+\textbf{阶段二：轻量级差分隐私聚合}。为保护本地数据隐私，在聚合阶段引入高斯机制。客户端在上传模型前添加校准噪声：
+\begin{equation}
+\tilde{w}_k = w_k + \mathcal{N}(0, \sigma^2 S^2 \mathbf{I}),
+\end{equation}
+其中$S$为模型更新的敏感度，$\sigma$为噪声乘子。根据差分隐私的平行组合性质，若每个客户端满足$(\varepsilon, \delta)$-DP，则整体聚合输出满足相同的隐私保证。为降低噪声对模型精度的影响，服务器采用加权平均：
+\begin{equation}
+w^{(t+1)} = \sum_{k \in \mathcal{S}_t} \frac{n_k}{\sum_{j \in \mathcal{S}_t} n_j} \tilde{w}_k^{(t)}.
+\end{equation}
+
+与完全同态加密或安全多方计算(SMPC)相比，高斯机制的实现极为轻量：客户端仅需在本地训练完成后，对模型参数向量逐元素添加独立采样自高斯分布的噪声，无需额外的密码学运算或通信轮次。Wei等\cite{wei2020federated}证明，在FedAvg中注入满足$(\varepsilon, \delta)$-DP的高斯噪声，其收敛界修正为：
+\begin{equation}
+\mathbb{E}[F(w^{(T)})] - F^* \leq \mathcal{O}\left(\frac{1}{\sqrt{T}}\right) + \mathcal{O}\left(\frac{d\sigma^2}{\mu}\right),
+\end{equation}
+其中第二项为噪声导致的额外偏差。通过适当选择$\sigma = \mathcal{O}(1/\sqrt{T})$，可使噪声项与优化项同阶衰减，从而在保护隐私的同时保证收敛。
+
+\textbf{阶段三：自适应早停}。考虑到边缘节点电量有限，引入基于验证损失的自适应早停：若连续$E$轮全局验证损失未下降，则触发终止，避免无效训练。早停条件形式化为：
+\begin{equation}
+\text{Stop if } \quad F_{\text{val}}(w^{(t-e)}) \leq F_{\text{val}}(w^{(t)}) \quad \forall \, e \in \{1, \dots, E\}.
+\end{equation}
+与固定轮数训练相比，自适应早停可节省$30\%$\text{--}$50\%$的通信轮次，尤其在边缘节点电量有限时，显著延长设备可用时间。
+
+\subsection{隐私-效用权衡分析}
+
+Lite-EdgeFed的隐私保证与模型效用之间存在内在的权衡。为量化这一关系，考虑带噪声的聚合更新：
+\begin{equation}
+w^{(t+1)} = w^{(t)} - \eta \left( \nabla F(w^{(t)}) + \xi^{(t)} \right),
+\end{equation}
+其中$\xi^{(t)}$为聚合噪声的加权平均。假设$\xi^{(t)} \sim \mathcal{N}(0, \frac{\sigma^2 S^2}{m} \mathbf{I})$，则噪声方差随选中客户端数$m$增加而减小。这揭示了一个关键设计原则：在隐私预算$\varepsilon$固定时，通过增加$m$可以降低单次聚合的噪声强度，从而提升模型效用；但$m$过大又会增加通信开销。因此，存在最优的$m^*$使得总成本最小。
+
+令总成本为通信成本与效用损失之和：
+\begin{equation}
+\mathcal{C}(m) = \underbrace{c_1 \cdot m \cdot d \cdot T}_{\text{通信成本}} + \underbrace{c_2 \cdot \frac{d\sigma^2 S^2}{m} \cdot T}_{\text{噪声损失}},
+\end{equation}
+其中$c_1$为单位通信成本，$c_2$为精度损失权重。对$m$求导并令$\frac{d\mathcal{C}}{dm} = 0$，得到最优客户端数：
+\begin{equation}
+m^* = \sqrt{\frac{c_2 \cdot d\sigma^2 S^2}{c_1 \cdot d}} = \sigma S \sqrt{\frac{c_2}{c_1}}.
+\end{equation}
+该结果表明，最优选择规模与隐私噪声水平$\sigma$和敏感度$S$成正比，与通信成本系数$c_1$的平方根成反比。在边缘场景中，$c_1$通常较高（带宽受限），因此$m^*$相对较小，这与Lite-EdgeFed选择少量高质量客户端的直觉一致。
+
+\subsection{复杂度与可行性分析}
+
+Lite-EdgeFed的每轮通信复杂度为$O(m \cdot d)$，$d$为模型维度；计算复杂度为$O(K \log K + m \cdot d)$，主要来自排序与加权平均。与SCAFFOLD\cite{karimireddy2020scaffold}需要额外传输控制变量($O(d)$翻倍)相比，Lite-EdgeFed仅增加$O(K)$的分数计算。与基于Shapley值的激励方案相比，启发式选择避免了指数级复杂度。
+
+在数据保护层面，轻量级高斯机制无需同态加密或安全多方通信(SMPC)的繁重密码学操作，适合计算能力受限的边缘设备。当然，其隐私-效用权衡不如完全同态加密方案严格，但在工程实践中，$\varepsilon \leq 3$的差分隐私已能提供足够的经验保护。Geyer等\cite{geyer2017differentially}的实验表明，在$\varepsilon=2$时，模型精度损失通常不超过$2\%$\text{--}$3\%$。
+
+为直观展示Lite-EdgeFed的优势，表~\ref{tab:comparison}给出了与现有方法在边缘场景下的定性对比。
+
+\begin{table}[htbp]
+\centering
+\caption{Lite-EdgeFed与现有方法在边缘场景下的定性对比}
+\label{tab:comparison}
+\small
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccccc}
+\toprule
+方法 & 通信复杂度 & 计算复杂度 & 存储开销 & 隐私保护 & 超参数敏感度 & 边缘适用性 \\
+\midrule
+FedAvg & $O(Kd)$ & $O(Kd)$ & 低 & 无 & 低 & 高 \\
+FedProx & $O(Kd)$ & $O(Kd)$ & 低 & 无 & 高 & 中 \\
+SCAFFOLD & $O(Kd)$ & $O(Kd)$ & 中 & 无 & 中 & 低 \\
+pFedMe & $O(Kd)$ & $O(Kd)$ & 高 & 无 & 高 & 低 \\
+聚类策略 & $O(K^2+Kd)$ & $O(K^2)$ & 中 & 无 & 中 & 低 \\
+Shapley激励 & $O(2^K)$ & $O(2^K)$ & 低 & 无 & 高 & 极低 \\
+\textbf{Lite-EdgeFed} & $O(md)$ & $O(K\log K+md)$ & 低 & 高斯DP & 低 & \textbf{高} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+表中显示，Lite-EdgeFed在通信与计算复杂度、隐私保护和边缘适用性之间取得了最佳平衡。特别地，其超参数$\alpha$和$m$具有明确的物理意义（分别为统计-系统权衡系数和选择规模），易于根据边缘环境调整。
+
+\section{全局模型与局部个性化模型的讨论}
+
+近年来，随着PFL研究的深入，部分学者主张"放弃全局模型，全面转向局部个性化模型"。本文认为，这一观点在边缘联邦学习场景下过于激进，应辩证看待。
+
+\subsection{支持局部个性化的论据}
+
+从统计学习理论角度，全局模型的期望风险可分解为：
+\begin{equation}
+\mathbb{E}[R(\hat{w})] - R^* = \underbrace{\mathbb{E}[R(\hat{w}) - R(\bar{w})]}_{\text{估计误差}} + \underbrace{R(\bar{w}) - R(w^*)}_{\text{近似误差}} + \underbrace{R(w^*) - R^*}_{\text{不可约误差}},
+\label{eq:risk_decomp}
+\end{equation}
+其中$\bar{w}$为经验风险极小点，$w^*$为总体最优。当数据Non-IID程度加剧时，全局最优$w^*$与局部最优$w_k^*$的偏差增大，近似误差项显著上升，此时全局模型的泛化性能下降。个性化模型通过为每个客户端拟合局部最优，有效降低近似误差。
+
+进一步，从偏差-方差分解的角度，全局模型的预测误差可写为：
+\begin{equation}
+\mathbb{E}\left[(y - f(x; \hat{w}))^2\right] = \underbrace{(y - \mathbb{E}[f(x; \hat{w})])^2}_{\text{偏差}^2} + \underbrace{\mathbb{V}[f(x; \hat{w})]}_{\text{方差}} + \sigma^2,
+\end{equation}
+其中$\sigma^2$为不可约噪声。全局模型由于在所有数据上训练，其方差较低但偏差较高（对局部数据分布欠拟合）；纯本地模型在单个客户端的小样本上训练，偏差低但方差高（对本地噪声过拟合）。个性化模型通过在本地数据上微调全局模型，可在两者之间取得更优的偏差-方差权衡。
+
+此外，从公平性角度看，全局模型可能损害少数群体（数据量小的客户端）的利益。具体而言，全局优化目标式(\ref{eq:global_obj})中，数据量大的客户端对$F(w)$的贡献权重$\frac{n_k}{n}$更大，因此全局极小点$w^*$天然偏向大客户端的局部目标。而个性化模型通过为每个客户端拟合独立的局部最优$w_k^*$，保证无论数据量大小，每个客户端均获得适合自身分布的模型。FedProx\cite{li2020federated}的近端正则化项正是对全局模型过度偏向大客户端的一种修正：通过引入$\mu$约束局部更新与全局模型的偏离，确保小客户端的模型不会被大客户端"淹没"。
+
+\subsection{支持保留全局模型的论据}
+
+然而，完全放弃全局模型在边缘场景存在以下问题：
+
+(1) \textbf{收敛性保证}。全局目标式(\ref{eq:global_obj})是凸组合（或非负加权组合），在凸设定下具有良好的收敛性。而个性化模型将系统解耦为$K$个独立优化问题，失去了联邦学习的协同增益。Li等\cite{li2020convergence}证明，在适当的Non-IID度量$\Gamma$下，FedAvg以$O(1/\sqrt{T})$速率收敛至全局最优邻域。若无全局模型作为锚点，各客户端独立训练可能陷入局部极小点，尤其在小样本设定下，个性化模型的泛化误差可能反而大于全局模型。
+
+形式化地，设客户端$k$的本地样本量为$n_k$，本地经验风险极小点为$\hat{w}_k$，则其期望超额风险满足：
+\begin{equation}
+\mathbb{E}[R(\hat{w}_k)] - R(w_k^*) \leq \mathcal{O}\left(\frac{1}{\sqrt{n_k}}\right).
+\end{equation}
+当$n_k$较小时（如边缘传感器仅收集数百条样本），$\hat{w}_k$的估计误差较大。而全局模型利用所有客户端的聚合数据，有效等效样本量提升至$n = \sum_k n_k$，其估计误差为$\mathcal{O}(1/\sqrt{n})$，显著优于纯本地训练。因此，全局模型作为预训练起点，为本地微调提供了低方差的初始参数，缓解小样本过拟合。
+
+(2) \textbf{冷启动与迁移}。新加入的客户端在纯个性化框架下无历史模型可用，必须从零训练。从零训练不仅收敛慢，还可能因本地数据量不足而陷入过拟合。而全局模型可作为预训练权重，显著加速新客户端的收敛。Kairouz等\cite{kairouz2021advances}在其综述中特别强调，全局共享表示是联邦学习区别于纯分布式多任务学习的核心特征。在边缘环境中，设备频繁加入退出（如工厂内移动的传感器），冷启动问题尤为突出。
+
+(3) \textbf{部署与维护成本}。在边缘环境中，管理$K$个不同的个性化模型需要$K$倍的存储与版本控制开销。对于模型规模$d$为百万量级的深度学习模型，存储$K$个副本对内存受限的边缘服务器形成巨大压力。相比之下，维护一个全局模型配合少量本地微调参数（如仅微调最后一层，参数量为$\mathcal{O}(C \cdot d_{\text{out}})$，$C$为类别数），更符合资源受限的现实。Luo等\cite{luo2022hfel}在层次化边缘联邦学习中的实验表明，全局模型+本地微调的方案在边缘服务器上的存储成本仅为纯个性化方案的$1/5$至$1/8$。
+
+(4) \textbf{知识共享与跨域迁移}。全局模型起到了知识蒸馏与特征表示共享的作用。实验表明，即使数据高度Non-IID，底层卷积特征仍具有跨域迁移能力\cite{arivazhagan2019federated}。切断全局共享将导致"信息孤岛"，各客户端无法从其他节点的数据分布中获益。从表征学习角度看，全局模型学到的底层特征（如边缘、纹理、形状）是跨域通用的，而顶层决策边界因数据分布差异需要个性化。因此，保留底层全局共享、允许顶层个性化微调，符合深度网络的分层特征表示结构。
+
+\subsection{本文观点：混合策略的形式化与适用场景}
+
+本文认为，边缘联邦学习应采取\textbf{"弱全局模型 + 轻量个性化"}的混合策略。该策略并非简单折中，而是基于统计学习理论的分层结构优化。具体而言，将模型参数$w$分解为特征提取层$w_{\text{base}}$与决策层$w_{\text{head}}$：
+\begin{equation}
+w = (w_{\text{base}}, w_{\text{head}}).
+\end{equation}
+
+在训练阶段，所有客户端共享全局特征提取层：
+\begin{equation}
+w_{\text{base}}^{(t+1)} = \sum_{k \in \mathcal{S}_t} \frac{n_k}{\sum_{j} n_j} w_{\text{base},k}^{(t)},
+\end{equation}
+而决策层通过近端正则化保留本地偏差：
+\begin{equation}
+w_{\text{head},k}^{(t+1)} = \arg\min_{w} F_k(w_{\text{base}}^{(t+1)}, w) + \frac{\mu}{2}\|w - w_{\text{head}}^{(t)}\|^2.
+\end{equation}
+
+在推理阶段，客户端基于本地少量数据对全局模型进行1-2轮梯度微调，实现快速个性化。该过程等价于在全局模型附近进行一阶泰勒展开：
+\begin{equation}
+w_k^{\text{personalized}} \approx w^{(T)} - \eta \nabla F_k(w^{(T)}).
+\end{equation}
+
+对于资源极度受限的节点（如内存<10KB的传感器），直接采用全局模型，放弃个性化；对于资源充裕的节点（如边缘网关），启用更深的个性化层。这种分层策略兼顾了统计异构性的缓解与系统复杂度的控制，是当前边缘环境下最务实的选择。Kairouz等\cite{kairouz2021advances}的综述与Li等\cite{li2023survey}的系统调查均指出，全局模型与个性化模型并非对立，而是应在不同层次上协同。
+
+表~\ref{tab:model_choice}给出了不同场景下的模型选择决策指南。
+
+\begin{table}[htbp]
+\centering
+\caption{不同边缘场景下的模型选择策略}
+\label{tab:model_choice}
+\begin{tabular}{lcccc}
+\toprule
+场景特征 & 数据异构程度 & 设备资源 & 推荐策略 & 代表方法 \\
+\midrule
+同质大数据 & 低 & 充裕 & 全局模型 & FedAvg \\
+异构大数据 & 高 & 充裕 & 全局+微调 & FedProx, Lite-EdgeFed \\
+异构小数据 & 高 & 受限 & 弱全局+轻量个性化 & Lite-EdgeFed \\
+同质小数据 & 低 & 受限 & 全局模型 & FedAvg \\
+跨域迁移 & 极高 & 中等 & 特征共享+本地头 & FedPer \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+从表中可见，Lite-EdgeFed特别适用于"高异构+受限资源"的典型边缘场景，通过启发式选择与轻量个性化，在统计性能与系统效率之间取得最优平衡。
+
+\section{结论}
+
+本文系统综述了边缘联邦学习中的统计异构性与激励机制两大挑战。现有方法（个性化FL、聚类、知识蒸馏）在理论上取得了显著进展，但在资源受限的边缘环境下普遍存在计算、通信与存储开销过大的缺陷。激励机制设计则面临信息不对称、预算约束与隐私可验证性矛盾的困境。基于此，本文提出Lite-EdgeFed折中框架，通过启发式客户端选择、轻量级差分隐私聚合与自适应早停，在简单性与有效性之间取得平衡。关于全局模型与局部个性化模型的争论，本文主张保留弱全局模型作为知识共享锚点，辅以轻量本地微调的混合策略，而非全面转向纯个性化。未来工作将探索基于强化学习的动态$\alpha$调度，以进一步优化式(\ref{eq:score})中的权衡系数，并在真实边缘设备集群上验证Lite-EdgeFed的端到端性能。
+
+\bibliographystyle{unsrt}
+\bibliography{refs}
+
+\end{document}

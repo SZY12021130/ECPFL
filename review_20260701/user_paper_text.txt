@@ -1,0 +1,1590 @@
+
+===== PAGE 1 =====
+1
+ECPFL: Efficient Ciphertext Prefetching for Secure
+Cross-Device Federated Learning
+Zhongyang Shi Email: anonymous@example.com
+Abstract—Cross-devicefederatedlearning(FL)isbottlenecked
+Aggregator Downstream
+by the severe communication overhead of exchanging model Server Communication
+updates across heterogeneous, bandwidth-limited edge nodes. Pre-download Het D er a o t g a e s n et e s ous
+Whileupstreamsparsificationanddownstreamprefetchingoffer Download Download
+Pre-download Offline
+partial relief, integrating them with homomorphically encrypted
+FL creates a fundamental structural conflict: naively encrypting
+dynamically sparsified updates disrupts the strict spatial align-
+mentrequiredbyCKKSSingleInstructionMultipleData(SIMD)
+operations,effectivelynegatinganybandwidthsavings.Toresolve
+this, we propose ECPFL, a secure CKKS-based framework that
+Device Heterogeneity Bandwidth Constraints Statistical Heterogeneity
+systematicallyco-optimizesbidirectionalcommunication.First,to
+Wearable Device Stable Wi-Fi
+supportupstreamefficiency,wedevelopEfficientSparsePacking
+High-end Smartphone Offline
+(ESP).ESPharmonizessparsificationwithSIMDslotconstraints
+via a distributed voting mechanism for pack-level selection, Low-end Tablet 5G
+guaranteeingspatialalignmentacrossclients.Buildinguponthis, High-end Laptop 4G
+we introduce Efficient Ciphertext Prefetching (ECP) to tackle IOT Sensor Offline
+downstream latency. ECP enables asynchronous prefetching in Different Computation，memory， Unstable and bandwidth-limited Different data distributions across
+battery and network capabilities links lead to stragglers devices bring challenges
+the encrypted domain by aggregating sparse updates during
+clientidleperiods,drasticallyreducingcommunicationoverhead Fig. 1: System model of heterogeneous cross-device FL.
+whilestrictlypreservingIND-CPAsecurity.Comprehensiveeval- The lower panels detail the device, bandwidth, and statistical
+uations across four datasets demonstrate that ECPFL strictly heterogeneities present across edge nodes. To mitigate these
+preserves baseline model accuracy while reducing downstream communication overhead by 97.0% to 99.3%, or 32× to 140×, and attaining end-to-end training speedups of up to 5.7× compared to state-
+of-the-art secure FL baselines. idle clients to proactively accumulate server updates.
+Index Terms—Federated learning, homomorphic encryption,
+ciphertext prefetching, voting mechanism
+sampling only a portion of devices to join in each round [11],
+[12],[13],[14],[15],[16],andcompressingtheupdatesusing
+I. INTRODUCTION
+techniqueslikequantization[17],sparsification[18],low-rank
+FEDERATED learning (FL) has become a popular way decomposition[19],orsketching[20].Yet,recentstudies[21]
+to train shared models without moving raw data off show that if device sampling is combined with compressed
+personal devices [1]. Extending FL to the edge, cross-device downloads, the benefits can disappear: devices that skip some
+FL connects millions of smartphones, wearables, and IoT roundsendupwithoutdatedmodelsandmustdownloadlarge
+devices, letting each device help train the model locally. By updates to catch up, making the total communication almost
+processing data where it is generated, this method is well- as large as full-model transmission after a few rounds. This
+suitedtoprivacy-sensitiveapplicationsandhasdrivenprogress exposes a core limitation of current communication-saving
+in areas like healthcare [2], finance [3], and smart edge methods for diverse cross-device environments.
+computing [4]. However, as shown in Fig. 1, cross-device FL Privacy leakage is another significant challenge in cross-
+brings unique challenges: it must handle millions of devices device FL. Studies show that exchanging gradients or model
+withunstablenetworksandlimitedbandwidth,andaccountfor updatesdoesnotensureprivacy,asadversariescanreconstruct
+differences in processing power and battery life. Local data sensitive information from these updates [22], [23], [24],
+on these devices is often very different, creating additional [25], [26]. To counteract this, three main privacy-preserving
+complexity [5], [6], [7], [8]. These hurdles make large-scale strategies have emerged: differential privacy (DP) [27], se-
+cross-device FL difficult to implement in practice. cure multi-party computation (SMPC) [28], and homomor-
+Oneofthemainobstaclesforscalingcross-deviceFListhe phic encryption (HE) [29]. HE, in particular, provides strong
+high communication cost between devices and the server, in cryptographic protection for secure aggregation by enabling
+both upload (client-to-server) and download (server-to-client) computation on encrypted data. The Cheon-Kim-Kim-Song
+directions [9]. With deep learning models, each device must (CKKS) scheme [30], built on the RLWE assumption [31],
+frequently send and receive millions of parameters per round, is well-suited for machine learning tasks, supporting approxi-
+but uplink speed is usually much slower than downlink [10]. mate arithmetic and Single Instruction Multiple Data (SIMD)
+To ease this burden, two main strategies have been studied: packing. Utilizing ciphertext packing via the Residue Number
+
+===== PAGE 2 =====
+2
+System, CKKS minimizes per-ciphertext costs and increases sparsification for uplink transmissions. By substituting
+throughput compared to slot-wise encryption [32]. Recent decentralizedlocaltruncationwithagloballyorchestrated
+advances [12], [33] have adopted CKKS packing for efficient consensus mechanism, ESP offers rigorous assurances
+secure aggregation, reducing upstream ciphertext size through of accurate SIMD slot alignment across heterogeneous
+sparsification and polynomial encoding. Multi-key CKKS ex- clients.
+tensionsfurtherallowaggregationacrossciphertextsencrypted • We propose the first Efficient Ciphertext Prefetching
+with different client keys, without requiring decryption [34]. (ECP) protocol as an innovative resolution to the cipher-
+However, existing HE-based federated learning systems text sparsity dilemma in downlink communications. ECP
+predominantly focus on uplink compression, while treating enables bandwidth-limited edge devices to temporally
+the downstream transmission of encrypted global models as consolidate ciphertexts during idle periods, markedly di-
+an inherent and unavoidable cost. This perspective neglects minishingthecumulativedecryptionoverheadthroughout
+a significant deployment challenge, wherein all clients are prefetch windows. This advancement establishes a novel
+required to synchronously download large cipher-expanded paradigm for secure and efficient ciphertext transmission
+global models across bandwidth-constrained networks, which in federated learning.
+imposes considerable communication overhead and hinders • We present rigorous security proofs establishing seman-
+scalability. Although evidence shows that plaintext FL frame- tic security based on the decisional RLWE assumption.
+works can mitigate this latency by proactively prefetching Extensive empirical evaluations on standard benchmarks
+updates during idle periods, extending this mechanism to the indicatethatECPFLdecreasesper-round
+ciphertext domain introduces significant algebraic constraints. downstream communication overhead by 97.0% to 99.3%, or 32× to 140×, reduces total bidirectional traffic by 1.2× to 6.9×, and expedites overall training
+Encrypted payloads cannot be partitioned or incrementally time by up to 5.7× in highly heterogeneous environ-
+accumulated without dimensional expansion or excessive de- ments,whilepreservingmodelaccuracywithin1%ofthe
+cryptionlatency.Compoundingthisdownlinkbottleneckisthe uncompressed baseline.
+structuralconflictinherenttoupstreamoptimization.Applying
+pack-level sparsification [35], [36] for the uplink introduces a
+II. RELATEDWORK
+severe spatial misalignment, as the induced sparsity disrupts
+the SIMD slot alignment required for joint decryption in We review the related work from the following aspects:
+multi-key homomorphic encryption. Current attempts to mask Homomorphic Encryption in FL: Homomorphic encryp-
+this sparsity through zero-padding or Trusted Execution En- tion (HE) provides a mathematically rigorous foundation for
+vironments [34] either negate the intended bandwidth savings privacy-preservingFL.Whilesingle-keyCKKSschemes,such
+or expand the trusted computing base. Therefore, a critical asFedSHE[37]andFedPHE[12],supportapproximatearith-
+challenge remains: how to architect synchronization protocols metic and ciphertext packing, they rely on a globally shared
+and homomorphic computation schemes that simultaneously key, leaving the system vulnerable to honest-but-curious
+achieve asynchronous ciphertext prefetching and structurally clients. While multi-key HE (MKHE) mitigates this by en-
+aligned gradient sparsification while eliminating the reliance ablingindependentkeypairsforeachclient[38],[39],[40].To
+on hardware-based trust assumptions. alleviatethecommunicationoverheadofMKHEinFL,recent
+To address these limitations, we propose ECPFL, a se- researchhasintroduceddiverseciphertextreductionstrategies.
+cure and communication-efficient FL framework driven by For example, ESAFL [33] refines the packing methodology
+twoco-designedmechanisms:EfficientCiphertextPrefetching to enable one-step decryption without the requirement of
+(ECP) and Efficient Sparse Packing (ESP). ECP introduces exchanging decryption shares. However, it strictly requires
+the first asynchronous prefetching paradigm in the ciphertext full client participation. In contrast, MASER [41] decreases
+domainbyleveragingtheadditiveclosureofpolynomialrings. communication overhead by applying consensus-driven prun-
+Specifically, as depicted in Fig. 1, to mitigate the challenges ing to plaintexts and encrypting only the sparse parameters.
+of severe device, bandwidth, and statistical heterogeneity, Nevertheless, MASER still necessitates the transmission of
+this mechanism empowers bandwidth-limited or temporarily decryption shares, and its pruning approach lacks residual
+offline edge nodes to proactively pre-download and locally compensation, thereby impairing model accuracy. In compar-
+accumulate temporally aggregated ciphertexts across multiple ison, our proposed framework overcomes these constraints by
+rounds. These accumulated updates are subsequently pro- integrating a dynamic voting protocol with Top-k sparsifica-
+cessed through a lightweight one-step decryption [33], effec- tionandresidualerroraggregation.Thismethodologynotonly
+tively eliminating the downstream communication bottleneck substantially curtails ciphertext uploads and maintains model
+withoutforcingstragglerstowaitduringsynchronousperiods. accuracy,butalsoflexiblysupportspartialclientparticipation.
+We summarize our core contributions as follows: Gradient Compression: To alleviate the communication
+• WeproposeECPFL,which,tothebestofourknowledge, bottleneck in FL, various gradient compression techniques
+constitutes the first FL framework employing ciphertext have been proposed, including quantization [42], [43], low-
+prefetching to concurrently guarantee privacy preserva- rank decomposition [44], [45], and sparsification [46], [47],
+tion and communication efficiency in both uplink and [48]. Among these, Top-k sparsification with residual com-
+downlink transmissions. pensation [49] has proven highly effective. For encrypted
+• WedesigntheEfficientSparsePacking(ESP)protocolto FL, DSVFL [50] introduced FTop-k, utilizing an accumulable
+tackle the spatial alignment issue inherent in encrypted residual buffer to recover accuracy. However, DSVFL applies
+
+===== PAGE 3 =====
+3
+sparsification before Paillier encryption, thereby strictly limit- homomorphic operations, we use the terms pack and batch
+ing downstream homomorphic operations to simple addition. interchangeably to represent a vector of scalars embedded
+Secure Aggregation:Conventionalsecureaggregationpro- into a single polynomial ring element. Thus, we offer a novel
+tocols predominantly employ pairwise cryptographic masking perspective by analyzing all phases at the packing level.
+to safeguard client updates [28], [51], [52]. Although resilient
+to client dropouts, these software-centric approaches entail
+B. Cross-Device Federated Learning
+considerable computational overhead and remain vulnerable
+to adversarial server selection [53]. More recently, TEE-based In cross-device FL, each client i ∈ [N] holds a private
+federated learning frameworks, such as SecFed [34], offer local dataset D and trains a model with parameters w ∈Rd.
+i
+hardware-assisted attestation; however, they do not resolve At each round t, the server selects a subset S(t) ⊆ [N] of
+the intrinsic computational latency of homomorphic encryp- K = |S(t)| clients. Each selected client i ∈ S(t) performs E
+tion or the staleness endemic to cross-device environments. steps of stochastic gradient descent (SGD) on its local data,
+To address these limitations, we enhance the one-step de- computesalocalgradientgt,anduploadsittotheserver.The
+i
+cryption [33] protocol as the principal cryptographic privacy serveraggregatesthereceivedgradientsandupdatestheglobal
+mechanism. model:
+Downstream Prefetching: In cross-device FL, the down- wt+1 =wt−η (cid:88) p(t)gt, (1)
+i i
+stream communication (server-to-client) is a critical bottle-
+i∈S(t)
+neck, especially when combining client sampling with com-
+pression, which leads to stale local models [54], [55]. Fed- where p(t) = |Di| and η is the global learning rate.
+Fetch [21] effectively addresses this by shifting downstream This is t i he stan (cid:80) da j∈ rd S(t F ) e | d D A j| vg algorithm.
+bandwidth usage to a preparation phase via plaintext model
+The cross-device setting introduces several practical chal-
+prefetching. Our work extends the prefetching paradigm into
+lenges that distinguish it from cross-silo FL:
+the ciphertext domain. To the best of our knowledge, this
+• Limited bandwidth: Devices have restricted upload and
+is the first framework to implement ciphertext prefetching
+download bandwidth.
+in encrypted FL. By allowing clients to proactively fetch
+• Clientdropout:Devicesmaydropoutduringtrainingdue
+compressed ciphertext segments, we successfully overlap the
+to network instability and battery depletion.
+extensive decryption and decompression latency with local
+• System heterogeneity: Devices vary significantly in com-
+training, drastically reducing the end-to-end round time.
+pute capability, memory, and network conditions.
+Client Selection: Client selection is the strategy by which
+theserverchoosestheactiveparticipatingsubsetateachround. • Non-IID data: Local datasets D i drawn from different
+distributions will cause slow and unstable convergence.
+It is a critical determinant of both convergence speed and
+training time in cross-device FL. These challenges motivate the design of efficient, robust,
+and privacy-preserving protocols tailored to the cross-device
+1) Random selection is a baseline strategy that samples
+setting.
+participants uniformly at random from all clients. While
+simple and unbiased, random selection ignores system
+heterogeneity: clients with low bandwidth or weak com- C. CKKS Slot-Packing Encryption
+pute, whom we also call stragglers, can stall the entire
+Our scheme builds upon the CKKS homomorphic encryp-
+round, and high-utility clients may be undersampled.
+tion, which supports approximate arithmetic over real and
+2) Sticky sample is proposed in GlueFL [16], prioritizes
+complex numbers. It adopts the multi-key encryption style of
+clients that were recently active and have up-to-date
+[33] for privacy-preserving aggregation.
+model states. The insight is that clients with fresh local
+1) Ring Learning with Errors (RLWE): The security of
+models require smaller downstream downloads, reducing
+CKKS relies on the decisional Ring Learning With Errors
+per-round synchronization time. This strategy naturally
+(RLWE) assumption [31]. Let R = Z[X]/(Xn +1) denote
+complementsprefetching,aspre-sampledclientsaccumu-
+the cyclotomic ring where n is a power of two, and let
+late state across rounds.
+3) Sketch-based clustering combined with CKKS was first R q = Z q [X]/(Xn + 1) be its residue ring modulo q. We
+define χ and χ as error distributions over R that output
+introduced in FedPHE framework [12]. It has each client s e
+small polynomials with infinity norms strictly bounded by B
+compute a low-dimensional sketch of its local model up- s
+andB ,respectively.TheRLWEassumptionstatesthatpaired
+date via locality-sensitive hashing, perturb it for privacy, e
+samples (b,a) ∈ R2, formulated as b = [−a·s+e] where
+and send it to the server. The server clusters clients by q q
+the mask a ← U(R ) is uniform alongside a secret s ← χ
+sketch similarity and selects the fastest client from each q s
+and an error e ← χ , are computationally indistinguishable
+cluster. e
+from truly random pairs sampled uniformly from U(R2).
+q
+2) CKKS Encoding and Decoding: The plaintext space
+III. PRELIMINARIESANDMOTIVATION
+of RLWE-based schemes is a cyclotomic polynomial ring.
+A. Notations
+CKKS provides an efficient encoding and decoding method
+Table I summarizes the primary notations used to formal- for transforming real-valued vectors into integral-coefficient
+ize the ECPFL architecture. In the context of our SIMD polynomials. Let φ : R[X]/(Xn + 1) → Cn/2 be a ring
+
+===== PAGE 4 =====
+4
+TABLEISUMMARYOFKEYNOTATIONS
+Encryption. At round t, client i encrypts the j−th batch
+Notation Description plaintext polynomial pt(t) using its encryption key s and the
+i,j i
+λ,n,∆ Securityparameter,RLWEdimension,CKKSscale public polynomial a(t) as:
+Z q,Rq,Rp Integer,ciphertext,andplaintextpolynomialrings
+φ RingisomorphismmappingtoCn/2 ct(t) = (cid:2) a(t)·s +p˜·e(t)+pt(t)(cid:3) , (4)
+χs,χe SecretkeyandGaussianerrordistributions i,j i i,j i,j q
+C,N Setofallclients,totalclients where e(t) ←χ and p˜is a polynomial of degree n−1 with
+K Numberofclientsselectedperround i,j e
+all coefficients from the plaintext modulus p.
+T,t,E Totalrounds,currentround,localtrainingepochs
+Homomorphic Aggregation. The evaluation algorithm
+J,B,j Totalbatches,batchsize,batchindex
+R Prefetchwindowsize HE.Eval adds N ciphertexts {ct( i, t j )} i∈[N] and outputs an ag-
+S(t),S¯(t) Activeandinactiveclientsubsetinroundt gregated ciphertext:
+P(t∗) Prefetchedclientsubsetinroundt (cid:34) N (cid:35)
+S,si Globaldecryptionkey,encryptionkeyofclienti C(t) =HE.Eval (cid:16) {ct(t)} (cid:17) = (cid:88) ct(t) , (5)
+T(t) Top-k packindicesselectedbyclientiatroundt j i,j i∈[N] i,j
+K i (t) Setofpacksselectedbymajorityvoteatroundt i=1 q
+U(t),v(t) Aggregatemask,uploadmaskofclientiatroundt This operation enables the server to aggregate encrypted local
+i
+W(t),w(t) Globalmodel,localmodelofclientiatroundt gradients without decryption. By expanding Equation (5) and
+i
+pt(t),e(t) EncodedgradientandGaussiannoisepolynomial substituting Equation (4), the aggregated ciphertext satisfies:
+i,j i,j
+γ d ,γs Eachroundandcrossroundresidualdecayfactor C(t) = (cid:104) a(t)·S+p˜·E(t)+m(t) (cid:105) , (6)
+g i (t) Localgradientofclientiatroundt j j j q
+g r ˜ ( i ( t t ) ) C R o es m id p u e a n l sa c t o e m d p g e r n a s d a ie ti n o t n o o f f c c li l e ie n n t t i i a a t t ro ro u u n n d d t t whereE j (t) = (cid:80) i e( i, t j ) andm( j t) = (cid:80) i pt( i, t j ) aretheaggregated
+ct i (t),ct(t) Localuploadandcompensatoryciphertexts error and plaintext, respectively. This linear structure enables
+i,j k,j one-step decryption without client interaction.
+s(t) ImportanceScoreofclientiforbatchj
+i,j One-Step Decryption [33]. This means that the client can
+C(t) Globalciphertextmodelupdateatroundt
+decrypt directly in one step without needing complex com-
+C(t) Globalaggregatedciphertextatroundtforbatchj
+j municationcooperation.Specifically,thedecryptionalgorithm
+Cpre,j Prefetchedciphertextwithinroundtforbatchj
+recovers the aggregated plaintext from C(t) for batch j using
+Cpre PrefetchedaggregatedciphertextwithinroundR j
+mpre PrefetchedaggregatedplaintextwithinroundR the global decryption key S:
+Apre PrefetchedaggregatedpolynomialwithinroundR (cid:20)(cid:104) (cid:105) (cid:21)
+Epre PrefetchedaggregatednoisewithinroundR pt(
+j
+t) =HE.Dec(a(t),S,C
+j
+(t))= C
+j
+(t)−a(t)·S , (7)
+C dl ,m(t) Downstreamcompressorandserverplaintextupdate q p
+δt1,t2 Accumulatedserverplaintextupdatesfromt1 tot2 The modulo p operation precisely eliminates the accumulated
+noise p˜·E(t), ensuring error-free polynomial decryption.
+j
+4) Slot Packing: CKKS leverages an isometric mapping to
+isomorphism. The encoding function Ecd(·,∆) maps a com-
+achieve highly compact spatial encryption. A complex vector
+plex message vector z=(z 1 ,...,z n/2 )∈Cn/2 to a plaintext z∈Cn/2 is mapped into a single plaintext polynomial pt via
+polynomial m(X)∈R q by computing: canonical embedding: pt = Encode(z,∆) = ⌊∆·ϕ−1(z)⌉ ∈
+m(X)= (cid:4) ∆·φ−1(z) (cid:7) ∈R , (2) R q , where the scaling factor ∆ preserves floating-point preci-
+q sion. This enables SIMD batching, allowing one ciphertext to
+where ∆ > 1 is a scaling factor controlling the encod- encapsulaten/2independentscalarvalues.Furthermore,there
+ing/decoding error. The decoding function Dcd(·,∆) maps are also packing strategies such as Diagonal Packing [56],
+a plaintext polynomial m(X) ∈ R to a complex vector Multiplexed Packing [57], BitStack Packing [58], and CRT-
+q
+z∈Cn/2 by computing: Stack Packing [59], which are used for efficient encrypted
+neural network inference.
+z=∆−1·φ(m(X)). (3)
+D. Gradient Compression in FL
+3) Multi-Key Encryption: ECPFL employs a multi-key ad-
+Communication efficiency has been extensively studied in
+ditively homomorphic encryption (AHE) scheme built upon
+plaintext-domain FL. Three primary categories of gradient
+RLWE, following the efficient construction of [33]. Each
+compression exist: Quantization reduces the numerical preci-
+client i possesses its own encryption key s , while the global
+i
+sionofmodelupdates,mappingfloating-pointvaluestolower-
+decryption key is the sum of all key shares.
+bitwidth representations, such as 1-bit SignSGD [60]. It can
+Key Generation. The key generation algorithm outputs N
+be applied prior to encryption or integrated directly into the
+encryptionkeyss ,aglobaldecryptionkeyS,arandompublic
+i cryptographic encoding process. Sparsification retains only
+polynomial a(0), and a secret parameter B. The N encryption
+the k largest-magnitude gradient coordinates and truncates
+keys s are independently sampled from χ . The global
+i (cid:104) (cid:105) s the remainder [61]. Sketch-based: Count-Sketch and other
+decryption key is S =
+(cid:80)N
+s . The public polynomial
+i=1 i data structures provide lossy compressed representations of
+q
+a(0) is uniformly sampled from U(R ). gradients [20].
+q
+
+===== PAGE 5 =====
+5
+However, these methods face fundamental challenges when and inactive clients prefetch these for synchronization. This
+applied in the CKKS ciphertext domain: approachalleviatescommunicationbottlenecksbutfacesprac-
+• Sparsity does not compress ciphertexts. A CKKS cipher- tical obstacles, including cryptographic noise growth and in-
+text’s size is determined by the polynomial degree N compatibility between plaintext sparsity and ciphertext accu-
+and modulus bit-length logq, regardless of how many mulation. Addressing these challenges is the central focus of
+plaintext slots contain non-zero values. Sparse plaintexts this work.
+still produce full-size ciphertexts.
+• Quantization does not reduce polynomial degree. While F. Motivation and Challenges
+quantization reduces the bit-width of individual gradi-
+While plaintext frameworks like FedFetch [21] mitigate
+ent values, the underlying CKKS ciphertext polynomial
+downstream latency by allowing clients to asynchronously
+maintainsthesamedegreeN andmodulusq.Thecipher-
+prefetch compressed server updates, transmitting these unen-
+text size remains unchanged.
+crypted payloads inherently compromises privacy guarantees.
+• Sketchingbreakshomomorphism.Sketch-basedcompres- Furthermore,attemptingtorealizeend-to-endbidirectionalef-
+sion introduces non-linear hash functions that are incom-
+ficiencyintheMKHEdomainthroughthepairingofupstream
+patiblewiththelinearhomomorphicoperationssupported
+gradient sparsification and downstream ciphertext prefetching
+by CKKS.
+precipitates two profound structural challenges:
+Therefore, for ciphertext, ratherthan encrypting each scalar
+1) Q1 (The Alignment Dilemma): Data heterogeneity
+parameterindividually,multiplevaluesarepackedintoasingle
+causes clients to select disparate parameter packs, lead-
+plaintext polynomial and encrypted jointly [12]. Then, we
+ing to index mismatch across local updates. How can
+sparsify the packed gradients.
+we reconcile this structural divergence to enable correct
+batch-wise addition without exposing selected indices?
+E. Gradient Prefetching in FL 2) Q2 (The Sparsity Paradox): Since CKKS encryption is
+oblivioustoplaintextsparsity,encryptingahighlysparse
+Prefetching mitigates communication latency in FL by
+gradient still yields a massive, full-sized ciphertext. How
+strategically shifting downstream payload transfers to idle
+can we redesign the batch-level packing and prefetching
+bandwidth periods.
+pipelinetobreakthisbottleneckandtranslatealgorithmic
+Plaintext Prefetching. FedFetch [21] introduces a com-
+sparsity into genuine communication compression?
+prehensive plaintext prefetching framework for cross-device
+FL. It mitigates staleness by executing a Prepare phase for To resolve these challenges, we designed the ECPFL ar-
+presampling clients and a Prefetch phase for prefetching chitecture, which intimately couples two novel cryptographic
+primitives: Efficient Sparse Packing (ESP) and Efficient Ci-
+the global update. Mathematically, if an inactive client is
+scheduled to re-participate after a horizon of R rounds, it phertext Prefetching (ECP). As delineated in the subsequent
+sections,ESPisexplicitlydesignedtodismantletheAlignment
+proactively downloads the plaintext global model updates
+m(t+r) = w(t+r+1) − w(t+r) round-by-round. The client Dilemma (Q1) via global consensus masking (Section IV-C),
+whereas ECP circumvents the Sparsity Paradox (Q2) by shift-
+locally accumulates these updates to construct the composite
+ing the prefetching paradigm strictly to the active pack level
+model delta:
+(Section IV-D).
+R−1
+(cid:88)
+m pre = m(t+r). (8) IV. SCHEMEDESIGN
+r=0
+A. Overview
+Whentheclientofficiallyjoinsthetrainingphase,itdirectly
+Weconsiderastandardcross-devicefederatedlearning(FL)
+applies m to synchronize its local model. However, this
+pre setting with n clients C = {c ,c ,...,c }, each holding
+paradigm inherently assumes that gradients are transmitted 1 2 N
+a private local dataset D . The global model w ∈ Rd has
+in plaintext, rendering it fundamentally incompatible with i
+dimensiond.TrainingproceedsoverT communicationrounds.
+encrypted FL.
+In each round, the server samples a subset S(t) ⊆C of ⌈rN⌉
+Ciphertext Prefetching. Extending this paradigm to the
+clientsforparticipation,wherer ∈(0,1]istheclientsampling
+encrypted domain theoretically necessitates a mechanism that
+ratio.
+mirrorsEquation(8).Itrequirestheinactiveclienttodownload
+the globally aggregated ciphertexts C(t+r) per round and per- ProtocolDetails.Figure2providesthearchitecturaloverview,
+form local homomorphic accumulations over the cyclotomic and Alg. 1 details the main procedure of ECPFL:
+ring R : Phase 0: SystemInitialization.TheKGCgeneratesindepen-
+q
+(cid:104)
+R
+(cid:88)
+−1
+(cid:105)
+dentencryptionkeys,thepublicpolynomiala0,and
+C pre = C(t+r) , (9) pseudorandomseeds.Itdistributestheseparameters
+q
+r=0 to all clients to establish the foundational multi-key
+The additive closure of R enables bounded-dimension ho- homomorphic environment.
+q
+momorphic summation, avoiding ciphertext expansion. Lever- Phase 1: Consensus Voting. Active clients compute local
+aging this, we design a batch-level ciphertext prefetching gradientsandapplyTop-k sparsificationtogenerate
+mechanism:theserveraggregatesencryptedupdatesperbatch, binary vote masks. The server collects these masks,
+
+===== PAGE 6 =====
+6
+Algorithm 1: ECPFL Main Procedure
+Secure Channel
+K Ci e p y h s e D rt i e st x r t i s b C ut o i m on pensation Insecure Channel Parameter: Total rounds T, epochs E, learning rate η,
+prefetch window R, sparsity k
+Global Model Aggregation
+Input: Local datasets {D }N , initial global model w(0)
+i i=1
+Output: Final global model synchronized across clients
+DOWNSTREATM ECP UPSTREATM ESP DOWNSTREATM ECP 1 // Initialization
+MODULE MODULE MODULE 2 KGC generates keys {s i }N i=1 , S = (cid:80) s i , and PRPG seed B
+3 Distribute (s i ,S) to C i , and seed B to Server and all clients
+Local Local Local Local 4 foreach client C i ∈C do
+M Lo o c d a e l l Data Local Data M Lo o c d a e l l Data Local Data 5 Initialize state: w i ←w(0), r i ←0, t last,i ←0
+Model Model
+6 for t=1,2,...,T do
+...
+CLIENT 1 CLIENT 2 CLIENT 3 CLIENT N 7 // Server-Side Execution
+(Smartphone) (Tablet) (Laptop) (Smart Watch)
+8
+SelectactivesetS(t),inactivesetS¯(t),prefetchsetP(t∗)
+Fig. 2: ECPFL system architecture. The KGC initializes 9 Receive vote masks {v i (t)} from active clients
+keys and injects compensatory ciphertexts. Clients upload 10 K(t) ←ESP-CONSENSUS({v i (t)} i∈S(t) )
+sparseciphertextgradientsusingtheESPprotocolandreceive 11 Broadcast consensus set K(t) to active clients
+prefetched aggregated ciphertexts from the server using the 12 Receive sparse ciphertexts {ct( i, t j )} from active clients
+ECP protocol. The red line represents a secure channel, and 13 {C j (t)}←ESP-AGG(S(t),S¯(t),{ct( i, t j )},K(t)) ▷Alg.2
+the blue line represents an insecure channel. 14 {Q j }←ECP-QUEUEUPDATE({C j (t)},K(t)) ▷Alg.3
+15 // Client-Side Execution
+16 for each client c i ∈C do in parallel
+conducts majority voting, and broadcasts the global 17 if c i ∈S(t) (Train Phase) then
+consensus mask K(t). 18 w i,start ←w i
+Phase 2: Sparse packs Upload. Guided by the global con- 19 w i ←SGD(D i ,w i ,η) for E epochs
+sensus mask K(t), clients align their sparse updates 20 g i (t) ← η 1(w i,start −w i )
+to ensure strict slot correspondence. They encrypt 21 (v i (t),g˜ i (t))←ESP-VOTE(g i (t),r i ,k)
+the aligned packs with their encryption key s i and 22 Send mask v i (t) to Server, wait for K(t)
+upload the resulting ciphertexts to the server. 23 Generate public polynomial a(t) ←PRPG(B,t)
+Phase 3: Homomorphic Aggregation. The KGC securely 24 gap i ←t−t last,i
+injects compensatory ciphertexts for all inactive 25 {ct( i, t j )}←ESP-ENC(g˜ i (t),K(t),gap i ,s i ,a(t))
+clients. The server homomorphically aggregates 26 Upload ciphertexts {ct( i, t j )} to Server
+27 Update local active round t last,i ←t
+these ciphertexts with the active client uploads to
+compute the synchronized global ciphertexts. 28 else if c i
+∈P(t∗)
+(Prefetch Phase) then
+Phase 4: Ciphertexts Prefetching. The server temporally 29 Retrieve sliding queue {Q j } from Server
+30 w i ←ECP-SYNC({Q j },S,w i ,B,η,t) ▷Alg.3
+accumulates the global ciphertexts over consecutive
+rounds. Presampled clients proactively download
+and homomorphically accumulate these updates.
+Upon becoming active, clients perform a one-step
+whileendeavoringtodeduceprivateinformationfromthe
+decryption to seamlessly synchronize their local
+observed ciphertexts, indices, and voting outcomes.
+models.
+System entities. ECPFL involves three types of entities:
+B. Threat Model and Security Goals
+• Key Generation Center (KGC): A fully trusted entity
+We formalize ECPFL under a hybrid threat model, estab-
+responsible for cryptographic initialization. It generates
+lishing a rigorous cryptographic baseline for efficiency-first
+individual encryption keys s ← χ and the global
+i s
+decryption key S =
+(cid:80)N
+s ∈ R . To preserve data
+federated architectures. The system comprises a fully trusted
+i=1 i q
+coordinator and honest-but-curious participants.
+confidentiality, it distributes S exclusively to all clients
+through secure channels, thereby rigorously preventing 1) Threat Model: We define the trust boundaries and ad-
+the server from obtaining any decryption capability. versarial capabilities of the involved entities as follows:
+• Clientc i :Anhonest-but-curiousparticipatingdataowner. • FullyTrustedKGC:TheKeyGenerationCenterstrictly
+Ateachroundt,activeclientsinS(t) executelocalmodel executesprotocolinitializationsandinjectscompensatory
+trainingandupstreamsparseencryption.Concurrently,in- ciphertexts. It is structurally isolated; it autonomously
+activeclientsexecutedownstreamprefetchingtomaintain synchronizespublicpolynomialsandcompensatesforun-
+strict model synchronization. selectedbatches,butneverreceives,requests,oraccesses
+• ServerS:Anhonest-but-curiouscentralaggregator.Func- any aggregated model updates.
+tionally, it consolidates upstream sparse ciphertexts from • Honest-but-Curious Server: The central server S faith-
+active clients, aggregates cross-round update ciphertexts, fully executes homomorphic aggregation and prefetching
+anddisseminatesthemtoinactiveclientsfordownstream schedules. However, as a Probabilistic Polynomial-Time
+prefetching. The server dutifully adheres to the protocol (PPT)adversary,itmayattempttodeduceindividualdata
+
+===== PAGE 7 =====
+7
+Algorithm 2: ESP Upstream Module N/2 Slot Step 1：Gradient Residual Feedback
+Parameter: Total packs J, sparsity k, scale ∆, decay factors Round Raw Gradient Batches
+γ d ,γ s Round   1  2  3  4  5  6  7  8  9 Residual Batches   (  )
+1 2 3 Fun T g c ˜ t i i ( i t o ← ) n ← E To S g p P i ( - t - k ) V + i O nd T r i i E c ( e g s i (t o ) f ,r (cid:8) i ∥ , g˜ k i ( ) , t j )∥2 2 (cid:9)J j=1 Round   −1  0 1   2 2  0 3   4 4 Ste  0 p 5 2：  0 6 Pac  k 0 7 -Le   v 8 8 el V  0 o 9 ting Compensated Batc  h  (  e ) s s  co  (  r ) e
+4 Compute vote bitmap v i (t) ∈{0,1}J
+5 6 S re e t t u v r i ( n , t j ) ( = v i (t 1 ) [ , j g˜ ∈ i (t) T ) i ] C  li  ent  A              S  e  rver Votin  g              Cli  en  t B  
+7 Function ESP-ENC(g˜ i (t),K(t),gap i ,s i ,a(t))                   Union Pattern
+8 Derive global mask U(t) where U j (t) =1[j ∈K(t)] Step 3：CKKS Encryption and Aggregation Compensatory Ciphertexts
+9 foreach j ∈K(t) do
+10 pt( i, t j ) ←CKKS.Encode (cid:0) g˜ i ( , t j ),∆ (cid:1)                         Compensate            
+11 ct( i, t j ) ← (cid:2) a(t)·s i +p˜·e( i, t j )+pt( i, t j )(cid:3) q Client A             F C i l n ie a n l t C B iphertext C G lie e n n t e C ra （ te U d n b se y l e K c G te C d）
+12 Update r( i t) ←γ d γ s (gapi−1) (cid:104) g˜ i (t)⊙ (cid:0) 1−U(t)(cid:1)(cid:105) Fig. 3: ESP module. Step 1: integrates local residuals to
+13 return sparse ciphertexts {ct( i, t j )} j∈K(t) alleviate model staleness. Step 2: enables all clients to collab-
+14 Function ESP-AGG(S(t),S¯(t),{ct( i, t j )},K(t)) o S r te a p tiv 3 e : ly al g lo e w ne s ra a t c e ti a ve gl c o li b e a n l t ly A un an ifi d ed B a t n o d e a n l c i r g y n p e t d o u n n ly io s n el m ec a t s e k d .
+15 foreach j ∈K(t) do
+16 KGC generates compensatory ciphertexts ct( k t , ) j d an at d a in b j a e t c c t he m s a . s S k t - e a p lig 4 n : e l d ev c e o r m ag p e e s ns t a h t e or t y ru c s i t p e h d er K te G x C ts f to or g i e n n a e c r ti a v te e
+17 Assign compensatory {ct( k t , ) j } for k∈S¯(t) client C
+18 C j (t) ← (cid:80) i∈S(t) ct( i, t j )+ (cid:80) k∈S¯(t) ct( k t , ) j
+19 return aggregated ciphertexts {C j (t)} j∈K(t)
+accumulatedciphertextstatesmathematicallyconcealinterme-
+diate round-specific updates from both passive eavesdroppers
+and authorized participants.
+distributions by analyzing structural patterns in the up-
+This architecture ensures that no single entity can access
+loaded ciphertexts or monitoring temporal traffic during
+both the encrypted gradients and the decryption keys, provid-
+the asynchronous prefetching phase.
+ing strong privacy guarantees against collusion attacks.
+• Honest-but-CuriousClients:Participatingclientsadhere
+to the local training and decryption protocols. Neverthe-
+less, they may attempt to infer the private local gradients
+C. ESP: Efficient Sparse Packing Protocol
+of their peers from the legally decrypted global model
+updates obtained during the synchronization phase. Prevailing secure aggregation schemes frequently depend
+on the impractical full-participation assumption or enforce
+Collusion Assumptions. The fully trusted KGC will never
+stringent hardware-based trust dependencies to address client
+collude with any entity. Consequently, the server fundamen-
+dropoutscenarios.ECPFLobviatesbothconstraintsbyadopt-
+tallylacksthekeymaterialsrequiredfordecryption,rendering
+ing a purely cryptographic paradigm. Clients are classified
+server-client collusion ineffective without compromising the
+entire network. Furthermore, we assume a strict (N − 1)- intoparticipatingandnon-participatingcohorts,withtheKGC
+resilience model: up to N − 1 corrupted clients may pool issuingcompensatoryciphertextstothelatter.Toovercomethe
+Alignment Dilemma (Q1) and optimize aggregation under
+their private key shares and observed transcripts to target the
+partial participation, we propose the Efficient Sparse Packing
+remaining honest client.
+2) Security Goals: The primary security goal of ECPFL (ESP) mechanism. The comprehensive client upload process
+is to guarantee Indistinguishability under a chosen plaintext isformalizedinAlgorithm2.AsdelineatedinFig.3,theESP
+attack (IND-CPA). We formalize the security objectives into protocol is executed through three logical modules:
+three dimensions: (1) Data Confidentiality: Any observation 1) Local Compensation and Consensus Voting: To avoid
+available to the server must be computationally indistinguish- the severe SIMD disruption caused by traditional element-
+able from uniform randomness, preventing the inference of wise sparsification, ESP operates strictly at the pack level.
+individual or aggregated model parameters during standard First,eachclientC i integratesitshistoricalpack-levelresidual
+protocol execution. (2) Collusion Resistance: Information r(t−1) into the current gradient to compute the compensated
+i
+exposure is mathematically constrained such that, even if an gradient g˜(t) = g(t) +r(t−1). The client partitions the local
+i i i
+adversary compromises the global key to reveal the aggre- gradient into J packs and identifies the Top-k packs based
+gated update through client-server collusion, individual client on their L -norms. This localized selection is encoded into
+2
+contributions remain strictly unrecoverable by the algebraic a binary vote bitmap v(t) and transmitted to the server. To
+i
+propertiesoftheadditivehomomorphicsum.(3)Cross-Round resolvespatialmisalignment,theservertalliesthesebitmapsto
+Privacy: The protocol maintains strict temporal isolation deriveagloballyalignedconsensusmaskK(t).Ourframework
+across the asynchronous prefetching horizon, ensuring that formally defines three variants for this global selection:
+
+===== PAGE 8 =====
+8
+• Union (ECPFL-UN): Retains any pack that receives at ... Round
+least one vote, maximizing information preservation. Ser C v l e ie r n P t r S e  e s t a a m n p d l es  +1  ∗ −1  ∗ =  + 
+Creates Schedule
+• Rank (ECPFL-RK-θ): Retains a strictly bounded θ Client Idle C P ip re h f e e r t t c e h xt Ho C m o o m m p o u r t p e hic C U ip p h l e o r a te d xt Idle C F l a ie s n t t
+proportion of the total packs by sorting them based on  1
+their global vote tallies in descending order. Client Idle C P ip re h f e e r t t c e h xt Cip F h e e tc rt h e xt Ho C m o o m m p o u r t p e hic C U ip p h l e o r a te d xt Idle
+....  2 .... ....
+• Threshold (ECPFL-TH-θ): Retains a pack only if its Client C P ip re h f e e r t t c e h xt Cip F h e e tc rt h e xt Ho C m o o m m p o u r t p e hic C U ip p h l e o r a te d xt C S l l i o e w nt
+accumulated votes meet a configurable proportion θ ∈  
+Prepare Phase Prefetch Phase Train Phase
+(0,1] of the active clients:
+Fig. 4: ECP module. In the Prepare Phase (round t), the
+K(t) = (cid:110) j (cid:12) (cid:12) (cid:88) v(t) ≥θ·|S(t)| (cid:111) . server presamples active clients for round t∗ =t+R. During
+(cid:12) i,j
+i∈S(t) thePrefetchPhase,inactiveclientsasynchronouslyaccumulate
+global ciphertexts, where slower devices initiate prefetching
+2) Encryption and Residual Update: Upon receiving the
+earlier to mask communication latency. In the Train Phase
+globalconsensusmaskK(t),activeclientsperformencryption
+(round t∗ = t + R), presampled clients fetch residual data
+exclusively on the globally selected packs. To mitigate ci-
+andexecuteaone-stephomomorphicdecryptiontoextractthe
+phertext expansion while preserving floating-point semantics,
+aggregated plaintext.
+ECPFL leverages native CKKS SIMD batching. For each
+selected pack j ∈ K(t), the client maps the gradient scalars
+into the available plaintext slots via canonical embedding:
+staleness penalty simplifies to 1, such that only the intra-
+pt(t) =Encode (cid:0) g˜(t),∆ (cid:1) , (10) round decay is applied. This unified formulation promotes
+i,j i,j
+stablenetworkconvergencebyeffectivelyattenuatingoutdated
+where ∆ is the precision scaling factor, and pt(t) represents gradients without inducing excessive fluctuations.
+i,j
+the encoded plaintext polynomial. This compact spatial em- 3) Global Homomorphic Aggregation: To maintain the
+bedding precisely maintains the algebraic structure of the real required arity for MK-CKKS decryption without demanding
+numbers without the severe precision loss typical of digit- full client participation, the KGC and the server collabora-
+packing schemes. tively execute structural padding. For every inactive client
+Subsequently, the client encrypts the plaintext polynomial k ∈ S¯(t) and selected pack j ∈ K(t), the KGC generates
+pt(t) using its static secret key share s and the PRPG- a compensatory dummy ciphertext, which is fundamentally a
+i,j i
+synchronized public polynomial a(t): fresh encryption of zero:
+ct( i, t j ) = (cid:104) a(t)s i +p˜e( i, t j )+pt( i, t j ) (cid:105) q , (11) ct( k t , ) j = (cid:104) a(t)·s k +p˜·e( k t , ) j +0 (cid:105) q .
+The server then performs a secure homomorphic addition
+where e(t) ← χ is a freshly sampled Gaussian noise
+i,j e over both the uploaded active ciphertexts and the KGC’s
+polynomial, and [·] denotes polynomial reduction modulo
+q compensatory ciphertexts. This pack-wise cumulative process
+q. By mathematically binding the static secret share s to
+i yields a precise algebraic cancellation of the individual key
+the round-evolving public polynomial a(t) and the fresh per-
+shares:
+batch noise, this MK-CKKS encryption primitive inherently
+guarantees IND-CPA security. It effectively neutralizes cross-
+round correlation attacks while eliminating the overhead of C(t) = (cid:88) ct(t)+ (cid:88) ct(t)
+j i,j k,j
+dynamic key rotations. i∈S(t) k∈S¯(t)
+Finally, the client updates its local residual buffer to re- = (cid:20) a(t) (cid:16) (cid:88) s + (cid:88) s (cid:17) +p˜E(t)+ (cid:88) pt(t) (cid:21)
+tain unselected gradient components for subsequent rounds. i k j i,j
+Importantly, this update is precisely regulated by the global i∈S(t) k∈S¯(t) i∈S(t) q
+(cid:124) (cid:123)(cid:122) (cid:125) (cid:124) (cid:123)(cid:122) (cid:125)
+consensusmaskU(t),asopposedtoalocaltruncation,thereby
+S m(t)
+j
+ensuring that any pack excluded by the server’s union pattern (cid:104) (cid:105)
+is accurately preserved. To avoid unbounded accumulation = a(t)S+p˜E j (t)+m( j t) , (12)
+q
+of residuals for persistently unselected packs and to allevi-
+ate model staleness resulting from client dropouts, ECPFL where E j (t) = (cid:80) i∈S(t) e( i, t j ) + (cid:80) k∈S¯(t) e( k t , ) j is the aggregate
+employs a dual-decay residual compensation mechanism: bounded noise polynomial, and m(t) represents the globally
+j
+weighted plaintext update for pack j.
+r(t) =γ(gap−1)·γ · (cid:104) g˜(t)⊙ (cid:0) 1−U(t)(cid:1)(cid:105) ,
+i s d i
+D. ECP: Efficient Ciphertext Prefetching Protocol
+where γ ∈ (0,1] denotes the pre-round decay (PRD) factor
+d
+applied to all unselected batches to constrain their magnitude, 1) Heterogeneity-Aware Sparse Prefetching: To directly
+and γ ∈ (0,1] serves as a cross-round staleness penalty address the Sparsity Paradox (Q2), the ECP module tailors
+s
+(CRD). The variable gap ≥ 1 indicates the number of asynchronous prefetching to the ciphertext domain by strictly
+rounds elapsed since the client’s most recent participation. operating at the pack level. In standard plaintext FL, spar-
+For consistently active clients (gap = 1), the cross-round sification mitigates communication overhead by reducing the
+
+===== PAGE 9 =====
+9
+effective length of the transmitted gradient vector. However, Algorithm 3: ECP Download Module
+because an individual CKKS ciphertext has a rigid and size- Parameter: Prefetch horizon R
+invariant physical dimension, ECPFL achieves equivalent 1 Function ECP-QUEUEUPDATE({C j (t)},K(t))
+communicationreductionbyexclusivelyprefetchingthesparse 2 Append latest {C j (t)} to global queue Q
+active packs determined by the ESP consensus. This essen- 3 if |Q|>R then
+tially translates the plaintext vector-length reduction into a 4 Dequeue and discard the stalest ciphertexts from Q
+directreductioninthetotalquantityoftransmittedciphertexts. 5 return sliding queue {Q j }
+As detailed in Alg. 3, to synchronize historically inactive 6 Function ECP-SYNC({Q j },S,w i ,B,η,t∗)
+clients, a straggler scheduled at round t for target round t+R 7 A pre ← (cid:80)R r=1 PRPG(B,t∗−r)
+first asynchronously downloads the base model w(t) during 8 foreach active pack j do
+(cid:80)
+itsidleperiod.Followingthis,theclientincrementallyfetches 9 C pre,j ← C∈Qj C j
+(cid:0) (cid:1)
+the recent R-round encrypted residual updates batch-by-batch 10 m sum,j ←CKKS.Dec S,C pre,j ,A pre
+directlyfromtheserver’sslidingqueueQ j .Crucially,anyun- 11 Reconstruct global update m sum from packs {m sum,j }
+finishedciphertextdownloadsarecontinuouslyprefetchedand 12 w i ←w i −η·m sum
+13 return synchronized local model w i
+homomorphically added to the base model concurrently with
+the client’s local training at round t+R, strictly overlapping
+communication with computation. As depicted in Fig. 4, the
+Prepare Phase begins at round t with the server presampling where A = (cid:80)R−1a(t+r) is the accumulated public-
+pre r=0
+the prefetch client set P(t∗) for a future round t∗ = t+R. polynomial drift and E = (cid:80)R−1E(t+r) is the composite
+pre r=0
+This early presampling notifies clients in advance, enabling bounded noise. This prefetch ciphertext C occupies the
+pre,j
+the server to proactively construct customized prefetch sched- exact same asymptotic space as a single-round ciphertext,
+ules. To robustly manage system heterogeneity and client regardless of the prefetch horizon R.
+dropouts, ECPFL integrates the Over-Commitment (OC) and Unlike conventional distributed decryption protocols that
+Exponential Moving Average (EMA) strategies established in demand interactive multi-round share exchanges, ECPFL
+FedFetch[21].Specifically,OCover-selectsclientstomitigate mathematically factors out the global key S in exactly O(1)
+the impact of sudden offline devices and stragglers, while time relative to the prefetch horizon R. By supplying the
+EMAdynamicallyestimatesfuturerounddurationstoallocate global key S, the composite ciphertext effortlessly decrypts
+precise prefetch time windows. Guided by these schedules, CKKS.Dec(S,C ):
+Pre,j
+bandwidth-limited clients initiate prefetching earlier to mask
+severecommunicationlatency,whilefasterclientsremainidle
+m ←CKKS.Dec(S,C )
+longer to conserve local resources. Rather than broadcasting sum Pre,j
+(cid:104)(cid:2) (cid:3) (cid:105)
+per-round deltas, the server performs temporal homomorphic = C −A S
+pre,j pre q p
+aggregation in the cloud. It merges the pack-level ciphertexts (14)
+(cid:104)(cid:2) (cid:3) (cid:2) (cid:3) (cid:105)
+from round t to t∗ − 1 into a single composite aggregate, = A pre S+p˜E pre +m pre q − A pre S q p
+ensuringthatthedownstreambandwidthconsumptionremains
+=m ,
+strictly bounded regardless of the prefetch horizon. pre,j
+2) Client One-Step Decryption: The efficiency of the ECP where m sum denotes the aggregated global plaintext. The
+module stems from amortizing the intensive cryptographic drift cancellation −A pre S exactly neutralizes the key-mask
+overhead across the prefetch horizon. Driven by the shared components accumulated over R rounds. The client applies
+PRPG seed B, all entities deterministically generate a syn- the extracted plaintext summation directly to the local model
+chronous public polynomial a(t) ← PRPG(B,t) at each via w(t+R) ←w(t)−η·m sum . This mechanism ensures that
+round. Due to the KGC compensation mechanism, each theHEcommunicationbottleneckiscompletelyhiddenwithin
+round’s aggregated ciphertext remains algebraically aligned system idle periods while preserving strict IND-CPA security
+with the identical global key structure S = (cid:80)N s . The unconditionally.
+i=1 i
+server linearly accumulates R rounds of spatial ciphertexts
+into a single composite temporal ciphertext C
+pre,j
+for each V. SECURITYANALYSIS
+selected pack j:
+1) Resilience Against Semi-Honest Clients:
+Theorem 1 (IND-CPA Security). Under the dRLWE assump-
+tion,theencryptionschemeisIND-CPAsecure,withadversary
+R−1
+C pre,j = (cid:88) C j (t+r) advantage (cid:12) (cid:12)Pr[Expi A nd-cpa(λ)=1]−1/2 (cid:12) (cid:12)≤negl(λ).
+r=0 Proof. We demonstrate IND-CPA security through a standard
+= (cid:20)R (cid:88) −1 (cid:16) a(t+r)S+p˜E(t+r)+ (cid:88) pt(t+r) (cid:17)(cid:21) sequence of games played between a Challenger C and a PPT
+i,j Adversary A.
+r=0 i∈S(t+r) q
+(cid:104) (cid:105) • Game 0: The real IND-CPA game. C generates keys
+= A pre S+p˜E pre +m pre,j , (s ,a(t)), receives two plaintexts m ,m from A, picks a
+q i 0 1
+(13) randombitb∈{0,1},andreturnsc∗ =[a(t)s +p˜e+m ] .
+b i b q
+
+===== PAGE 10 =====
+10
+• Game 1: C modifies the challenge ciphertext. It replaces R q ×R q .Therefore,addinganyfixedplaintexttermpreserves
+the RLWE sample [a(t)s +p˜e] with a uniformly random this pseudorandomness. This establishes D ≈ D ≈
+i q 0 c 1 c
+element u ← U(R ). The challenge ciphertext becomes U(R ), guaranteeing that the server gains no advantage in
+q q
+c∗ =[u+m ] . distinguishing dropped clients from active ones. Furthermore,
+b b q
+Under the dRLWE assumption, the distributions of the KGC exclusively evaluates the key-dependent masking
+(a(t),a(t)s + p˜e) and (a(t),u) are computationally term using protocol indices (t,k,j) without receiving any
+i
+(cid:12)
+indistinguishable. Thus, (cid:12)Pr[A wins Game 0] − plaintext data, simultaneously preserving dropout privacy and
+Pr[A wins Game 1] (cid:12) (cid:12) ≤ AdvdRLWE(λ). In Game 1, c∗ gradient confidentiality.
+A b
+is perfectly masked by the uniform element u, making
+5) Cross-Round Prefetching Security:
+the view of A completely independent of b. Therefore,
+Pr[A wins Game 1] = 1/2. Concluding the proof, A’s Theorem5(IntermediateStatePrivacy). Cross-roundcipher-
+advantage is negligible. text aggregation computationally conceals intermediate states
+from eavesdroppers and unconditionally hides single-round
+2) Resilience Against Semi-Honest Server:
+updates from authorized clients.
+Theorem 2 (Server Obliviousness). The server S cannot
+Proof. Let A =
+(cid:80)R−1a(t+r)
+be the accumulated public
+obtain individual gradients pt(t) or the aggregate m(t). pre r=0
+i,j j polynomial and E = (cid:80)R−1E(t+r) be the aggregated
+pre r=0 j
+Proof. S observesc( i, t j ) =[a(t)s i +p˜e( i, t j )+pt( i, t j )] q .Accordingto noise. The prefetch ciphertext is C pre,j = [A pre S+p˜E pre +
+thedRLWEassumption,themaskingpart(a(t),a(t)s i +p˜e( i, t j )) (cid:80)R r= − 0 1m( j t+r)] q . We define the adversary’s view distribution
+cannotbedistinguishedfromrandomvalues,sotheindividual as Ψ = {(A pre ,C pre,j )} and an ideal uniform distribution
+gradients stay hidden. The overall sum m(t) is contained in Ψ′ = {(A pre ,u)} where u ← U(R q ). Since each a(t+r) is
+j
+C(t) =[a(t)S+p˜E(t)+m(t)] . Recovering m(t) requires the pseudorandom,theirsumA pre remainsindistinguishablefrom
+j j j q j uniform, and by dRLWE, A S+p˜E masks the plaintext,
+KGC-protecteddecryptionkeyS,whichS neveracquires. pre pre
+ensuring Ψ ≈ Ψ′. Upon one-step decryption, an authorized
+c
+3) Resilience Against Collusion: client obtains m = (cid:80)R−1m(t+r). Since m is the
+pre,j r=0 j pre,j
+sum of R independent plaintext variables, the conditional
+Theorem3(CollusionResistance). ECPFL satisfies(N−2)-
+distribution of any intermediate update m(t+r) is uniform in
+collusion resistance. Even if client-server collusion compro- j
+R ,effectivelyactingasaone-timepadthatrendershistorical
+mises the global key S to reveal the aggregate update, indi- p
+single-round states unconditionally hidden.
+vidual plaintexts remain strictly unrecoverable.
+Proof. If N −1 clients collude, they need the honest client’s
+VI. PERFORMANCEEVALUATION
+key s to decrypt the total sum. The value [a(t)s +p˜E(t)+
+h h j A. Experimental Setup
+m(t)] formsastandardRLWEproblemwheres isunknown,
+j q h
+1) Basic Configuration: All experiments are performed on
+so decryption is as hard as solving dRLWE. If the server
+a64-bitworkstationwithanIntelCorei7-14700processor,32
+and clients work together, they can reconstruct S and get the
+aggregatem(t).However,gettinganindividualvaluept(t) still GB RAM, and an NVIDIA GeForce RTX 3050 GPU, which
+j h,j isusedtoacceleratelocalmodeltraining.Theimplementation
+requires the honest client’s secret key s . The way additive
+h
+is based on PyTorch, and all cryptographic operations in
+homomorphicencryptionworksensuresthattherandommask
+a(t)s +p˜e(t) remains unpredictable no matter if S is known, the secure federated learning pipeline are executed using
+h h,j TenSEAL or xMK-CKKS compiler package.
+so individual data cannot be recovered.
+2) DatasetsandModels: Fig.5(a)illustratesourevaluation
+4) Compensatory Ciphertext Security: of ECPFL across four diverse datasets varying in data scales,
+model parameters, and SIMD batch sizes:
+Theorem 4 (Compensatory Ciphertext Indistinguishability).
+The compensatory ciphertext c(t) = [a(t) ·s +e(t)] gen- • MNIST: A 10-class handwritten digit dataset (60,000
+k,j k k,j q
+erated by the KGC for a dropped client k is computationally training, 10,000 test). Evaluated using the LeNet archi-
+indistinguishablefromavalidclientciphertextencryptingany tecture, which is partitioned into 11 parameter batches.
+arbitrary plaintext. Consequently, the server cannot infer the • FMNIST: A 10-class grayscale clothing dataset (60,000
+dropout status of any participant. training, 10,000 test). Evaluated using the LeNet archi-
+tecture, partitioned into 10 parameter batches.
+Proof. Consider the probability distributions of a compen-
+• CIFAR-10: A 10-class color image dataset (60,000 total
+satoryciphertextencrypting0andavalidciphertextencrypting
+samples). ResNet-20 is adopted to assess scalability to
+an arbitrary plaintext m∈R :
+p deeper architectures, comprising 67 parameter batches.
+D :c(t) =[a(t)·s +e(t) +0] , • SVHN: A real-world RGB digit dataset (73,257 train-
+0 k,j k k,j q
+ing, 26,032 test). ResNet-32 is adopted to evaluate
+D :c(t) =[a(t)·s +e(t) +m] .
+1 k,j k k,j q lightweight computational efficiency, comprising 114 pa-
+Under the Decision Ring Learning with Errors (D-RLWE) rameter batches.
+assumption, the base tuple (a(t),[a(t)·s +e(t)] ) is compu- In addition, we applied the bandwidth dataset [62], which
+k k,j q
+tationally indistinguishable from a uniform random sample in showcases heterogeneous devices such as smartphones and
+
+===== PAGE 11 =====
+11
+PCs. The lowest upload and download bandwidths on this M L N e I N S e T t 3 (1 .1 1 9 b M at B ches) 0. P 29 er 0 - b M at B ch ( 4 c 0 ip 9 h 6 e s r l t o ex ts t ) : 1.0
+dataset are 0.03 Mbps and 0.01 Mbps, respectively. As shown (44,426)
+in Fig. 5(b), the median download bandwidth is 81.29 Mbps, FMN C I N S N T 2 (1 .9 0 0 b M at B ches) 0.8
+(39,786) 0.6
+significantly higher than the median upload bandwidth of C R I e F sN A e R t- - 2 1 0 0 1 (6 9 7 .4 b 5 a M tch B es) 0.4
+18.42 Mbps. (272,186)
+ResN SV et H -3 N 2 3 (1 3 1 .0 4 9 b M at B ches) 0.2 3) BaselinesforComparison: Tocomprehensivelyevaluate (466,618) 0 10 20 30 40 0.0102 101 100 101 102 103
+the communication and efficiency improvements of ECPFL, Encrypted Size (MB) Bandwidth (Mbps)
+(a) Encrypted model sizes and
+we compare it with four representative state-of-the-art proto-
+CKKS batch partitions across
+cols:
+datasets.
+• FedAvg+CKKS, anaive integrationof single-keyCKKS
+withthestandardFedAvgprotocol,whichencryptsdense
+updates with SIMD packing optimizations.
+• FedPHE [12], a secure framework utilizing single-key
+CKKS,whichemployspack-levelTop-ksparsificationfor
+selective gradient aggregation.
+• ESAFL[33],astate-of-the-artmulti-keysecureaggrega-
+tionprotocolthatleveragesSIMDslotpackingtoenhance
+ciphertext efficiency.
+• MASER [41], an efficient multi-key homomorphic en-
+cryption framework that mitigates computation and com-
+munication overhead in secure FL through consensus-
+based model pruning and parameter slicing.
+For FedPHE, we use their pack-level sparsification with
+contribution-aware aggregation and sketch-based client se-
+lection. For MASER, we employ the xMK-CKKS library
+with additional partial decryption upload. For ESAFL, we
+implemented a bit-packing scheme, which packs two quan-
+tization parameters into a single CKKS slot, achieving a
+compression rate of 50% on all datasets. To further evaluate
+our proposed framework, we benchmark three variants of the
+voting mechanism. ECPFL-UN adopts a union approach to
+retainallselectedpacks. ECPFL-RK-θ enforcesarank-based
+selection,retainingastrictlyboundedθ proportionofthetotal
+packs according to their global vote tallies. ECPFL-TH-θ
+applies a consensus threshold, retaining only the packs voted
+by at least a θ fraction of the participating clients.
+4) Hyperparameters: All methods utilize the Adam opti-
+mizer with learning rate η = 0.001, a batch size of 64, and
+E =3localepochs.Clientsamplingissetto0.5withanover-
+commitment of OC = 1.3 [21] to aviod stragglers. ECPFL
+defaults are: sparsification ζ =0.1 for MNIST and FMNIST,
+ζ = 0.5 for CIFAR-10 and SVHN, prefetch window R = 3,
+dual-decay γ = 0.3,γ = 0.5, and we also employ EMA
+d s
+smoothing α = 0.125 to predict the training time for
+EMA
+prefetch round. To guarantee 128-bit security, CKKS employs
+a polynomial modulus degree N = 8192 and a coefficient
+modulus sequence of {60,40,40,60} bits.
+5) Metrics: We evaluate our framework using Test Accu-
+racy (AC) averaged over five independent runs. Communica-
+tion overhead is quantified by Upload Volume (UV), Prefetch
+Volume (PV), Downstream Fetch Volume (DV), and Total
+Volume (TV). We explicitly denote the fetch payload as DV
+toensuredirectcomparabilitywithtraditionalnon-prefetching
+baselines. System latency is measured through Upload Time
+(UT), Downstream Fetch Time (DT), and the end-to-end Total
+Training Time (TT).
+noitubirtsiD
+evitalumuC
+Upload P50=18 Mbps Download P50=81 Mbps
+Clients: 9242
+P90=115 P75=40
+P50=18
+P25=9
+Upload P10=1 Download
+(b) Cumulative distribution of
+client upload and download
+bandwidth across 9,242 clients.
+Fig. 5: Details of the training models and edge device band-
+width.
+B. Overall Performance
+Fig. 6 and Table II summarize convergence, test accuracy,
+communicationvolume,andtrainingtimeacrossfourdatasets.
+ECPFL demonstrates rapid, stable convergence, matching
+dense baselines, confirming that its prefetching and sparsifi-
+cation accelerate training without compromising convergence.
+ECPFL attains final test accuracies comparable to or exceed-
+ing FedAvg and ESAFL, due to homomorphic operations
+preserving numerical precision. For example, union-based
+ECPFL achieves 82.77% accuracy on CIFAR-10, outperform-
+ing FedAvg’s 64.41%. FedAvg, despite maintaining model
+utility, transmits uncompressed models, resulting in 52.15
+GB communication and 2750 seconds on CIFAR-10. ESAFL
+reduces this to 26.46 GB but remains inefficient. ECPFL
+further surpasses other sparsification frameworks: FedPHE
+yields only 87.00% accuracy on FMNIST due to isolated
+localsparsification,whileMASER’spartialdecryptionuploads
+and global plaintext broadcasts inflate SVHN communication
+to 71.02 GB and training time to 3956 seconds. ECPFL
+addresses these inefficiencies via distributed consensus and
+continuous ciphertext prefetching, which shifts downstream
+payloadstoasynchronoustasks,cuttingsynchronousdownlink
+overhead. The rank-based ECPFL variant, combined with
+dynamic voting, achieves optimal efficiency, converging on
+MNIST with only 0.80 GB and 80.31 seconds—over tenfold
+communication reduction and fivefold speedup compared to
+FedAvg, with a predictable upper bound on communication
+payload.
+To evaluate resilience against statistical heterogeneity, we
+conductexperimentsonFMNISTandCIFAR-10usingDirich-
+letconcentrationparametersα∈{0.1,0.5,1,5,10}.Asshown
+inFig.7,whileincreasingtheparameteralphanaturallyeases
+global aggregation and improves test accuracies across all
+models, the proposed framework demonstrates exceptional
+robustness under severe data skew. At an extreme heterogene-
+ity where alpha equals 0.1, our method achieves a leading
+accuracy of 87.45 percent on FMNIST and 69.67 percent on
+the more complex CIFAR 10 dataset, directly outperforming
+ESAFLandMASER.Conversely,baselinesincludingFedPHE
+and FedAvg CKKS lack effective mechanisms to compensate
+for severe client drift, causing their accuracies to plummet to
+74.50 percent and 75.65 percent on FMNIST, and down to
+45.32 percent and 40.21 percent on CIFAR 10. Although this
+
+===== PAGE 12 =====
+12
+1.0
+0.8
+0.6
+0.4
+0.2
+0.0
+0 10 20 30 40 50
+Number of Rounds
+)%(
+ycaruccA
+tseT
+(a) MNIST
+1.0
+0.8
+0.6
+FedAvg+CKKS 0.4
+FedPHE
+MASER 0.2
+ESAFL
+Ours
+0.0
+0 10 20 30 40 50
+Number of Rounds
+)%(
+ycaruccA
+tseT
+(b) FMNIST
+1.0
+0.8
+0.6
+FedAvg+CKKS 0.4
+FedPHE
+MASER 0.2
+ESAFL
+Ours
+0.0
+0 10 20 30 40 50
+Number of Rounds
+)%(
+ycaruccA
+tseT
+(c) CIFAR-10
+1.0
+0.8
+0.6
+FedAvg+CKKS 0.4
+FedPHE
+MASER 0.2
+ESAFL
+Ours
+0.0
+0 10 20 30 40 50
+Number of Rounds
+)%(
+ycaruccA
+tseT
+(d) SVHN
+FedAvg+CKKS
+FedPHE
+MASER
+ESAFL
+Ours
+Fig. 6: Comparison of test accuracy on four datasets within 50 rounds.
+TABLEIICOMPARISONOFACCURACYANDCOMMUNICATIONCOSTUNDERDIFFERENTDATASETS
+MNIST FMNIST CIFAR-10 SVHN
+Methods
+(α=1.0,θ=0.1,ζ=0.1) (α=1.0,θ=0.3,ζ=0.1) (α=1.0,θ=0.7,ζ=0.5) (α=1.0,θ=0.7,ζ=0.5)
+AC(%) TV(GB) TT(S) AC(%) TV(GB) TT(S) AC(%) TV(GB) TT(S) AC(%) TV(GB) TT(S)
+FedAvg+CKKS 98.19 8.56 451.64 90.46 7.78 410.55 64.41 52.15 2750.65 85.73 36.58 1929.57
+FedPHE(Top-ζ) 99.10 3.84 179.41 87.00 3.95 176.30 75.77 31.75 1621.22 94.44 54.38 2774.89
+ESAFL 99.11 4.67 246.32 89.51 3.89 205.29 81.91 26.46 1395.88 95.74 45.14 2381.19
+MASER 99.13 8.31 463.49 90.66 7.17 399.73 77.62 40.92 2279.22 95.93 71.02 3955.82
+ECPFL-UN(Ours) 99.23 4.21 439.86 91.20 2.86 323.17 82.77 20.03 1564.85 96.11 34.89 915.08
+ECPFL-TH-θ(Ours) 99.10 4.06 422.45 90.74 2.15 259.78 75.58 7.60 689.17 94.17 19.10 488.82
+ECPFL-RK-θ(Ours) 99.15 0.80 80.31 90.14 1.19 72.53 79.24 18.66 1508.75 95.11 31.68 801.28
+100
+80
+60
+40
+20
+00.1 0.5 1.0 5.0 10.0
+Non-IID coefficient α
+)%(
+ycaruccA
+tseT
+(a) FMNIST
+100
+80
+60
+Ours 40
+ESAFL
+MASER 20
+FedPHE
+FedAvg-CKKS
+00.1 0.5 1.0 5.0 10.0
+Non-IID coefficient α
+)%(
+ycaruccA
+tseT
+TABLEIIIEND-TO-ENDPERFORMANCEBREAKDOWNACROSS
+(b) CIFAR-10
+BASELINEALGORITHMSANDDATASETS
+Batches Comm.(MB) Time(s)
+Dataset Algorithm
+Nup/Nagg UV/DV UT/DT/TT
+Ours FedAvg+CKKS 275/11 87.7/87.7 269.1/182.6/315.0
+ESAFL FedPHE 50/2 15.9/62.7 48.9/130.5/201.5
+MASER MNIST ESAFL 150/6 47.8/47.8 146.8/99.6/240.0
+FedPHE
+FedAvg-CKKS MASER 173.5/6.9 110.6/59.5 339.5/124.0/15346.3
+ECPFL-RK 50/2 15.9/0.3 78.6/1.7/80.3
+FedAvg+CKKS 250/10 79.7/79.7 244.6/166.0/285.4
+Fig. 7: Comparison of test accuracy on four datasets within FedPHE 25/1 8.0/72.9 24.5/151.8/179.4
+50 rounds. FMNIST ESAFL 125/5 39.9/39.9 122.3/83.0/244.4
+MASER 149.5/6 95.3/51.5 292.5/107.2/13277.5
+ECPFL-RK 75/3 23.9/0.4 71.2/1.3/72.5
+FedAvg+CKKS 1675/67 534.0/534.0 1638.7/1111.9/1756.3
+performance gap narrows substantially as data distributions
+FedPHE 850/34 271.0/379.2 831.6/789.6/1221.5
+become nearly homogeneous at an alpha value of 10.0, our CIFAR-10ESAFL 850/34 271.0/271.0 831.6/564.3/1402.6
+MASER 849/34 541.3/296.8 1661.2/618.0/75089.2
+methodconsistentlymaintainssuperiorutility.Thisrobustper-
+ECPFL-RK 1175/47 374.6/7.7 1478.5/30.2/1508.8
+formanceisfundamentallydrivenbythesynergisticintegration
+FedAvg+CKKS 2875/115 916.6/650.7 2522.7/1137.7/3141.6
+oflocalsparsification,residualfeedback,decaybasedtracking, FedPHE 1450/58 462.3/651.3 1418.6/1356.3/2445.1
+and ranking based aggregation, which jointly stabilize the SVHN ESAFL 1450/58 462.3/462.3 1418.6/962.6/2363.5
+MASER 1474/59 939.8/514.72884.1/1071.7/130336.0
+globallearningtrajectoryagainsthighlyskewedlocalupdates. ECPFL-RK 2000/80 637.6/11.1 787.5/13.8/801.3
+C. Overhead and Efficiency Evaluation
+1) Communication overhead: Table III details the average tal bottleneck through continuous ciphertext prefetching. By
+per-round performance metrics computed over fifty training systematically shifting the massive downstream payload into
+iterations. These metrics encompass the batch processing asynchronous background tasks, ECPFL reduces the syn-
+quantities and the corresponding bidirectional communication chronous downstream volume on SVHN to a mere 11.1 MB
+volumes. The FedAvg baseline consistently generates severe per round. This exceptional optimization yields a reduction
+bandwidth bottlenecks because it transmits full uncompressed in downstream communication of nearly 59× compared to
+models. On the SVHN dataset, for instance, FedAvg aggre- the FedAvg baseline. Furthermore, on the MNIST dataset,
+gates115batchesperround,requiring916.6MBforupstream the prefetching mechanism achieves an even more profound
+transmission and 650.7 MB for downstream delivery. While compressionexceeding292timesindownstreamtransmission
+sparsification frameworks like FedPHE reduce the upstream reduction, confirming its robust efficiency regardless of the
+volume to 462.3 MB, its union based aggregation severely model scale.
+inflates the downstream payload back to 651.3 MB. In con- 2) End to End Training Time: Analyzing the average per-
+trast, the rank-based ECPFL variant resolves this fundamen- round training time reveals the temporal efficiency of the
+
+===== PAGE 13 =====
+13
+1M
+100K
+10K
+1K
+100
+10
+ECPFL-TH FedPHE ESAFL M
+F
+A
+e
+S
+d
+E
+A
+R vg-CKKS
+Algorithm
+)BM(
+emuloV
+noitacinummoC
+(a) MNIST
+CT-Upstream 1M
+CT-Downstream
+100K
+4.0G 3.1G 2.3G 5.4G 2.9G 4.3G 10K
+797M 1K
+72M 100
+10
+ECPFL-TH FedPHE ESAFL M
+F
+A
+e
+S
+d
+E
+A
+R vg-CKKS
+Algorithm
+)BM(
+emuloV
+noitacinummoC
+(b) FMNIST
+CT-Upstream 1M
+CT-Downstream
+100K
+2.1G 3.6G 1.9G 4.7G 2.5G 3.9G 10K
+399M 1K
+59M 100
+10
+ECPFL-TH FedPHE ESAFL M
+F
+A
+e
+S
+d
+E
+A
+R vg-CKKS
+Algorithm
+)BM(
+emuloV
+noitacinummoC
+(c) CIFAR-10
+CT-Upstream 1M
+CT-Downstream
+100K 13.2G18.5G 13.2G 26.4G 14.5G 26.1G
+7.4G 10K
+1K 190M
+100
+10
+ECPFL-TH FedPHE ESAFL M
+F
+A
+e
+S
+d
+E
+A
+R vg-CKKS
+Algorithm
+)BM(
+emuloV
+noitacinummoC
+(d) SVHN
+CT-Upstream
+CT-Downstream
+18.8G 22.6G31.8G 22.6G 45.9G 25.1G 44.8G
+299M
+Fig. 8: Comparison of upstream and downstream communication traffic across different frameworks.
+proposed architecture. The total duration encompasses net-
+TABLEIVABLATIONSTUDYOFTHEESPMODULE
+COMPONENTS(SVHN,LS=0.5,RK=0.7)
+work transmission delays and local cryptographic operations,
+including both encryption and decryption. The empirical data ESPComponents PerformanceMetrics
+highlights that MASER suffers from extreme temporal degra- LS(0.5) RF PRD(0.3) CRD(0.5) RK(0.7) AC(%) UV(MB) TT(H)
+dation,consuming130336.0sperroundontheSVHNdataset. × × × × × 95.13 26699.8 0.88
+✓ × × × × 94.27 24420.5 0.87
+ThisprohibitivedelayoccursbecauseMASERreliesonexten- ✓ ✓ × × × 94.71 24563.9 0.89
+sive partial decryption steps and global plaintext broadcasts, ✓ ✓ ✓ × × 94.89 24922.5 0.88
+✓ ✓ ✓ ✓ × 94.91 24404.3 0.88
+which introduce massive cryptographic processing overhead ✓ ✓ ✓ ✓ ✓ 95.05 18729.7 0.88
+and severely block the training pipeline. Conversely, the rank-
+based ECPFL variant significantly accelerates convergence TABLEVCLIENTCOMMUNICATIONANDPREFETCHOVERHEAD
+without compromising security. By drastically compressing
+(CIFAR-10,UNION,R=3)
+the downstream payload, ECPFL slashes the synchronous
+Bandwidth(Mbps) Overhead(MB)
+ClientID Prt. CTs.
+downstreamwaitingtimetoonly13.8sonthecomplexSVHN
+DL UL PV DV TV
+dataset. Ultimately, ECPFL achieves a total training time of
+0 34 2207 136.97 160.28 702.55 14.59 717.14
+801.3sperroundonSVHN,deliveringaconvergencespeedup 1 29 1889 177.35 14.59 702.33 0.00 702.33
+ofnearly4timesrelativetoFedAvg.Thissignificanttemporal 2 9 592 278.73 8.22 571.69 14.59 586.28
+3 1 67 67.15 2.18 702.77 0.00 702.77
+advantagecomprehensivelybypassesthecryptographicbottle- 4 38 2472 318.88 36.82 717.36 14.59 731.95
+necks characteristic of competing secure frameworks. 5 36 2350 307.66 150.35 704.35 0.00 704.35
+6 3 199 30.87 0.12 717.36 14.59 731.95
+D. Ablation Study
+We conduct systematic ablation experiments on CIFAR-10 batches denoted as CTs., and their specific downlink and
+to isolate the contribution of each ECPFL module. uplink network capacities denoted as DL and UL. Without
+1) Effectiveness of ESP: Table IV incrementally isolates the ECP mechanism, clients are required to synchronously
+the performance contributions of the Efficient Sparse Packing download the entire downstream payload during the active
+(ESP) components. Applying baseline Local Sparsity (LS) trainingphase.Thismassivesynchronoustransmissiondirectly
+drastically reduces the Upload Volume (UV) by pruning inducesseverestragglerbottlenecksacrossheterogeneousnet-
+redundant client updates, but this naive truncation inherently works. The empirical results demonstrate that ECP resolves
+degrades the AC due to severe information loss. Integrating this conflict by absorbing the vast majority of the required
+ResidualFeedback(RF)activelymitigatesthisdegradationby bandwidthintotheasynchronousprefetchphase.Forinstance,
+locally accumulating unsent gradient features across rounds. Client 0 pre-downloads 702.55 MB asynchronously, leaving
+Furthermore, the addition of Per-Round Decay (PRD) and only a minimal 14.59 MB for the synchronous fetch phase
+Cross-Round Decay (CRD) stabilizes the convergence trajec- to retrieve missing residual batches. Furthermore, Clients 1,
+tory by systematically penalizing stale accumulated residuals, 3, and 5 achieve a synchronous fetch volume of exactly
+which directly minimizes the overall Training Time. Finally, 0.00 MB. This absolute reduction occurs because their local
+implementing the Rank Voting (RK) yields the complete models are fully synchronized exclusively through continuous
+and optimal ESP configuration. This full integration ensures background accumulation prior to activation. These empirical
+that only the most globally significant sparse features are observations confirm that ECP effectively translates massive
+homomorphically aggregated, perfectly balancing peak model ciphertext transmissions into latency-free background tasks,
+utility with maximum upstream bandwidth reduction. thereby guaranteeing robust acceleration regardless of indi-
+2) Effectiveness of ECP: To isolate the architectural bene- vidual client bandwidth constraints.
+fits of the ECP module, Table V details the communication
+metrics for a representative subset of seven clients at a
+E. Sensitivity Analysis
+fixed prefetch window of R = 3. The empirical profiles
+characterize each client through their participated rounds To comprehensively evaluate the robustness of ECPFL,
+denoted as Prt., the total quantity of uploaded ciphertext we conduct a sensitivity analysis on the Fashion-MNIST
+
+===== PAGE 14 =====
+14
+90
+80
+70
+60
+50
+0 10 20 30 40 50
+Communication Round
+)%(
+ycaruccA
+tseT
+Fashion-MNIST Voting Mechanisms
+80
+70
+TH-0.1 RK-0.3
+TH-0.3 RK-0.5 60 TH-0.5 RK-0.7
+TH-0.7 RK-0.9
+TH-0.9 Union 50
+0 10 20 30 40 50
+Communication Round
+(a) AC under different voting
+mechanisms.
+)%(
+ycaruccA
+tseT
+Fashion-MNIST Client Selection
+random
+sticky
+sketch_clustering
+poc tifl
+haccs
+oort
+(b) AC under different client se-
+lection strategies.
+80
+60
+40
+20
+0 10 20 30 40 50
+Communication Round
+)%(
+ycaruccA
+tseT
+Fashion-MNIST - Local Sparsity
+90
+80
+sparsity=0.1
+sparsity=0.3 70 sparsity=0.5
+sparsity=0.7 60
+sparsity=0.9
+sparsity=1 50
+0 10 20 30 40 50
+Communication Round
+(c) AC under different sparsity
+ratios.
+)%(
+ycaruccA
+tseT
+3) Impact of Local Sparsity Ratio: Fig. 9(c) demonstrates
+the sensitivity of the model to the local sparsity ratio. Main-
+tainingaretentionratioatorabove0.3allowstheconvergence
+profile to perfectly parallel the dense uncompressed baseline
+and stabilize near the 90% accuracy threshold. In contrast,
+extreme sparsification at a 0.1 ratio restricts the accuracy
+to a strict 80% ceiling. This performance gap confirms that
+excessive local pruning induces catastrophic information loss
+prior to the global consensus phase. A moderate local spar-
+sity ratio is structurally necessary to filter local noise while
+preserving sufficient representational capacity for subsequent
+Fashion-MNIST Prefetch Windows
+global voting.
+4) Impact of Prefetch Window Size R: Fig. 9(d) demon-
+strates that convergence trajectories for prefetch window sizes
+R=1 R ≤ 7 remain nearly indistinguishable with a peak accu-
+R=3 racy deviation under 0.3%. This insensitivity occurs because R=5
+R=7 the asynchronous mechanism decouples transmission from
+R=9
+computation, effectively reducing the participation frequency
+of stragglers to prevent critical staleness injection. However,
+(d)ACunderdifferentfetchwin-
+a noticeable degradation emerges at R = 9, exposing the
+dow sizes.
+theoretical upper bound caused by excessive stale gradient
+Fig. 9: Comprehensive evaluation of system configurations on accumulation in heterogeneous environments.
+Fashion-MNIST.
+VII. CONCLUSIONANDFUTUREWORK
+This paper presents ECPFL, a novel ciphertext prefetching
+architecture that fundamentally resolves the tension between
+dataset. We systematically investigate the impact of voting
+cryptographic privacy and communication efficiency in cross-
+mechanisms, client selection strategies, local sparsity ratios,
+devicefederatedlearning.Byextendingidle-timesynchroniza-
+and prefetch window sizes on model convergence.
+tionintotheciphertextdomain,ourframeworkenablesclients
+1) ImpactofVotingMechanisms: Fig.9(a)evaluatesmodel
+to asynchronously accumulate global models via homomor-
+convergence under different consensus variants. The Union
+phicringaddition,effectivelymaskingcommunicationlatency
+approach and Rank-based variants such as RK-0.3 and RK-
+without incurring dimensional expansion. To further optimize
+0.5 achieve the highest test accuracy by rapidly converg-
+system dynamics, we synergistically integrate an encrypted
+ing to approximately 90% within 20 communication rounds.
+sparse packing mechanism that drastically compresses syn-
+Conversely, the Threshold mechanism exhibits severe perfor-
+chronouspayloads,alongsideadistributedconsensusprotocol
+mance degradation at high stringency levels, with the TH-0.9
+designed to stabilize model convergence under severe data
+configuration plateauing at a suboptimal 84% accuracy limit.
+heterogeneity. Extensive empirical evaluations confirm that
+This degradation occurs because an absolute 90% consensus
+ECPFL significantly accelerates end-to-end training and min-
+requirement is overly rigid and prematurely discards class-
+imizes bandwidth consumption, all while strictly preserving
+specific gradient features essential for global convergence.
+gradient confidentiality and dropout privacy.
+ECPFL-RK avoids this architectural bottleneck by dynami-
+cally retaining globally significant updates without imposing REFERENCES
+inflexible frequency cutoffs.
+[1] K. Bonawitz, H. Eichner, W. Grieskamp, D. Huba, A. Ingerman,
+2) ImpactofClientSelectionStrategies: Fig.9(b)illustrates V. Ivanov, C. Kiddon, J. Konecˇny`, S. Mazzocchi, B. McMahan et al.,
+“Towards federated learning at scale: System design,” Proceedings of
+that the accuracy trajectories across all client selection strate-
+machinelearningandsystems,vol.1,pp.374–388,2019.
+gies strictly overlap, converging uniformly to approximately [2] L. Zhang, J. Xu, P. Vijayakumar, P. K. Sharma, and U. Ghosh, “Ho-
+86%. This confirms that model utility is highly insensitive to momorphic encryption-based privacy-preserving federated learning in
+iot-enabled healthcare system,” IEEE transactions on network science
+participant selection bias, a robustness fundamentally driven
+andengineering,vol.10,no.5,pp.2864–2880,2022.
+bytheECPmodule.Byenablinginfrequentlysampledorlow- [3] T.Li,A.K.Sahu,M.Zaheer,M.Sanjabi,A.Talwalkar,andV.Smith,
+bandwidth clients to asynchronously prefetch global cipher- “Federatedoptimizationinheterogeneousnetworks,”inProceedingsof
+MachineLearningandSystems,vol.2,2020,pp.429–450.
+textsduringidleperiods,ECPensurestheyonlyfetchminimal
+[4] R. Rahman, S. Shaon, and D. C. Nguyen, “Tackling heterogeneity
+residual data upon selection. Consequently, these historically in quantum federated learning: An integrated sporadic-personalized
+inactive stragglers can immediately contribute meaningful approach,”IEEETransactionsonComputers,2026.
+[5] T.Li,A.K.Sahu,M.Zaheer,M.Sanjabi,A.Talwalkar,andV.Smith,
+updates without stalling the synchronous aggregation phase.
+“Federated optimization in heterogeneous networks,” Proceedings of
+This effectively neutralizes the statistical penalty of resource- MachineLearningandSystems(MLSys),vol.2,pp.429–450,2020.
+aware selection, allowing ECPFL to dramatically accelerate [6] Y. Li, Y. Li, and Y. Liu, “Breaking the illusion: A critical study
+of backdoor defense in federated learning with non-iid data,” IEEE
+physical training latency while fully preserving the diverse
+TransactionsonInformationForensicsandSecurity(TIFS),vol.20,pp.
+data representation of slow clients. 1234–1248,2025.
+
+===== PAGE 15 =====
+15
+[7] K. He, Y. Li, C. Zhang, and W. Wang, “Ace-pfl: Accurate, efficient [28] K. Bonawitz, V. Ivanov, B. Kreuter, A. Marcedone, H. B. McMahan,
+personalizedfederatedlearningwithknowledgedistillation,”IEEE/ACM S.Patel,D.Ramage,A.Segal,andK.Seth,“Practicalsecureaggregation
+TransactionsonNetworking(TON),vol.33,no.5,pp.1567–1582,2025. forprivacy-preservingmachinelearning,”inProc.ACMCCS,2017.
+[8] R. Wang, Y. Li, C. Zhang, and W. Wang, “Heterogeneous federated [29] C. Gentry, “Fully homomorphic encryption using ideal lattices,” in
+learning frameworks for balancing job completion time and model Proceedings of the forty-first annual ACM symposium on Theory of
+accuracy,”IEEE/ACMTransactionsonNetworking(TON),vol.34,no.1, computing,2009,pp.169–178.
+pp.123–135,2026. [30] J.H.Cheon,A.Kim,M.Kim,andY.Song,“Homomorphicencryption
+[9] P. Kairouz and H. B. McMahan, “Advances and open problems in for arithmetic of approximate numbers,” in International conference
+federatedlearning,”Foundationsandtrendsinmachinelearning,vol.14, on the theory and application of cryptology and information security.
+no.1-2,pp.1–210,2021. Springer,2017,pp.409–437.
+[10] J. Wu and W. Zhang, “On the security of verifiable and oblivious [31] V. Lyubashevsky, C. Peikert, and O. Regev, “On ideal lattices and
+secure aggregation for privacy-preserving federated learning,” IEEE learningwitherrorsoverrings,”inAnnualinternationalconferenceon
+TransactionsonDependableandSecureComputing,vol.21,no.5,pp. the theory and applications of cryptographic techniques. Springer,
+4324–4326,2024. 2010,pp.1–23.
+[11] Y.J.Cho,J.Wang,andG.Joshi,“Towardsunderstandingbiasedclient [32] J.H.Cheon,K.Han,A.Kim,M.Kim,andY.Song,“Bootstrappingfor
+selectioninfederatedlearning,”inInternationalConferenceonArtificial approximate homomorphic encryption,” in Annual International Con-
+IntelligenceandStatistics. PMLR,2022,pp.10351–10375. ference on the Theory and Applications of Cryptographic Techniques.
+[12] Q. Li, Z. Wen, Z. Wu, S. Huang, N. Wang, Y. Li, X. Liu, and B. He, Springer,2018,pp.360–384.
+“FedPHE: A secure and efficient federated learning system based on [33] J.Wu,W.Zhang,andF.Luo,“Esafl:Efficientsecureadditivelyhomo-
+partialhomomorphicencryption,”IEEETrans.DependableandSecure morphicencryptionforcross-silofederatedlearning,”IEEETransactions
+Computing,2025. onDependableandSecureComputing,2025.
+[13] Z.Chai,A.Ali,S.Zawad,S.Truex,A.Anwar,N.Baracaldo,Y.Zhou, [34] Y. Cai, W. Ding, Y. Xiao, Z. Yan, X. Liu, and Z. Wan, “Secfed: A
+H.Ludwig,F.Yan,andY.Cheng,“Tifl:Atier-basedfederatedlearning secureandefficientfederatedlearningbasedonmulti-keyhomomorphic
+system,” in Proceedings of the 29th international symposium on high- encryption,”IEEETransactionsonDependableandSecureComputing,
+performanceparallelanddistributedcomputing,2020,pp.125–136. vol.21,no.4,pp.3817–3833,2023.
+[35] F.Sattler,S.Wiedemann,K.-R.Mu¨ller,andW.Samek,“Sparsebinary
+[14] J.Wolfrath,N.Sreekumar,D.Kumar,Y.Wang,andA.Chandra,“Haccs:
+compression:Towardsdistributeddeeplearningwithminimalcommu-
+Heterogeneity-awareclusteredclientselectionforacceleratedfederated
+nication,” in 2019 International Joint Conference on Neural Networks
+learning,”in2022IEEEinternationalparallelanddistributedprocessing
+(IJCNN). IEEE,2019,pp.1–8.
+symposium(IPDPS). IEEE,2022,pp.985–995.
+[36] ——,“Robustandcommunication-efficientfederatedlearningfromnon-
+[15] F.Lai,X.Zhu,H.V.Madhyastha,andM.Chowdhury,“Oort:Efficient
+iiddata,”IEEEtransactionsonneuralnetworksandlearningsystems,
+federatedlearningviaguidedparticipantselection,”in15th{USENIX}
+vol.31,no.9,pp.3400–3413,2019.
+SymposiumonOperatingSystemsDesignandImplementation({OSDI}
+[37] Y.Pan,J.Yu,X.Yuan,C.Wang,andB.Li,“FedSHE:Efficientsecure
+21),2021,pp.19–35.
+federatedlearningviasegmentalhomomorphicencryption,”IEEETrans.
+[16] S. He, Q. Yan, F. Wu, L. Wang, M. Le´cuyer, and I. Beschastnikh,
+DependableandSecureComputing,2024.
+“Gluefl:Reconcilingclientsamplingandmodelmaskingforbandwidth
+[38] H.Chen,W.Dai,M.Kim,andY.Song,“Efficientmulti-keyhomomor-
+efficient federated learning,” Proceedings of Machine Learning and
+phic encryption with packed ciphertexts with application to oblivious
+Systems,vol.5,pp.695–707,2023.
+neuralnetworkinference,”inProc.ACMCCS,2019.
+[17] Z. Liu, J. Guo, W. Yang, J. Fan, K.-Y. Lam, and J. Zhao, “Dynamic
+[39] I.Damga˚rd,V.Pastro,N.Smart,andS.Zakarias,“Multipartycompu-
+userclusteringforefficientandprivacy-preservingfederatedlearning,”
+tationfromsomewhathomomorphicencryption,”inAnnualcryptology
+IEEETransactionsonDependableandSecureComputing,2024.
+conference. Springer,2012,pp.643–662.
+[18] S. Xu, Y. Zheng, and Z. Hua, “Harnessing sparsification in federated
+[40] J. Wu, T. Sun, F. Luo, H. Wang, and W. Zhang, “Secure multi-
+learning: A secure, efficient, and differentially private realization,” in
+key homomorphic encryption with application to privacy-preserving
+Proceedings of the 2025 ACM SIGSAC Conference on Computer and
+federatedlearning,”arXivpreprintarXiv:2506.20101,2025.
+CommunicationsSecurity,2025,pp.2354–2368.
+[41] A.A.Omar,X.Yang,E.Choo,andO.Ardakanian,“Efficientprivacy-
+[19] C. Dong, J. Weng, M. Li, J.-N. Liu, Z. Liu, Y. Cheng, and S. Yu,
+preserving cross-silo federated learning with multi-key homomorphic
+“Privacy-preserving and byzantine-robust federated learning,” IEEE
+encryption,”arXivpreprintarXiv:2505.14797,2025.
+TransactionsonDependableandSecureComputing,vol.21,no.2,pp.
+[42] D. Alistarh, D. Grubic, J. Li, R. Tomioka, and M. Vojnovic, “Qsgd:
+889–904,2023.
+Communication-efficient sgd via gradient quantization and encoding,”
+[20] D. Rothchild, A. Panda, E. Ullah, N. Ivkin, I. Stoica, V. Braverman,
+Advancesinneuralinformationprocessingsystems,vol.30,2017.
+J. Gonzalez, and R. Arora, “Fetchsgd: Communication-efficient feder-
+[43] H. Bao, P. Chen, Y. Sun, and Z. Li, “EFSkip: A new error feedback
+atedlearningwithsketching,”inInternationalConferenceonMachine
+withlinearspeedupforcompressedfederatedlearningwitharbitrarydata
+Learning. PMLR,2020,pp.8253–8265.
+heterogeneity,”inProc.39thAAAIConferenceonArtificialIntelligence,
+[21] Q. Yan, A. Liu, S. He, M. Le´cuyer, and I. Beschastnikh, “Fedfetch: vol.39,no.15,2025,pp.15489–15497.
+Faster federated learning with adaptive downstream prefetching,” in
+[44] P.Richta´rik,E.Gasanov,andK.Burlachenko,“Errorfeedbackreloaded:
+IEEEINFOCOM2025-IEEEConferenceonComputerCommunications.
+From quadratic to arithmetic mean of smoothness constants,” in Inter-
+IEEE,2025,pp.1–10.
+nationalConferenceonLearningRepresentations,vol.2024,2024,pp.
+[22] L. Zhu, Z. Liu, and S. Han, “Deep leakage from gradients,” Advances 33306–33372.
+inneuralinformationprocessingsystems,vol.32,2019. [45] N. Dorfman, K. Yadav, R. Camero, A. Bekkerman, and I. Hubara,
+[23] J. Geiping, H. Bauermeister, H. Dro¨ge, and M. Moeller, “Inverting “DocoFL: Downlink compression for cross-device federated learning,”
+gradients-how easy is it to break privacy in federated learning?” Ad- in Proc. 40th International Conference on Machine Learning (ICML),
+vances in neural information processing systems, vol. 33, pp. 16937– 2023,pp.8356–8386.
+16947,2020. [46] F.Haddadpour,M.M.Kamani,A.Mokhtari,andM.Mahdavi,“Feder-
+[24] B. Zhao, K. R. Mopuri, and H. Bilen, “idlg: Improved deep leakage atedlearningwithcompression:Unifiedanalysisandsharpguarantees,”
+fromgradients,”arXivpreprintarXiv:2001.02610,2020. in International Conference on Artificial Intelligence and Statistics.
+[25] P. Guo, R. Wang, S. Zeng, J. Zhu, H. Jiang, Y. Wang, Y. Zhou, PMLR,2021,pp.2350–2358.
+F. Wang, H. Xiong, and L. Qu, “Exploring the vulnerabilities of [47] A.Kumar,K.Singhal,A.K.Sahu,andP.Vepakomma,“Non-IIDaware
+federated learning: A deep dive into gradient inversion attacks,” IEEE sparse federated learning via percentile-driven budgeting,” in Proc.
+TransactionsonPatternAnalysisandMachineIntelligence,2025. 40thInternationalConferenceonMachineLearning(ICML),2023,pp.
+[26] P. Ye, Y. Li, K. He, Q. Li, T. Qin, X. Wang, K. Yang, C. Zhang, and 18043–18064.
+J.Chen,“Breakingtheillusion:Acriticalstudyofbackdoordefensein [48] M. Kim, W. Saad, M. Debbah, and C. S. Hong, “SpaFL:
+federatedlearningwithnon-iiddata,”IEEETransactionsonInformation Communication-efficientfederatedlearningwithsparsemodelsandlow
+ForensicsandSecurity,vol.20,pp.13264–13279,2025. computationaloverhead,”vol.37,pp.86500–86527,2024.
+[27] H. B. McMahan, D. Ramage, K. Talwar, and L. Zhang, “Learn- [49] S. U. Stich, J.-B. Cordonnier, and M. Jaggi, “Sparsified sgd with
+ing differentially private recurrent language models,” arXiv preprint memory,” Advances in neural information processing systems, vol. 31,
+arXiv:1710.06963,2017. 2018.
+
+===== PAGE 16 =====
+16
+[50] M. Li, Y. Tian, J. Zhang, J. Xiong, X. Cui, and J. Ma, “Enhancing Qingyang Zhang was born in Anhui Province,
+federated learning in edge computing with secure aggregation and China, in 1992. He received his B. Eng. degree
+dynamicverification,”IEEETransactionsonMobileComputing,2025. and Ph.D. degree in computer science from Anhui
+University in 2021. He is currently an associate
+[51] J.So,B.Gu¨ler,andA.S.Avestimehr,“Lightsecagg:Rethinkingsecure professor of the School of Computer Science and
+aggregationinfederatedlearning,”Proc.MachineLearningandSystems, TechnologyatAnhuiUniversity.Hisresearchinter-
+vol.5,pp.527–543,2023. estsincludeedgecomputing,computersystems,and
+security. He has over 30 scientific publications in
+[52] I. Ergun, K. A. Akalin, and H. B. Yilmaz, “λ-secagg: Partial vec- reputable journals (e.g., Proceedings of the IEEE,
+tor freezing for lightweight secure aggregation in federated learning,” IEEETransactionsonDependableandSecureCom-
+in Proc. 13th International Conference on Learning Representations puting,IEEETransactionsonInformationForensics
+(ICLR),2025. and Security, IEEE Transactions on Parallel and Distributed Systems, IEEE
+TransactionsonComputers)andinternationalconferences.
+[53] Z. Jiang, P. Ye, S. He, W. Wang, R. Chen, and B. Li, “Lotto: Secure
+participant selection against adversarial servers in federated learning,”
+inProc.USENIXSecuritySymposium,2024,pp.343–360. FengqunWangwasborninAnhuiProvince,China,
+in1996. Hereceivedhis Ph.D.degreein computer
+[54] S.Luoetal.,“Tacklingsystemandstatisticalheterogeneityforfederated science from Anhui University in 2024. He is cur-
+learningwithadaptiveclientsampling,”inProc.IEEEINFOCOM,2022, rentlyalectureofSchoolofComputerScienceand
+pp.1–10. Technology at Anhui University. His research in-
+terestsincludeIoTsecurity,blockchainandapplied
+[55] K.Yi,N.Gazagnadou,P.Richta´rik,andL.Lyu,“Fedp3:Personalized cryptography.Hehasmultiplescientificpublications
+andprivacy-friendlyfederatednetworkpruningundermodelheterogene- in reputable journals (e.g., IEEE Transactions on
+ity,”inProc.12thInternationalConferenceonLearningRepresentations Information Forensics and Security, IEEE Transac-
+(ICLR),2024. tions on Dependable and Secure Computing, IEEE
+TransactionsonNetworkandServiceManagement,
+[56] S.HaleviandV.Shoup,“Fasterhomomorphiclineartransformationsin IEEETransactionsonIndustrialElectronics).
+helib,”inAnnualInternationalCryptologyConference. Springer,2018,
+pp.93–120.
+HongZhongwasborninAnhuiProvince,China,in
+1965.ShereceivedherPhDdegreeincomputersci-
+[57] J.-W. Lee, H. Kang, Y. Lee, W. Choi, J. Eom, M. Deryabin, E. Lee,
+encefromtheUniversityofScienceandTechnology
+J.Lee,D.Yoo,Y.-S.Kimetal.,“Privacy-preservingmachinelearning
+of China in 2005. She is currently a professor and
+with fully homomorphic encryption for deep neural network,” iEEE
+Ph.D.supervisoroftheSchoolofComputerScience
+Access,vol.10,pp.30039–30054,2022.
+and Technology at Anhui University. Her research
+[58] N. Samardzic and D. Sanchez, “Bitpacker: Enabling high arithmetic interestsincludeappliedcryptography,IoTsecurity,
+efficiencyinfullyhomomorphicencryptionaccelerators,”inProceedings vehicular ad hoc networks, cloud computing secu-
+ofthe29thACMInternationalConferenceonArchitecturalSupportfor rity, and software-defined networking (SDN). She
+Programming Languages and Operating Systems, Volume 2, 2024, pp. has over 200 scientific publications in reputable
+137–150. journals (e.g. IEEE Journal on Selected Areas in
+Communications, IEEE Transactions on Parallel and Distributed Systems,
+[59] Y. Zhou, “Efficient mod approximation and its applications to ckks IEEETransactionsonMobileComputing,IEEETransactionsonDependable
+ciphertexts,”arXivpreprintarXiv:2512.19951,2025. and Secure Computing, IEEE Transactions on Information Forensics and
+Security, IEEE Transactions on Intelligent Transportation Systems, IEEE
+[60] J. Bernstein, Y.-X. Wang, K. Azizzadenesheli, and A. Anandkumar, Transactions on Multimedia, IEEE Transactions on Vehicular Technology,
+“signsgd:Compressedoptimisationfornon-convexproblems,”inInter- IEEETransactionsonNetworkandServiceManagement,IEEETransactions
+nationalconferenceonmachinelearning. PMLR,2018,pp.560–569. on Cloud Computing, IEEE Transactions on Industrial Informatics, IEEE
+Transactions on Industrial Electronics and IEEE Transactions on Big Data),
+[61] F. Sattler, S. Wiedemann, K.-R. Mu¨ller, and W. Samek, “Robust and academicbooksandinternationalconferences.
+communication-efficient federated learning from non-IID data,” IEEE
+Trans.NeuralNetworksandLearningSystems,vol.31,no.9,pp.3400–
+ZhongyangShiwasborninHenanProvince,China,
+3413,2020.
+in1998.Hereceivedthemaster’sdegreeincomputer
+science and technology from Shanghai Ocean Uni-
+[62] D. D. Clark and S. Wedeman, “Measurement, meaning and purpose:
+versity,China,in2024.Heiscurrentlypursuingthe
+Exploring the m-lab ndt dataset,” in TPRC49: The 49th Research
+Ph.D.degreewiththeSchoolofComputerScience
+ConferenceonCommunication,InformationandInternetPolicy,2021.
+andTechnology,AnhuiUniversity,Hefei,China.His
+research interests focus on privacy-preserving ma-
+chinelearning,federatedlearning,andhomomorphic
+encryption.
+JieCui(SeniorMember,IEEE)wasborninHenan
+Province, China, in 1980. He received his Ph.D.
+degreefromtheUniversityofScienceandTechnol-
+ogy of China in 2012. He is currently a professor
+and Ph.D. supervisor of the School of Computer
+Science and Technology at Anhui University. His
+currentresearchinterestsincludeappliedcryptogra-
+phy,IoTsecurity,vehicularadhocnetworks,cloud
+computing security, and software-defined network-
+ing (SDN). He has over 150 scientific publications
+in reputable journals (e.g. IEEE Transactions on
+DependableandSecureComputing,IEEETransactionsonInformationForen-
+sics and Security, IEEE Journal on Selected Areas in Communications,
+IEEETransactionsonMobileComputing,IEEETransactionsonParalleland
+Distributed Systems, IEEE Transactions on Computers, IEEE Transactions
+on Intelligent Transportation Systems, IEEE Transactions on Network and
+Service Management, IEEE Transactions on Industrial Informatics, IEEE
+TransactionsonIndustrialElectronics,IEEETransactionsonCloudComput-
+ingandIEEETransactionsonMultimedia),academicbooksandinternational
+conferences. He is on the Editorial Board of several international journals,
+such as IET Communications, Security and Communication Networks, and
+Sensors.

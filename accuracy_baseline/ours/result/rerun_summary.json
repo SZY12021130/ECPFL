@@ -1,0 +1,34 @@
+[
+  {
+    "target_name": "mnist_rk",
+    "source_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\20260605_mnist_topk_pct_0.1",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result\\mnist_rk",
+    "has_ut": true,
+    "has_dt": true,
+    "has_tt": true
+  },
+  {
+    "target_name": "fashion_mnist_rk",
+    "source_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\20260610_fashion_mnist_sp0.3_topk0.3",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result\\fashion_mnist_rk",
+    "has_ut": true,
+    "has_dt": true,
+    "has_tt": true
+  },
+  {
+    "target_name": "cifar10_rk",
+    "source_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\20260605_cifar10_topk_pct_0.7",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result\\cifar10_rk",
+    "has_ut": true,
+    "has_dt": true,
+    "has_tt": true
+  },
+  {
+    "target_name": "svhn_rk",
+    "source_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\20260622_svhn_sp0.5_topk0.7",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result\\svhn_rk",
+    "has_ut": true,
+    "has_dt": true,
+    "has_tt": true
+  }
+]

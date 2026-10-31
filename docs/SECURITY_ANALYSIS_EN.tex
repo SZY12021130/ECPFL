@@ -1,0 +1,278 @@
+%------------------------------------------------------------------------------
+% Security Analysis of ESAFL with KGC Zero-Ciphertext Compensation
+% Compatible with IEEE single-column format
+%------------------------------------------------------------------------------
+\section{Security Analysis}
+\label{sec:security}
+
+In this section, we present a formal security analysis of the proposed \textsc{ECPFL} scheme under four adversarial models: semi-honest clients, client collusion, a malicious server, and client-server collusion. All proofs rely on the standard Decisional Ring Learning With Errors (D-RLWE) hardness assumption and the collision-resistance of the homomorphic hash function.
+
+%------------------------------------------------------------------------------
+\subsection{Threat Model and Assumptions}
+\label{ssec:threat-model}
+
+\noindent\textbf{System Participants.}
+The protocol involves three types of entities:
+\begin{itemize}
+    \item \textbf{Key Generation Center (KGC)}: Trusted but minimally involved. It generates MK-CKKS key pairs, derives the public-polynomial sequence $\{a^{(t)}\}_{t=1}^{T}$, pre-computes all compensation ciphertexts, and then goes permanently offline. The KGC never observes any training data or gradients.
+    \item \textbf{Server $\mathcal{S}$}: \emph{Malicious}. It may deviate from the protocol, attempt to infer individual client gradients, tamper with aggregation results, forge virtual clients, or collude with other participants.
+    \item \textbf{Clients $\mathcal{C}_i$ ($i \in [N]$)}: Each client may be semi-honest (honest-but-curious) or malicious. Semi-honest clients follow the protocol exactly but try to infer information about other clients from protocol transcripts.
+\end{itemize}
+
+\noindent\textbf{Cryptographic Assumptions.}
+\begin{assumption}[RLWE Hardness]
+\label{ass:rlwe}
+For security parameter $\lambda$, the Decisional-RLWE problem over $R_q = \mathbb{Z}_q[x]/(x^n+1)$ is hard. That is, for $a \gets R_q$, $s \gets \chi$, $e \gets \chi$, the tuple $(a, a \cdot s + e)$ is computationally indistinguishable from a uniformly random tuple $(a, u) \gets R_q^2$.
+\end{assumption}
+
+\begin{assumption}[Collision-Resistant Homomorphic Hash]
+\label{ass:hash}
+The hash function $\mathcal{H}: \{0,1\}^* \to \mathbb{G}$ satisfies collision-resistance and pre-image resistance, where $\mathbb{G}$ is a cyclic group of prime order $p'$.
+\end{assumption}
+
+\begin{assumption}[Trusted KGC]
+\label{ass:kgc}
+The KGC honestly executes key generation and compensation ciphertext construction, securely erases all private key material after going offline, and is never compromised by any adversary.
+\end{assumption}
+
+%------------------------------------------------------------------------------
+\subsection{Security Against Semi-Honest Clients}
+\label{ssec:semi-honest}
+
+Under the semi-honest client threat model, we require that no client $i$ can infer any other client $j \neq i$'s local gradient from its protocol view, even though client $i$ ultimately learns the global aggregated gradient.
+
+Let $f$ denote the ideal functionality that takes all local gradients $\mathcal{G} = \{\mathbf{g}_1, \dots, \mathbf{g}_N\}$ and outputs the aggregated gradient $\mathbf{g}_{\text{agg}}^{(t)} = \sum_{i \in \mathcal{S}^{(t)}} \mathbf{g}_i^{(t)}$. Let $\mathsf{View}_i(\lambda, \mathcal{G})$ denote the view of client $i$ during protocol execution, including all received messages (global model $\mathbf{w}^{(t)}$, hash anchors $H_{\text{pre}}^{(t)}$, and the decrypted cumulative gradient $\mathbf{\Delta}_{\text{pre}}^{(i)}$), as well as its own random coins and internal state.
+
+\begin{theorem}[IND-CPA Security against Semi-Honest Clients]
+\label{thm:semi-honest}
+Under Assumption~\ref{ass:rlwe}, for any proper subset of semi-honest clients, there exists a PPT simulator $\mathsf{Sim}_i$ such that for all PPT adversaries $\mathcal{A}$:
+\begin{equation}
+    \bigl| \Pr[\mathcal{A}(\mathsf{View}_i(\lambda, \mathcal{G})) = 1] - \Pr[\mathcal{A}(\mathsf{Sim}_i(\mathbf{g}_i, f(\mathcal{G}))) = 1] \bigr| \leq \mathsf{negl}(\lambda).
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+The view of client $i$ contains only two sources of information about other clients: (1) the ciphertexts uploaded by other clients to the server, which client $i$ never receives directly; and (2) the decrypted aggregated gradient $\mathbf{\Delta}_{\text{pre}}^{(i)}$.
+
+For (1), by the IND-CPA security of RLWE (Assumption~\ref{ass:rlwe}), for any two plaintexts $\mathbf{m}_0, \mathbf{m}_1$:
+\begin{equation}
+    c_{j,\mathrm{up}}^{(t)} = \bigl[ a^{(t)} \cdot s_j + \mathsf{CRTStack}(\mathbf{g}_j) + e_j \bigr]_{R_q}
+\end{equation}
+is computationally indistinguishable from a uniformly random element of $R_q$. Even if client $i$ were to obtain $c_{j,\mathrm{up}}^{(t)}$ (e.g., via server collusion analyzed in \S\ref{ssec:collusion}), decryption would still require $s_j$, which remains unknown.
+
+For (2), the simulator $\mathsf{Sim}_i$ simply outputs the ideal functionality result $f(\mathcal{G}) = \mathbf{\Delta}_{\text{pre}}^{(t)}$, which is exactly what client $i$ is supposed to learn. Since the protocol reveals nothing beyond this aggregation, the simulated view is perfectly indistinguishable from the real view.
+\end{proof}
+
+\noindent\textbf{Key Observation.} The aggregated gradient is the \emph{intended output} of federated learning---every client needs it to update its local model. Therefore, the security lower bound is: client $i$ cannot learn anything \emph{beyond} the aggregation result.
+
+%------------------------------------------------------------------------------
+\subsection{Resistance to Client Collusion}
+\label{ssec:client-collusion}
+
+Consider a collusion set $\mathcal{T} \subset [N]$ with $|\mathcal{T}| = t < N$. The colluding clients may share their local gradients $\{\mathbf{g}_i\}_{i \in \mathcal{T}}$, private key fragments $\{s_i\}_{i \in \mathcal{T}}$, and all observed protocol transcripts. Their goal is to infer the individual gradient of any non-colluding client $k \notin \mathcal{T}$.
+
+\begin{theorem}[Collusion Lower Bound]
+\label{thm:collusion}
+In an additive aggregation scheme, if $|\mathcal{T}| < |\mathcal{S}^{(t)}| - 1$, the colluding set $\mathcal{T}$ cannot recover the exact gradient of any non-colluding client $k \notin \mathcal{T}$ with non-negligible probability.
+\end{theorem}
+
+\begin{proof}
+At round $t$, the decrypted aggregated gradient is:
+\begin{equation}
+    \mathbf{\Delta}_{\mathrm{pre}}^{(t)} = \sum_{i \in \mathcal{S}^{(t)}} \mathbf{g}_i^{(t)} + \tilde{E}^{(t)},
+\end{equation}
+where $\tilde{E}^{(t)}$ is the residual decryption noise, which is eliminated during exact integer reconstruction via CRT.
+
+The colluding clients know their own gradient sum:
+\begin{equation}
+    \mathbf{G}_{\mathcal{T}} = \sum_{i \in \mathcal{T} \cap \mathcal{S}^{(t)}} \mathbf{g}_i^{(t)}.
+\end{equation}
+
+By subtracting their known contribution, they obtain:
+\begin{equation}
+    \mathbf{G}_{\mathcal{S} \setminus \mathcal{T}} = \mathbf{\Delta}_{\mathrm{pre}}^{(t)} - \mathbf{G}_{\mathcal{T}} = \sum_{i \in \mathcal{S}^{(t)} \setminus \mathcal{T}} \mathbf{g}_i^{(t)}.
+\end{equation}
+
+This is a linear system with $|\mathcal{S}^{(t)}| - |\mathcal{T}|$ unknown vectors in $\mathbb{R}^d$ and $d$ equations. When $|\mathcal{S}^{(t)}| - |\mathcal{T}| \geq 2$, the system is \emph{underdetermined}, admitting infinitely many solutions. Therefore, the colluding clients cannot uniquely determine any individual $\mathbf{g}_k$ for $k \notin \mathcal{T}$.
+\end{proof}
+
+\noindent\textbf{Pairwise Blinding Mask Enhancement.}
+If pairwise blinding masks $\mathbf{b}_{i,j}$ are enabled (satisfying $\sum_i w_i \mathbf{b}_{i,j} = \mathbf{0}$), clients encrypt $\tilde{\mathbf{g}}_i = \mathbf{g}_i + \mathbf{b}_i$ where $\mathbf{b}_i = \sum_{j \neq i} \mathbf{b}_{i,j}$. The colluding set $\mathcal{T}$ only knows $\{\mathbf{b}_{i,j}\}_{i,j \in \mathcal{T}}$ and cannot eliminate mask terms involving $j \notin \mathcal{T}$. Thus, even when $|\mathcal{S}^{(t)}| - |\mathcal{T}| = 1$, the mask protects the sole non-colluding client.
+
+%------------------------------------------------------------------------------
+\subsection{Security Against a Malicious Server}
+\label{ssec:malicious-server}
+
+A malicious server $\mathcal{S}^*$ may attempt: (1) decryption attacks to recover individual gradients; (2) tampering attacks to manipulate the global model; (3) replay attacks using old ciphertexts; (4) compensation ciphertext substitution; and (5) Sybil attacks by forging virtual clients.
+
+\subsubsection{Resistance to Decryption Attacks}
+
+\begin{theorem}[Server UnDecryptability]
+\label{thm:server-decrypt}
+Under Assumptions~\ref{ass:rlwe} and~\ref{ass:kgc}, a malicious server cannot recover any individual client's plaintext gradient from the aggregated ciphertext $C_j^{(t)}$ with non-negligible probability.
+\end{theorem}
+
+\begin{proof}
+The aggregated ciphertext is:
+\begin{equation}
+    C_j^{(t)} = \Bigl[ a^{(t)} \cdot S + \sum_{i \in \mathcal{S}^{(t)}} m_{i,j}^{(t)} + E^{(t)} \Bigr]_{R_q},
+\end{equation}
+where $S = \sum_{\ell=1}^{N} s_\ell$ is the global aggregated secret key. The server possesses $C_j^{(t)}$ and the public polynomial $a^{(t)}$, but \emph{does not possess any} $s_\ell$.
+
+To remove the key-mask term $a^{(t)} \cdot S$, the server would need to compute:
+\begin{equation}
+    \tilde{m} = \bigl[ C_j^{(t)} - a^{(t)} \cdot S \bigr]_{R_q}.
+\end{equation}
+
+Since $S$ is unknown, this is impossible. Furthermore, by the RLWE pseudorandomness (Assumption~\ref{ass:rlwe}), for any $S \gets \chi$, the tuple $(a^{(t)}, a^{(t)} \cdot S + E^{(t)})$ is computationally indistinguishable from uniform over $R_q^2$. Therefore:
+\begin{equation}
+    \Pr_{a,S,E}\bigl[\mathcal{A}(a, aS+E) = S\bigr] \leq \mathsf{negl}(\lambda),
+\end{equation}
+for any PPT adversary $\mathcal{A}$.
+\end{proof}
+
+\subsubsection{Resistance to Tampering Attacks}
+
+If the server tampers with the aggregated ciphertext as $\tilde{C}_j^{(t)} = C_j^{(t)} + \Delta$ for some malicious perturbation $\Delta$, the client verifies integrity before decryption:
+\begin{equation}
+    \mathsf{Verify}\bigl(\mathcal{H}(\tilde{C}_j^{(t)}), H_{\mathrm{pre},j}^{(t)}\bigr) \stackrel{?}{=} 1.
+\end{equation}
+
+By the collision-resistance of $\mathcal{H}$ (Assumption~\ref{ass:hash}):
+\begin{equation}
+    \Pr\bigl[\mathcal{H}(\tilde{C}_j^{(t)}) = \mathcal{H}(C_j^{(t)}) \mid \tilde{C}_j^{(t)} \neq C_j^{(t)}\bigr] \leq \mathsf{negl}(\lambda).
+\end{equation}
+Thus, tampering is detected with overwhelming probability.
+
+\subsubsection{Resistance to Compensation Ciphertext Substitution}
+
+The server may attempt to replace a KGC-generated compensation ciphertext with a self-generated one. The compensation structure is:
+\begin{equation}
+    c_{\mathrm{comp},j}^{(t,k)} = \bigl[ a^{(t)} \cdot s_k + e_{\mathrm{comp},j}^{(t,k)} \bigr]_{R_q}.
+\end{equation}
+
+Since the server does not know $s_k$, any forgery $\tilde{c} = [a^{(t)} \cdot \tilde{s} + \tilde{e}]_{R_q}$ introduces an irremovable residual term $a^{(t)}(\tilde{s} - s_k)$ during decryption:
+\begin{equation}
+    \tilde{m} = \bigl[ m_{\mathrm{true}} + a^{(t)}(\tilde{s} - s_k) + \tilde{E} \bigr]_{R_p},
+\end{equation}
+which destroys the integer boundary required for CRT exact reconstruction. The client detects this as a decoding failure.
+
+\subsubsection{Resistance to Sybil Attacks}
+
+The server cannot forge new client identities because each legitimate client requires a private key fragment $s_i$ distributed by the KGC. The server does not participate in $s_i$ generation, and the KGC is offline and trusted (Assumption~\ref{ass:kgc}).
+
+%------------------------------------------------------------------------------
+\subsection{Client-Server Collusion Boundary}
+\label{ssec:collusion}
+
+We now consider the most dangerous scenario where a client subset $\mathcal{T} \subsetneq [N]$ colludes with the malicious server $\mathcal{S}^*$.
+
+\begin{theorem}[Partial Collusion Security]
+\label{thm:partial-collusion}
+Even if the server colludes with a proper subset $\mathcal{T} \subsetneq [N]$ of clients, as long as $|\mathcal{T}| < N$, the colluding parties cannot recover the plaintext gradient of any non-colluding client $k \notin \mathcal{T}$.
+\end{theorem}
+
+\begin{proof}
+The colluding parties possess $\{s_i\}_{i \in \mathcal{T}}$ and all ciphertexts from the server-side view. Decryption requires the global secret:
+\begin{equation}
+    S = \sum_{i \in \mathcal{T}} s_i + \sum_{k \notin \mathcal{T}} s_k = S_{\mathcal{T}} + S_{\neg\mathcal{T}}.
+\end{equation}
+
+Let $S_{\mathcal{T}} = \sum_{i \in \mathcal{T}} s_i$ (known to the colluders) and $S_{\neg\mathcal{T}} = \sum_{k \notin \mathcal{T}} s_k$ (unknown). The colluders can compute:
+\begin{equation}
+    C_j^{(t)} - a^{(t)} S_{\mathcal{T}} = \bigl[ a^{(t)} S_{\neg\mathcal{T}} + \sum_{i \in \mathcal{S}} m_{i,j}^{(t)} + E^{(t)} \bigr]_{R_q}.
+\end{equation}
+
+The remaining term $a^{(t)} S_{\neg\mathcal{T}}$ is protected by RLWE (Assumption~\ref{ass:rlwe}). Since $S_{\neg\mathcal{T}}$ is the sum of at least one independent uniform secret (as $|\mathcal{T}| < N$), $a^{(t)} S_{\neg\mathcal{T}} + E$ remains pseudorandom. Therefore, the colluding parties cannot distinguish the aggregation from random noise.
+\end{proof}
+
+\subsubsection{Worst-Case Analysis: Single Online Client}
+
+Consider the extreme case where $|\mathcal{S}^{(t)}| = 1$ and the sole online client $i$ colludes with the server. The aggregated ciphertext degenerates to:
+\begin{equation}
+    C_j^{(t)} = c_{i,j,\mathrm{up}}^{(t)} \oplus \bigoplus_{k \neq i} c_{\mathrm{comp},j}^{(t,k)} = \Bigl[ a^{(t)} S + m_{i,j}^{(t)} + E_{\mathrm{total}} \Bigr]_{R_q}.
+\end{equation}
+
+The colluding parties know $s_i$ and can compute:
+\begin{equation}
+    C_j^{(t)} - a^{(t)} s_i = \Bigl[ a^{(t)} \underbrace{\sum_{k \neq i} s_k}_{S_{\neg i}} + m_{i,j}^{(t)} + E_{\mathrm{total}} \Bigr]_{R_q}.
+\end{equation}
+
+However, $S_{\neg i} = \sum_{k \neq i} s_k$ remains an RLWE secret. The colluding parties cannot distinguish $a^{(t)} S_{\neg i} + m_{i,j}^{(t)} + E$ from $a^{(t)} S_{\neg i} + E'$ (another noise sample). Thus, \emph{even in this extreme case, a single client colluding with the server still cannot decrypt}.
+
+\subsubsection{Total Collusion: Security Collapse}
+
+When $\mathcal{T} = [N]$ (all clients collude with the server), $S_{\neg\mathcal{T}} = 0$, and the colluding parties fully know $S$. Then:
+\begin{equation}
+    \tilde{m} = \bigl[ C_j^{(t)} - a^{(t)} S \bigr]_{R_q} = \sum_{i \in \mathcal{S}} m_{i,j}^{(t)} + E^{(t)}.
+\end{equation}
+Security collapses completely---the colluding parties recover the exact aggregation. This is the \emph{theoretical lower bound} of secure aggregation: \textbf{no scheme can resist collusion by all participants}.
+
+%------------------------------------------------------------------------------
+\subsection{Comparison with Standard Secure Aggregation}
+\label{ssec:comparison}
+
+Table~\ref{tab:security-comparison} compares the collusion resistance of \textsc{ECPFL} with the classical Bonawitz et al. secure aggregation (SecAgg).
+
+\begin{table}[htbp]
+\centering
+\caption{Collusion Resistance Comparison}
+\label{tab:security-comparison}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Collusion Scenario} & \textbf{SecAgg} & \textbf{ESAFL + KGC} \\
+\midrule
+Server alone & Cannot decrypt & Cannot decrypt (no $S$) \\
+$t < N/2$ clients only & Secure & Secure (underdetermined system) \\
+Client + Server & Secure if $t < N/2$ & Secure unless $t = N$ \\
+All $N$ clients + Server & Collapse & Collapse (theoretical lower bound) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The key advantage of ESAFL + KGC compensation is that \textbf{server collusion with any proper subset of clients remains insufficient for decryption}. The adversary must collect \emph{all $N$} private key fragments, whereas in SecAgg, the server colluding with a simple majority ($> N/2$) suffices.
+
+%------------------------------------------------------------------------------
+\subsection{Security of Compensation Ciphertexts}
+\label{ssec:compensation-security}
+
+\subsubsection{Zero-Plaintext Indistinguishability}
+
+The KGC-generated compensation ciphertexts have zero plaintext but fresh noise:
+\begin{equation}
+    c_{\mathrm{comp},j}^{(t,k)} = \bigl[ a^{(t)} s_k + e_{\mathrm{comp},j}^{(t,k)} \bigr]_{R_q}.
+\end{equation}
+
+\begin{lemma}[Compensation Indistinguishability]
+\label{lem:comp-ind}
+For any two distinct dropped clients $k_1, k_2$, their compensation ciphertexts $c_{\mathrm{comp},j}^{(t,k_1)}$ and $c_{\mathrm{comp},j}^{(t,k_2)}$ are computationally indistinguishable, assuming $s_{k_1}, s_{k_2}$ are drawn independently from $\chi$.
+\end{lemma}
+
+\begin{proof}
+By Assumption~\ref{ass:rlwe}, $(a^{(t)}, a^{(t)} s_k + e)$ is pseudorandom for any $s_k \gets \chi$. Since $s_{k_1}$ and $s_{k_2}$ are independent and identically distributed, the two ciphertext tuples follow identical distributions.
+\end{proof}
+
+Therefore, compensation ciphertexts leak no information about the identity of dropped clients.
+
+\subsubsection{Server Cannot Distinguish Real from Compensation}
+
+Comparing an active client's ciphertext $c_{i,j,\mathrm{up}}^{(t)} = [a^{(t)} s_i + m_{i,j}^{(t)} + e_i]_{R_q}$ with a compensation ciphertext $c_{\mathrm{comp},j}^{(t,k)} = [a^{(t)} s_k + e_k]_{R_q}$:
+\begin{itemize}
+    \item From the server's perspective, both follow the RLWE distribution.
+    \item Even if the server knows which clients dropped out (and thus which ciphertexts are compensations), it cannot extract any information from the zero-plaintext compensations.
+    \item The server \emph{cannot distinguish} whether a given ciphertext is a real update or a compensation without the private key.
+\end{itemize}
+
+%------------------------------------------------------------------------------
+\subsection{Summary}
+\label{ssec:summary}
+
+The security of ESAFL with KGC zero-ciphertext compensation rests on four pillars:
+\begin{enumerate}
+    \item \textbf{RLWE Hardness}: Guarantees ciphertext indistinguishability for any party without the global secret.
+    \item \textbf{Distributed Multi-Key Structure}: The global key $S = \sum_{i=1}^{N} s_i$ is split across $N$ clients; no single point of compromise exists.
+    \item \textbf{Minimal Trusted KGC}: The KGC only participates in initialization, never touches training data, and goes offline permanently after provisioning.
+    \item \textbf{Unforgeable Compensation Structure}: The server cannot forge compensations without knowing the missing clients' $s_k$.
+\end{enumerate}
+
+Under semi-honest clients, client collusion, malicious servers, and partial client-server collusion, the scheme provides provable security. Security collapses only under the theoretical lower bound where \emph{all $N$ clients and the server fully collude}---a scenario no aggregation scheme can resist.

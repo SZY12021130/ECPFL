@@ -1,0 +1,36 @@
+Total CCF-A papers collected: 78
+
+By year:
+  2024: 51
+  2025: 27
+
+By venue:
+   18  INFOCOM (Workshops)
+    8  MobiCom
+    6  INFOCOM
+    5  INFOCOM WKSHPS
+    4  ICC
+    4  SenSys
+    4  IPSN
+    3  MobiSys
+    2  CCS
+    2  DroNet@MobiSys
+    2  ICTC
+    2  VTC Spring
+    2  WCSP
+    1  I2MTC
+    1  ICASSP
+    1  ICASSP Workshops
+    1  FedEdge-AI@MobiCom
+    1  S3@MobiCom
+    1  VTC Fall
+    1  AICCSA
+    1  Networking
+    1  ACISP (3)
+    1  SAC
+    1  VTC2025-Spring
+    1  IS
+    1  SMARTCOMP
+    1  VTC2025-Fall
+    1  TrustCom
+    1  ECC

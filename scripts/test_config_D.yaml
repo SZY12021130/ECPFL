@@ -1,0 +1,104 @@
+system:
+  num_clients: 10
+  num_rounds: 2
+  num_epochs: 1
+  batch_size: 64
+  learning_rate: 0.01
+  device: cuda
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 0.5
+  upload_difference: true
+data:
+  dataset: mnist
+  data_dir: ./data
+  num_classes: 10
+  iid: false
+  alpha: 0.5
+model:
+  name: lenet
+  hidden_dims:
+  - 256
+  - 128
+  dropout: 0.2
+  width_mult: 1.0
+  growth_rate: 12
+  block_config:
+  - 6
+  - 6
+  - 6
+  num_init_features: 24
+  bn_size: 4
+  drop_rate: 0.0
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes:
+  - 60
+  - 40
+  - 40
+  - 60
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    strategy: merged
+    quant_bits: 16
+  sparsification:
+    strategy: topk
+    sparsity_rate: 0.5
+    batch_size: 4096
+    seed: 42
+  ptopk:
+    enable: true
+    client_residual:
+      enabled: false
+    server_accumulator:
+      enabled: false
+      mode: none
+      sync_interval: 1
+      momentum_beta: 0.9
+tee:
+  enabled: true
+  compression:
+    enabled: true
+    sparsity_rate: 0.5
+prefetch:
+  enable_prefetch: false
+  use_sticky_sampling: true
+  max_prefetch_round: 3
+  warmup_round: 1
+  scheduler_beta: 1.0
+  overcommitment: 2
+  sticky_decay: 0.9
+  sticky_group_size: 8
+  sticky_change_num: 1
+bandwidth:
+  fedfetch_trace_path: fedfetch_bandwidth.pkl
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: lognormal
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+  communication_rounds: true
+  dropout_rate: true
+  cpu_utilization: true
+  key_distribution_cost: true
+  memory_usage: true
+visualization:
+  enabled: true
+  save_format: png
+  dpi: 300
+  figure_size:
+  - 10
+  - 6
+  style: seaborn-v0_8-whitegrid
+output:
+  results_dir: ./results
+  model_dir: ./history_models
+  viz_dir: ./visualization
+  save_interval: 999

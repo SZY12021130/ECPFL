@@ -1,0 +1,28 @@
+client1,acc:89.0,loss:0.236
+2026-06-05 01:54:16 | client 1 finished!
+client0,acc:89.5,loss:0.228
+2026-06-05 01:54:16 | client 0 finished!
+2026-06-05 01:54:11 | server receive: ciphertext size:1337532 bytes
+2026-06-05 01:54:11 | server agg: epoch 0.
+2026-06-05 01:54:11 | server send: download size:262479 bytes
+2026-06-05 01:54:13 | ***********Server epoch 0, Clients accuracy:89.25, loss:0.23%***********
+
+time:11.53s
+Num:1 ,Next round Selected clients:[array([0, 1])]
+2026-06-05 01:54:16 | Num:1 ,Next round Selected clients:[np.int64(0)]
+2026-06-05 01:54:16 | server end!
+2026-06-05 01:54:16 | Total ciphertext size: 1337532 bytes, size list: [1337532].
+2026-06-05 01:54:16 | Accuracy list: [np.float64(89.25)]%.
+2026-06-05 01:54:16 | Loss list:[np.float64(0.23)]
+2026-06-05 01:54:16 | time list:[11.53]s
+2026-06-05 01:54:16 | Participate list: [1, 1].
+2026-06-05 01:54:16 | tmp_len_clusters:[1]
+2026-06-05 01:53:49 | Basic information: device cpu, learning rate 0.01, num clients 2, epochs 1, local_epochs 1, noniid_method dirichlet,            isEnc True,isBatch True,sparsification topk, client selection True,topk 0.1, enc_batch_size 4096
+Load last files!
+2026-06-05 01:53:50 | training weights: [np.float64(0.8215373588962551), np.float64(0.17846264110374485)]
+2026-06-05 01:53:50 | testing weights:[np.float64(0.5), np.float64(0.5)]
+2026-06-05 01:53:50 | client0, train samples 4585,test samples 1000
+2026-06-05 01:53:50 | client1, train samples 996,test samples 1000
+2026-06-05 01:53:50 | data split finished!
+2026-06-05 01:53:50 | Batch num:11
+2026-06-05 01:54:17 | Final End

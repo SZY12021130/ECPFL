@@ -1,0 +1,8 @@
+{
+  "all_ok": true,
+  "final_acc": 92.35,
+  "num_rounds": 10,
+  "tee_total_time": 0.828453540802002,
+  "tee_decrypt_time": 0.3643965721130371,
+  "output_dir": "./results\\experiment_20260509_172802"
+}

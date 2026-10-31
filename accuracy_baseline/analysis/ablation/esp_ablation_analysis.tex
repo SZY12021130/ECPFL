@@ -1,0 +1,72 @@
+\subsection{Ablation Study}
+\label{subsec:ablation}
+
+We conduct systematic ablation experiments to isolate the contribution of each ECPFL module.
+
+\subsubsection{Effectiveness of ESP}
+
+\begin{table}[t]
+\centering
+\caption{Ablation Study of the ESP Module Components (SVHN, LS = 0.5, RK = 0.7)}
+\label{tab:esp_ablation_svhn}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{ccccc ccc}
+\toprule
+\multicolumn{5}{c}{\textbf{\textit{ESP Components}}} & \multicolumn{3}{c}{\textbf{\textit{Performance Metrics}}} \\
+\cmidrule(lr){1-5} \cmidrule(lr){6-8}
+\scriptsize \textbf{LS (0.5)} & \scriptsize \textbf{RF} & \scriptsize \textbf{PRD (0.3)} & \scriptsize \textbf{CRD (0.5)} & \scriptsize \textbf{RK (0.7)} &
+\scriptsize \textbf{AC (\%)} & \scriptsize \textbf{UV (MB)} & \scriptsize \textbf{TT (H)} \\
+\midrule
+$\times$ & $\times$ & $\times$ & $\times$ & $\times$ & \textbf{95.13} & 26699.8 & 0.88 \\
+$\checkmark$ & $\times$ & $\times$ & $\times$ & $\times$ & 93.27 & 24420.5 & 0.87 \\
+$\checkmark$ & $\checkmark$ & $\times$ & $\times$ & $\times$ & 94.71 & 24563.9 & 0.89 \\
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & $\times$ & 94.89 & 24922.5 & 0.88 \\
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & 94.91 & 24404.3 & 0.88 \\
+\rowcolor{gray!15}
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & 95.05 & \textbf{18729.7} & \textbf{0.88} \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Table~\ref{tab:esp_ablation_svhn} isolates the contribution of each ESP component on SVHN.
+Local sparsity alone (LS=0.5) reduces the upload volume by 8.5\% (from 26699.8~MB to 24420.5~MB, i.e., 1.09$\times$ compression) but degrades accuracy by 1.86 percentage points (from 95.13\% to 93.27\%), because independent client-side selections are not aligned and can discard useful updates.
+Adding residual feedback (RF) recovers 1.44 percentage points of accuracy (to 94.71\%) at the cost of a slight upload increase, since residuals preserve information from the dropped packs. Introducing per-round decay (PRD) and cross-round decay (CRD) further stabilizes convergence, raising accuracy to 94.91\%.
+Finally, rank voting (RK=0.7) aligns sparse selections across clients and avoids ciphertext union expansion; this cuts the upload volume by 23.3\% relative to LS+RF+PRD+CRD and by 29.9\% (1.4$\times$) relative to the baseline, down to 18729.7~MB, while improving accuracy to 95.05\%.
+Thus, every ESP component is necessary: RF prevents information loss from sparsification, decay factors stabilize residual aggregation, and RK delivers the upstream savings that make ECP practical.
+
+\subsubsection{Effectiveness of ECP}
+
+\begin{table}[t]
+\centering
+\caption{Client Communication and Prefetch Overhead (CIFAR-10, Union, $R=3$)}
+\label{tab:communication}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{c cc rr rrr}
+\toprule
+\multirow{2}{*}{\textbf{Client ID}} & \multirow{2}{*}{\textbf{Prt.}} & \multirow{2}{*}{\textbf{CTs.}} & \multicolumn{2}{c}{\textbf{\textit{Bandwidth (Mbps)}}} & \multicolumn{3}{c}{\textbf{\textit{Overhead (MB)}}} \\ 
+\cmidrule(lr){4-5} \cmidrule(l){6-8} 
+& & & \multicolumn{1}{c}{\textbf{DL}} & \multicolumn{1}{c}{\textbf{UL}} & \multicolumn{1}{c}{\textbf{PV}} & \multicolumn{1}{c}{\textbf{DV}} & \multicolumn{1}{c}{\textbf{TV}} \\
+\midrule
+0 & 34 & 2207 & 136.97 & 160.28 & 702.55 & 14.59 & 717.14 \\
+\rowcolor{gray!10}
+1 & 29 & 1889 & 177.35 & 14.59  & 702.33 & 0.00  & 702.33 \\
+2 & 9  & 592  & 278.73 & 8.22   & 571.69 & 14.59 & 586.28 \\
+\rowcolor{gray!10}
+3 & 1  & 67   & 67.15  & 2.18   & 702.77 & 0.00  & 702.77 \\
+4 & 38 & 2472 & 318.88 & 36.82  & 717.36 & 14.59 & 731.95 \\
+\rowcolor{gray!10}
+5 & 36 & 2350 & 307.66 & 150.35 & 704.35 & 0.00  & 704.35 \\
+6 & 3  & 199  & 30.87  & 0.12   & 717.36 & 14.59 & 731.95 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+Table~\ref{tab:communication} reports the per-client communication breakdown for CIFAR-10 with union voting and prefetch window $R=3$.
+Without ECP, every selected client would have to synchronously download the full downstream payload, creating severe straggler bottlenecks on slow clients.
+ECP shifts the vast majority of this traffic into asynchronous prefetching: the pre-downloaded volume (PV) accounts for 97.0--100\% of each client's total downstream volume, while the synchronous fetch volume (DV) is reduced to 0--14.59~MB.
+Notably, Clients 1, 3, and 5 achieve DV = 0.00~MB, meaning their models are fully synchronized through background accumulation alone.
+Even for active clients such as Client 0 and Client 4, which participate in 34 and 38 rounds and upload 2207 and 2472 ciphertext batches, the synchronous portion is only 2.0\% of the total downstream volume.
+This confirms that ECP transforms the downstream bottleneck into latency-tolerant background traffic, making the training wall-clock time insensitive to individual downlink bandwidth.
+Moreover, ECP is architecturally coupled with ESP: the sparse ciphertext batches produced by ESP are exactly the units that ECP prefetches and merges locally; without ESP, each prefetch would carry a full model and the bandwidth saving would disappear, while without ECP the sparse updates would still require a synchronous download round that reintroduces stragglers.

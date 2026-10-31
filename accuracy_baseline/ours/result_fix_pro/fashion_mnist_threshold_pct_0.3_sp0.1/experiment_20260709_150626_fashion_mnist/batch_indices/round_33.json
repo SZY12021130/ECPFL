@@ -1,0 +1,187 @@
+{
+  "round": 33,
+  "mode": "threshold",
+  "clients": [
+    {
+      "client_id": 18,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 35,
+      "selected_indices": [
+        5
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 27,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 26,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 39,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 10,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 43,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 5,
+      "selected_indices": [
+        5
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 24,
+      "selected_indices": [
+        5
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 45,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 21,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 33,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 29,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 22,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 9,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 6,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 11,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 34,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 44,
+      "selected_indices": [
+        5
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 16,
+      "selected_indices": [
+        5
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 14,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 12,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 41,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 7,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    },
+    {
+      "client_id": 13,
+      "selected_indices": [
+        9
+      ],
+      "selected_count": 1
+    }
+  ],
+  "global": {
+    "active_indices": [
+      9
+    ],
+    "active_count": 1
+  }
+}

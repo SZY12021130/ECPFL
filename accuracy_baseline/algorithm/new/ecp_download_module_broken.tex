@@ -1,0 +1,144 @@
+    \algsec{Server-Side Execution}
+    Let target training round $t^* = t + R$\;
+    Select active and inactive sets $\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}$\;
+    Presample clients $\mathcal{K}_{t^*}$ for round $t^*$ and create prefetch schedule $\{P_i^{t^*}\}_{i \in \mathcal{K}_{t^*}}$\;
+    \ForEach{$i \in \mathcal{K}_{t^*}$}{
+        $\mathcal{R}_i \leftarrow (t^*, P_i^{t^*})$\;
+    }
+    Send $\bar{\mathcal{S}}^{(t)}$ to KGC and receive $\mathbf{\Delta}^{(t)}$ and $\{\mathsf{ct}_{k,j}^{(t)}\}$\;
+    Receive obfuscated votes $\{\hat{\mathbf{v}}_i^{(t)}\}$ from active clients\;
+    $\mathcal{K}^{(t)} \leftarrow \textsc{ESP-Consensus}(\{\hat{\mathbf{v}}_i^{(t)}\}, \mathbf{\Delta}^{(t)})$\;
+    Broadcast $\mathcal{K}^{(t)}$ and receive sparse ciphertexts $\{\mathsf{ct}_{i,j}^{(t)}\}$\;
+    $\{C_j^{(t)}\} \leftarrow \textsc{ESP-Agg}(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \{\mathsf{ct}_{k,j}^{(t)}\})$\;
+    $C^{(t)} \leftarrow \{C_j^{(t)}\}_{j=1}^J$\;
+    $G^{(t)} \leftarrow \textsc{ECP-GlobalUpdate}(G^{(t-1)}, C^{(t)}, \eta)$\;
+    $\textsc{ECP-PreparePrefetch}(t, C^{(t)}, \mathcal{K}^{(t)}, \mathcal{Q})$\;
+
+    \algsec{KGC-Side Execution}
+    \textbf{KGC} receives $\bar{\mathcal{S}}^{(t)}$ from Server\;
+    \textbf{KGC} computes $\mathbf{z}_k^{(t)}$ for $k \in \bar{\mathcal{S}}^{(t)}$ and $\mathbf{\Delta}^{(t)} \leftarrow \bigl[\sum_{k \in \bar{\mathcal{S}}^{(t)}} \mathbf{z}_k^{(t)}\bigr]_M$\;
+    \textbf{KGC} generates compensatory ciphertexts $\{\mathsf{ct}_{k,j}^{(t)}\}_{j=1}^J$ and sends $\mathbf{\Delta}^{(t)}$, $\{\mathsf{ct}_{k,j}^{(t)}\}$ to Server\;
+
+    \algsec{Client-Side Execution}
+    \ForPar{each client $c_i \in \mathcal{C}$}{
+        \If{$c_i \in \mathcal{S}^{(t)}$ \textnormal{(Train)}}{
+            \If{$t - t_{\mathrm{last},i} > R$}{
+                $\mathbf{w}_i \leftarrow \textsc{ECP-SyncCheckpoint}(t - R + 1)$\;
+            }
+            \If{$t - t_{\mathrm{last},i} > 1$}{
+                $\mathbf{w}_i \leftarrow \textsc{ECP-Apply}(\{\mathcal{L}_{i,j}\}, S, \mathbf{w}_i, B, \eta)$\;
+            }
+            $\mathbf{w}_{i, \mathrm{start}} \leftarrow \mathbf{w}_i$; $\mathbf{w}_i \leftarrow \mathsf{SGD}(\mathcal{D}_i, \mathbf{w}_i, \eta, \mathcal{E})$\;
+            $\mathbf{g}_i^{(t)} \leftarrow \frac{1}{\eta}(\mathbf{w}_{i, \mathrm{start}} - \mathbf{w}_i)$\;
+            $(\hat{\mathbf{v}}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)}) \leftarrow \textsc{ESP-Vote}(\mathbf{g}_i^{(t)}, \mathbf{r}_i, k, t)$\;
+            Send $\hat{\mathbf{v}}_i^{(t)}$ to Server and wait for $\mathcal{K}^{(t)}$\;
+            $a^{(t)} \leftarrow \mathsf{PRPG}(B, t)$; $gap_i \leftarrow t - t_{\mathrm{last},i}$\;
+            $\{\mathsf{ct}_{i,j}^{(t)}\} \leftarrow \textsc{ESP-Enc}(\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, gap_i, s_i, a^{(t)})$\;
+            Upload $\{\mathsf{ct}_{i,j}^{(t)}\}$ to Server; $t_{\mathrm{last},i} \leftarrow t$; $\mathcal{R}_i \leftarrow \emptyset$; $\{\mathcal{L}_{i,j}\} \leftarrow \emptyset$\;
+        }
+        \ElseIf{$\mathcal{R}_i \neq \emptyset$ \textnormal{(Prefetch)}} {
+            Let $\mathcal{R}_i = (t^*, P_i^{t^*})$\;
+            \If{$P_i^{t^*} \le t < t^*$}{
+                $\textsc{ECP-Prefetch}(\mathcal{Q}, \{\mathcal{L}_{i,j}\}, t_{\mathrm{last},i}, t)$\;
+            }
+        }
+    }
+}
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{\textsc{ESP} Upstream Module}
+\label{alg:upload}
+\small
+\KwParam{$J, k, M, \Delta, \gamma_d, \gamma_s$}
+
+\SetKwProg{Fn}{Function}{}{}
+\Fn{\textsc{ESP-Vote}{$(\mathbf{g}_i^{(t)}, \mathbf{r}_i, k, t)$}}{
+    $\tilde{\mathbf{g}}_i^{(t)} \leftarrow \mathbf{g}_i^{(t)} + \mathbf{r}_i$\;
+    $\mathcal{T}_i \leftarrow \argmax_{|\mathcal{T}|=k} \sum_{j \in \mathcal{T}} \|\tilde{\mathbf{g}}_{i,j}^{(t)}\|_2^2$\;
+    $\mathbf{v}_i^{(t)} \in \{0,1\}^J$ with $v_{i,j}^{(t)}=1$ if $j \in \mathcal{T}_i$\;
+    $\mathbf{z}_i^{(t)} \leftarrow [\sum_{j>i}\mathsf{PRG}(sd_{i,j},t) - \sum_{j<i}\mathsf{PRG}(sd_{j,i},t)]_M$\;
+    $\hat{\mathbf{v}}_i^{(t)} \leftarrow [\mathbf{v}_i^{(t)} + \mathbf{z}_i^{(t)}]_M$\;
+    \Return $(\hat{\mathbf{v}}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)})$\;
+}
+
+\Fn{\textsc{ESP-Consensus}{$(\{\hat{\mathbf{v}}_i^{(t)}\}, \mathbf{\Delta}^{(t)})$}}{
+    $\bar{\mathbf{v}}^{(t)} \leftarrow [\sum_{i \in \mathcal{S}^{(t)}} \hat{\mathbf{v}}_i^{(t)} + \mathbf{\Delta}^{(t)}]_M$\;
+    $\mathcal{K}^{(t)} \leftarrow$ Top-$k$ indices of $\bar{\mathbf{v}}^{(t)}$\;
+    \Return $\mathcal{K}^{(t)}$\;
+}
+
+\Fn{\textsc{ESP-Enc}{$(\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, gap_i, s_i, a^{(t)})$}}{
+    \ForEach{$j \in \mathcal{K}^{(t)}$}{
+        $\mathsf{pt}_{i,j}^{(t)} \leftarrow \mathsf{CKKS.Encode}(\tilde{\mathbf{g}}_{i,j}^{(t)}, \Delta)$\;
+        $\mathsf{ct}_{i,j}^{(t)} \leftarrow [a^{(t)} s_i + \tilde{p} e_{i,j}^{(t)} + \mathsf{pt}_{i,j}^{(t)}]_q$\;
+    }
+    $\mathbf{r}_i \leftarrow \gamma_d \gamma_s^{gap_i-1} [\tilde{\mathbf{g}}_i^{(t)} \odot (\mathbf{1}-\mathcal{K}^{(t)})]$\;
+    \Return $\{\mathsf{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$\;
+}
+
+\Fn{\textsc{ESP-Agg}{$(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \{\mathsf{ct}_{k,j}^{(t)}\})$}}{
+    \ForEach{$j = 1, 2, \ldots, J$}{
+        $C_j^{(t)} \leftarrow \sum_{i \in \mathcal{S}^{(t)}} \mathsf{ct}_{i,j}^{(t)} + \sum_{k \in \bar{\mathcal{S}}^{(t)}} \mathsf{ct}_{k,j}^{(t)}$\;
+    }
+    \Return $\{C_j^{(t)}\}_{j=1}^J$\;
+}
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{\textsc{ECP} Download Module}
+\label{alg:download}
+\small
+\KwParam{Prefetch horizon $R$}
+
+\SetKwProg{Fn}{Function}{}{}
+
+\Fn{\textsc{ECP-PreparePrefetch}($t, \mathcal{C}^{(t)}, \mathcal{K}^{(t)}, \mathcal{Q}$)}{
+    $\mathcal{Q}.\mathsf{enqueue}\bigl((t, \mathcal{K}^{(t)}, \mathcal{C}^{(t)})\bigr)$\;
+    \While{$\mathcal{Q}.\mathsf{front}().\tau < t - R + 1$}{
+        $\mathcal{Q}.\mathsf{dequeue}()$\;
+    }
+    \tcp{Rounds older than $t-R+1$ are evicted; long-absent clients fall back to a checkpoint model.}
+}
+
+\Fn{\textsc{ECP-Prefetch}($\mathcal{Q}, \{\mathcal{L}_{i,j}\}, t_{\mathrm{last},i}, \tau$)}{
+    \ForEach{$(\tau', \mathcal{K}^{(\tau')}, \mathcal{C}^{(\tau')}) \in \mathcal{Q}$ \textnormal{in ascending order of }$\tau'$}{
+        \If{$t_{\mathrm{last},i} < \tau' \le \tau$}{
+            \ForEach{$j \in \mathcal{K}^{(\tau')}$}{
+                \If{$\tau' \notin \{\tau'' \mid (\tau'', \cdot) \in \mathcal{L}_{i,j}\}$}{
+                    Download $C_j^{(\tau')}$ and $\mathcal{L}_{i,j} \leftarrow \mathcal{L}_{i,j} \cup \bigl\{(\tau', C_j^{(\tau')})\bigr\}$\;
+                    \If{prefetch budget exhausted}{
+                        \Return\;
+                    }
+                }
+            }
+        }
+    }
+}
+
+\Fn{\textsc{ECP-GlobalUpdate}($G^{(t-1)}, C^{(t)}, \eta$)}{
+    \ForEach{$j = 1, 2, \ldots, J$}{
+        $G_j^{(t)} \leftarrow G_j^{(t-1)} - \eta C_j^{(t)}$\;
+        \tcp{$C_j^{(t)} = 0$ for non-consensus packs by KGC zero-ciphertext compensation.}
+    }
+    \Return $G^{(t)} = \{G_j^{(t)}\}_{j=1}^J$
+}
+
+\Fn{\textsc{ECP-SyncCheckpoint}($\tau_{\mathrm{cp}}$)}{
+    Fetch the complete global model ciphertext $G^{(\tau_{\mathrm{cp}})} = \{G_j^{(\tau_{\mathrm{cp}})}\}_{j=1}^J$ at checkpoint round $\tau_{\mathrm{cp}} = t - R + 1$\;
+    \Return Decrypted global model $\mathbf{W}^{(\tau_{\mathrm{cp}})} = \{\mathsf{HE.Dec}(S, G_j^{(\tau_{\mathrm{cp}})})\}_{j=1}^J$\;
+}
+
+\Fn{\textsc{ECP-Apply}($\{\mathcal{L}_{i,j}\}, S, \mathbf{w}_i, B, \eta$)}{
+    $\mathbf{m}_{\mathrm{pre}} \leftarrow \mathbf{0}$\;
+    \ForEach{$j \in \{k \mid \mathcal{L}_{i,k} \neq \emptyset\}$}{
+        $A_{\mathrm{pre},j}\leftarrow \sum_{(\tau, \cdot) \in \mathcal{L}_{i,j}} \mathsf{PRPG}(B, \tau)$\;
+        $C_{\mathrm{pre},j} \leftarrow \sum_{(\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}} C_j^{(\tau)}$\;
+        $\mathbf{m}_{\mathrm{pre}} \leftarrow \mathbf{m}_{\mathrm{pre}} +\mathsf{HE.Dec}(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})$\;
+    }
+    $\{\mathcal{L}_{i,j}\} \leftarrow \emptyset$\;
+    \Return $\mathbf{w}_i - \eta \mathbf{m}_{\mathrm{pre}}$
+}
+\end{algorithm}
+
+\end{document}

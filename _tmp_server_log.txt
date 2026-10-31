@@ -1,0 +1,99 @@
+23:18:19 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:19 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:19 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:19 INFO      └─ 🔐 CKKS  N=8192  |  scale=2^40  |  mod=[60, 40, 40, 60]  |  packing=ON
+23:18:19 INFO    [服务器/SERVER]   TEE disabled | using standard aggregation path
+23:18:19 INFO    [服务器/SERVER]   Initialized  |  rule=fedavg  |  filter=None
+23:18:20 INFO    [服务器/SERVER]   加密全局状态已初始化（服务器不下发明文模型）
+23:18:20 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:20 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:20 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:20 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:20 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:20 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:20 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:20 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:20 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:21 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:21 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:21 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:21 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:21 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:21 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:21 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:21 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:21 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:21 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:21 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:21 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:21 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:21 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:21 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:22 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:22 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:22 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:22 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:22 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:22 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:22 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:22 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:22 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:22 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:22 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:22 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:23 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:23 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:23 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:23 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:23 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:23 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:23 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:23 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:23 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:23 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:23 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:23 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:24 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:24 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:24 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:24 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:24 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:24 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:24 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:24 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:24 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:24 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:24 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:24 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:25 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:25 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:25 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:25 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:25 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:25 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:25 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:25 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:25 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:25 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:25 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:25 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:18:25 INFO    ESAFLPacking 初始化: slots2=3, quant_bits=16, pad_bits=0, slot_count=4096
+23:18:25 INFO    ESAFLPacking 初始化: slot_count=4096, slots2=3, quant_bits=16, pad_bits=0, total_bits=48
+23:18:25 INFO    CKKS管理器初始化完成 (slot_count=4096, slot_packing=ON, packing=esafl_s3_q16_p0, sparsification=none, batch_size=4096)
+23:21:34 INFO    [聚合/AGG]        Aggregating 25 encrypted updates...
+23:21:38 INFO    [服务器/SERVER]   全局模型已更新(明文累加重加密)  |  当前轮次=0  |  策略=packing_plain
+23:21:41 INFO    [评估/EVAL]       测试损失=nan  |  测试准确率=9.99%
+23:24:47 INFO    [聚合/AGG]        Aggregating 25 encrypted updates...
+23:24:51 INFO    [服务器/SERVER]   全局模型已更新(明文累加重加密)  |  当前轮次=0  |  策略=packing_plain
+23:24:55 INFO    [评估/EVAL]       测试损失=2.3045  |  测试准确率=10.00%
+23:27:56 INFO    [聚合/AGG]        Aggregating 25 encrypted updates...
+23:28:00 INFO    [服务器/SERVER]   全局模型已更新(明文累加重加密)  |  当前轮次=0  |  策略=packing_plain
+23:28:04 INFO    [评估/EVAL]       测试损失=145597524772814434861056.0000  |  测试准确率=10.47%
+23:31:03 INFO    [聚合/AGG]        Aggregating 25 encrypted updates...
+23:31:08 INFO    [服务器/SERVER]   全局模型已更新(明文累加重加密)  |  当前轮次=0  |  策略=packing_plain
+23:31:12 INFO    [评估/EVAL]       测试损失=68768401316.6879  |  测试准确率=10.97%
+23:34:11 INFO    [聚合/AGG]        Aggregating 25 encrypted updates...
+23:34:15 INFO    [服务器/SERVER]   全局模型已更新(明文累加重加密)  |  当前轮次=0  |  策略=packing_plain
+23:34:19 INFO    [评估/EVAL]       测试损失=295115123666.3439  |  测试准确率=11.44%
+23:34:20 INFO      ├─ num_ciphertexts = Σ(len(v) for v in encrypted_update.values())
+23:34:20 INFO      最终测试准确率:                     11.44%

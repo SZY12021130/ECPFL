@@ -1,0 +1,272 @@
+[
+  {
+    "exp": "experiment_20260621_200422_fashion_mnist_alpha_1",
+    "old": {
+      "total_comm": 335377.01,
+      "total_upload": 5013.3,
+      "total_download": 2821.01,
+      "total_sim": -3199.99,
+      "total_sim_comm": 415.24,
+      "maser_1": 2383.07,
+      "maser_2": 2630.22,
+      "maser_3": 2630.22,
+      "maser_4": 190.78,
+      "avg_agg_ct": 5386811.0
+    },
+    "new": {
+      "total_comm": 7340.208834171295,
+      "total_upload": 4766.284191449484,
+      "total_download": 2573.9246427218122,
+      "total_sim": 427.7741014597165,
+      "total_sim_comm": 399.7314287462053,
+      "maser_1": 2383.073998451233,
+      "maser_2": 2383.142095724742,
+      "maser_3": 2383.210192998251,
+      "maser_4": 190.7825469970703,
+      "avg_agg_ct": 334292.20080267556
+    }
+  },
+  {
+    "exp": "experiment_20260621_205313_cifar10_alpha_1",
+    "old": {
+      "total_comm": 1904738.93,
+      "total_upload": 27082.06,
+      "total_download": 14855.59,
+      "total_sim": -18621.53,
+      "total_sim_comm": 2227.53,
+      "maser_1": 13533.2,
+      "maser_2": 13548.86,
+      "maser_3": 13548.86,
+      "maser_4": 1306.73,
+      "avg_agg_ct": 30523675.0
+    },
+    "new": {
+      "total_comm": 41905.48493929471,
+      "total_upload": 27065.833902807797,
+      "total_download": 14839.651036486906,
+      "total_sim": 1927.9349180283982,
+      "total_sim_comm": 2279.2178845063313,
+      "maser_1": 13533.19861125946,
+      "maser_2": 13532.916951403899,
+      "maser_3": 13532.635291548337,
+      "maser_4": 1306.7340850830078,
+      "avg_agg_ct": 334289.4526972909
+    }
+  },
+  {
+    "exp": "experiment_20260624_112433_fashion_mnist",
+    "old": {
+      "total_comm": 335370.9,
+      "total_upload": 168782.11,
+      "total_download": 166588.79,
+      "total_sim": 13235.89,
+      "total_sim_comm": 16892.42,
+      "maser_1": 2383.06,
+      "maser_2": 166398.01,
+      "maser_3": 166399.05,
+      "maser_4": 190.78,
+      "avg_agg_ct": 5386839.0
+    },
+    "new": {
+      "total_comm": 7340.031614303589,
+      "total_upload": 4766.166044871013,
+      "total_download": 2573.865569432576,
+      "total_sim": 479.74023254951703,
+      "total_sim_comm": 399.7217171599435,
+      "maser_1": 2383.0565490722656,
+      "maser_2": 2383.083022435506,
+      "maser_3": 2383.109495798747,
+      "maser_4": 190.7825469970703,
+      "avg_agg_ct": 334289.75304347824
+    }
+  },
+  {
+    "exp": "experiment_20260624_120303_fashion_mnist",
+    "old": {
+      "total_comm": 335372.11,
+      "total_upload": 168782.37,
+      "total_download": 166589.73,
+      "total_sim": 13373.86,
+      "total_sim_comm": 16892.48,
+      "maser_1": 2383.06,
+      "maser_2": 166398.95,
+      "maser_3": 166399.32,
+      "maser_4": 190.78,
+      "avg_agg_ct": 5386771.0
+    },
+    "new": {
+      "total_comm": 7339.628556728363,
+      "total_upload": 4765.897339820862,
+      "total_download": 2573.731216907501,
+      "total_sim": 461.2049501128282,
+      "total_sim_comm": 399.6996297469391,
+      "maser_1": 2383.0557041168213,
+      "maser_2": 2382.948669910431,
+      "maser_3": 2382.8416357040405,
+      "maser_4": 190.7825469970703,
+      "avg_agg_ct": 334289.63451505016
+    }
+  },
+  {
+    "exp": "experiment_20260624_125422_fashion_mnist",
+    "old": {
+      "total_comm": 335368.39,
+      "total_upload": 168780.23,
+      "total_download": 166588.16,
+      "total_sim": 13290.61,
+      "total_sim_comm": 16892.29,
+      "maser_1": 2383.04,
+      "maser_2": 166397.37,
+      "maser_3": 166397.19,
+      "maser_4": 190.78,
+      "avg_agg_ct": 5386675.0
+    },
+    "new": {
+      "total_comm": 7339.4959626197815,
+      "total_upload": 4765.808943748474,
+      "total_download": 2573.6870188713074,
+      "total_sim": 427.0462089345708,
+      "total_sim_comm": 399.692363636542,
+      "maser_1": 2383.043881416321,
+      "maser_2": 2382.904471874237,
+      "maser_3": 2382.7650623321533,
+      "maser_4": 190.7825469970703,
+      "avg_agg_ct": 334287.9760535117
+    }
+  },
+  {
+    "exp": "experiment_20260624_134555_fashion_mnist",
+    "old": {
+      "total_comm": 335375.15,
+      "total_upload": 168783.53,
+      "total_download": 166591.62,
+      "total_sim": 13297.91,
+      "total_sim_comm": 16892.63,
+      "maser_1": 2383.06,
+      "maser_2": 166400.84,
+      "maser_3": 166400.47,
+      "maser_4": 190.78,
+      "avg_agg_ct": 5386725.0
+    },
+    "new": {
+      "total_comm": 7340.556715488434,
+      "total_upload": 4766.516112327576,
+      "total_download": 2574.040603160858,
+      "total_sim": 425.45170571375314,
+      "total_sim_comm": 399.75049251972155,
+      "maser_1": 2383.0594577789307,
+      "maser_2": 2383.258056163788,
+      "maser_3": 2383.456654548645,
+      "maser_4": 190.7825469970703,
+      "avg_agg_ct": 334290.16107023414
+    }
+  },
+  {
+    "exp": "experiment_20260624_143744_cifar10",
+    "old": {
+      "total_comm": 1846489.39,
+      "total_upload": 929153.11,
+      "total_download": 917336.28,
+      "total_sim": 73017.0,
+      "total_sim_comm": 93004.02,
+      "maser_1": 13118.71,
+      "maser_2": 916029.54,
+      "maser_3": 916034.41,
+      "maser_4": 1306.73,
+      "avg_agg_ct": 29626448.0
+    },
+    "new": {
+      "total_comm": 40662.61703675985,
+      "total_upload": 26237.255301117897,
+      "total_download": 14425.361735641956,
+      "total_sim": 1918.8239269903313,
+      "total_sim_comm": 2211.1091616836675,
+      "maser_1": 13118.70769405365,
+      "maser_2": 13118.627650558949,
+      "maser_3": 13118.547607064247,
+      "maser_4": 1306.7340850830078,
+      "avg_agg_ct": 334288.26340218715
+    }
+  },
+  {
+    "exp": "experiment_20260624_155705_cifar10",
+    "old": {
+      "total_comm": 1902537.82,
+      "total_upload": 957372.99,
+      "total_download": 945164.83,
+      "total_sim": 75008.62,
+      "total_sim_comm": 95827.37,
+      "maser_1": 13517.28,
+      "maser_2": 943858.1,
+      "maser_3": 943855.71,
+      "maser_4": 1306.73,
+      "avg_agg_ct": 30524289.0
+    },
+    "new": {
+      "total_comm": 41857.8198921897,
+      "total_upload": 27034.057204737826,
+      "total_download": 14823.762687451925,
+      "total_sim": 1899.2820797686309,
+      "total_sim_comm": 2276.605856731716,
+      "maser_1": 13517.276127815247,
+      "maser_2": 13517.028602368917,
+      "maser_3": 13516.78107692258,
+      "maser_4": 1306.7340850830078,
+      "avg_agg_ct": 334289.8899292453
+    }
+  },
+  {
+    "exp": "experiment_20260624_170610_cifar10",
+    "old": {
+      "total_comm": 1935095.35,
+      "total_upload": 973768.41,
+      "total_download": 961326.95,
+      "total_sim": 76282.72,
+      "total_sim_comm": 97467.47,
+      "maser_1": 13748.44,
+      "maser_2": 960020.21,
+      "maser_3": 960019.96,
+      "maser_4": 1306.73,
+      "avg_agg_ct": 31422807.0
+    },
+    "new": {
+      "total_comm": 42551.65268533371,
+      "total_upload": 27496.612400167123,
+      "total_download": 15055.04028516657,
+      "total_sim": 1944.8512967072859,
+      "total_sim_comm": 2314.6276491499907,
+      "maser_1": 13748.442105293274,
+      "maser_2": 13748.306200083562,
+      "maser_3": 13748.17029487385,
+      "maser_4": 1306.7340850830078,
+      "avg_agg_ct": 334290.69980289857
+    }
+  },
+  {
+    "exp": "experiment_20260624_182441_cifar10",
+    "old": {
+      "total_comm": 1948531.75,
+      "total_upload": 980535.27,
+      "total_download": 967996.48,
+      "total_sim": 76811.34,
+      "total_sim_comm": 98144.35,
+      "maser_1": 13844.03,
+      "maser_2": 966689.75,
+      "maser_3": 966691.24,
+      "maser_4": 1306.73,
+      "avg_agg_ct": 31422521.0
+    },
+    "new": {
+      "total_comm": 42840.19643158073,
+      "total_upload": 27688.97489766513,
+      "total_download": 15151.221533915574,
+      "total_sim": 1941.8733851381257,
+      "total_sim_comm": 2330.4397447035644,
+      "maser_1": 13844.027771949768,
+      "maser_2": 13844.487448832566,
+      "maser_3": 13844.947125715364,
+      "maser_4": 1306.7340850830078,
+      "avg_agg_ct": 334289.35555555555
+    }
+  }
+]

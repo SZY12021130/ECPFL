@@ -1,0 +1,178 @@
+[
+  {
+    "timestamp": "20260630_215514",
+    "output_dir": "./accuracy_baseline/adaptive/cifar10\\experiment_20260630_215514_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 76.3,
+      "final_test_loss": 0.6867610618567012,
+      "total_time_sec": 1879.6924729975858,
+      "total_communication_mb": 19112.183381080627,
+      "avg_round_time_sec": 37.59384945995171,
+      "avg_upload_kb": 383584.431484375,
+      "avg_download_kb": 7833.08416015625,
+      "avg_expansion_ratio": 14.333221106253786,
+      "avg_encryption_time_sec": 0.2786858959197998,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.6214542388916,
+      "total_ciphertext_blocks": 58750,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 4.9390029907226563e-05,
+      "avg_fetch_time_sec": 0.2619376038002757,
+      "avg_apply_time_sec": 0.08026273384094239,
+      "total_prefetch_download_kb": 25496534.995117188,
+      "total_fetch_download_kb": 391654.2080078125
+    }
+  },
+  {
+    "timestamp": "20260701_013315",
+    "output_dir": "./accuracy_baseline/adaptive/cifar10\\experiment_20260701_013315_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": true,
+        "strategy": "cosine"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 65.96,
+      "final_test_loss": 0.9398150022622127,
+      "total_time_sec": 1226.2669419327995,
+      "total_communication_mb": 8713.082516670227,
+      "avg_round_time_sec": 24.525338838655994,
+      "avg_upload_kb": 172532.16537109375,
+      "avg_download_kb": 5911.7645703125,
+      "avg_expansion_ratio": 6.446929205742185,
+      "avg_encryption_time_sec": 0.14884615993499756,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.61353874206543,
+      "total_ciphertext_blocks": 26425,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.6288414001464844e-05,
+      "avg_fetch_time_sec": 0.19768573117878385,
+      "avg_apply_time_sec": 0.050851812362670896,
+      "total_prefetch_download_kb": 11391481.5546875,
+      "total_fetch_download_kb": 295588.228515625
+    }
+  },
+  {
+    "timestamp": "20260701_051919",
+    "output_dir": "./accuracy_baseline/adaptive/cifar10\\experiment_20260701_051919_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": true,
+        "strategy": "accuracy"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 57.89,
+      "final_test_loss": 1.1318426618150845,
+      "total_time_sec": 1033.907157118637,
+      "total_communication_mb": 5786.860209465027,
+      "avg_round_time_sec": 20.678143142372743,
+      "avg_upload_kb": 110668.07458984375,
+      "avg_download_kb": 7846.8225,
+      "avg_expansion_ratio": 4.135282488815583,
+      "avg_encryption_time_sec": 0.11275996837615966,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.62879753112793,
+      "total_ciphertext_blocks": 16950,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.309989929199219e-05,
+      "avg_fetch_time_sec": 0.2624469388970536,
+      "avg_apply_time_sec": 0.04021309452056885,
+      "total_prefetch_download_kb": 7020802.6181640625,
+      "total_fetch_download_kb": 392341.125
+    }
+  },
+  {
+    "timestamp": "20260701_090237",
+    "output_dir": "./accuracy_baseline/adaptive/cifar10\\experiment_20260701_090237_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": true,
+        "strategy": "consensus"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 74.44,
+      "final_test_loss": 0.7216052756567669,
+      "total_time_sec": 1467.3107905906018,
+      "total_communication_mb": 16459.29052734375,
+      "avg_round_time_sec": 29.346215811812034,
+      "avg_upload_kb": 328903.69072265626,
+      "avg_download_kb": 8182.57927734375,
+      "avg_expansion_ratio": 12.28999128965633,
+      "avg_encryption_time_sec": 0.1724982988357544,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.62317085266113,
+      "total_ciphertext_blocks": 50375,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.5212669372558594e-05,
+      "avg_fetch_time_sec": 0.2736298696842676,
+      "avg_apply_time_sec": 0.06808031311035156,
+      "total_prefetch_download_kb": 21478521.1171875,
+      "total_fetch_download_kb": 409128.9638671875
+    }
+  }
+]

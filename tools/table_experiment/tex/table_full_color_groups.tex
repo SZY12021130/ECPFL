@@ -1,0 +1,43 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{booktabs}
+\usepackage[table]{xcolor}
+\usepackage{caption}
+\usepackage{graphicx}
+\begin{document}
+\onecolumn
+\begin{center}
+\Large\textbf{Table Preview -- Style: Color Groups}
+\end{center}
+\vspace{1em}
+\begin{table}[t]
+\centering
+\caption{Performance Comparison on Three Datasets}
+\label{tab:main-result}
+\footnotesize
+
+\begin{tabular}{l|rrrr|rrrr|rrrr|}
+\toprule
+ & \multicolumn{4}{c}{\textit{FEMNIST} Trg 75\%} & \multicolumn{4}{c}{\textit{Google Speech} Trg 61\%} & \multicolumn{4}{c}{\textit{OpenImage} Trg 68\%} \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+ & FT & TT & FV & TV & FT & TT & FV & TV & FT & TT & FV & TV \\
+\cmidrule(lr){2-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13}
+FedAvg & 0.64 & 2.56 & 1.56 & 2.76 & 5.54 & 21.70 & 12.20 & 21.60 & 1.14 & 5.40 & 10.80 & 19.10 \\
+FedProx & 0.85 & 2.46 & 2.58 & 3.07 & 9.96 & 25.00 & 13.70 & 18.00 & 0.97 & 4.47 & 11.50 & 15.00 \\
+SCAFFOLD & 0.21 & 1.67 & 1.31 & 3.14 & 2.71 & 13.40 & 10.40 & 21.60 & 0.44 & 4.00 & 8.85 & 18.10 \\
+FedNova & 0.30 & 2.11 & 2.58 & 3.32 & 2.28 & 16.70 & 12.90 & 18.90 & 0.38 & 2.55 & 14.00 & 20.70 \\
+FedOpt & 0.18 & 1.84 & 1.49 & 4.01 & 1.26 & 14.30 & 11.20 & 25.00 & 0.23 & \textbf{2.36} & 8.84 & 24.60 \\
+MOON & 0.46 & 1.35 & 1.56 & 1.73 & 3.41 & 8.62 & 10.49 & 11.60 & 0.72 & 3.68 & 10.80 & 12.00 \\
+FedDyn & 0.06 & 0.90 & 0.58 & 1.83 & 0.84 & \textbf{6.26} & 4.87 & 14.30 & 0.13 & 3.07 & 4.45 & 13.70 \\
+Per-FedAvg & 0.43 & 1.27 & 1.45 & 1.60 & 3.03 & 10.90 & 10.78 & 11.90 & 0.67 & 3.55 & 10.40 & 11.60 \\
+pFedMe & 0.06 & 0.90 & 0.58 & 1.83 & 0.58 & 8.88 & 4.70 & 14.70 & 0.12 & 3.09 & 4.34 & 13.70 \\
+Ditto & 0.42 & 1.26 & 1.43 & 1.60 & 4.02 & 12.70 & 11.70 & 13.70 & 0.74 & 3.54 & 10.20 & 11.70 \\
+APFL & 0.06 & 0.89 & 0.60 & 1.75 & 1.12 & 10.10 & 6.92 & 16.50 & 0.16 & 3.12 & 5.48 & 14.10 \\
+FedRep & 1.49 & 4.23 & 5.25 & 5.62 & 6.87 & 26.70 & 28.10 & 29.80 & 0.58 & 2.81 & 8.01 & 9.24 \\
+FedPer & 0.14 & 3.02 & 1.47 & 6.54 & 0.67 & 21.00 & 6.89 & 35.50 & 0.11 & 2.43 & 4.28 & 11.00 \\
+LG-FedAvg & 0.04 & 0.96 & \textbf{0.13} & 0.72 & 0.48 & 8.79 & 1.45 & 6.97 & 0.12 & 3.26 & 1.15 & 5.52 \\
+FedBABU & 0.04 & 0.93 & 0.28 & \textbf{0.56} & 0.50 & 8.47 & 2.95 & \textbf{6.02} & 0.12 & 2.87 & 2.50 & 5.38 \\
+kNN-Per & \textbf{0.03} & \textbf{0.85} & 0.20 & 0.65 & \textbf{0.42} & 7.80 & \textbf{1.30} & 6.20 & \textbf{0.10} & 2.60 & \textbf{1.00} & \textbf{5.00} \\
+\bottomrule
+\end{tabular}
+\end{table}
+\end{document}

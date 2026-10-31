@@ -1,0 +1,204 @@
+# CKKS-Fed Experiment Report / 实验报告
+
+**Experiment Mode / 实验模式:** CKKS-Fed (Encrypted) / 加密模式  
+**Timestamp / 时间戳:** 20260621_200422  
+**Output Directory / 输出目录:** `accuracy_baseline/maser/result_fix_pro\experiment_20260621_200422_fashion_mnist`  
+
+## 1. Configuration Summary / 配置摘要
+
+| Parameter / 参数 | Value / 值 | Description / 说明 |
+|------------------|-----------|-------------------|
+| Dataset / 数据集 | fashion_mnist | 训练数据集名称 |
+| Model / 模型 | cnn_fmnist | 神经网络架构 |
+| Num Clients / 客户端数 | 25 | 参与联邦学习的总客户端数 |
+| Num Rounds / 轮数 | 50 | 联邦学习总轮数 |
+| Local Epochs / 本地轮数 | 3 | 每轮本地训练epoch数 |
+| Batch Size / 批次大小 | 64 | 本地训练批次大小 |
+| Learning Rate / 学习率 | 0.001 | SGD优化器学习率 |
+| Client Sampling Rate / 采样率 | 1.0 | 每轮参与训练的客户端比例 |
+| IID / 独立同分布 | False | 数据分布是否IID |
+| Device / 设备 | cuda | 训练设备(CPU/CUDA) |
+| Upload Difference / 上传差值 | True | 是否上传模型差值而非完整权重 |
+
+### 1.1 CKKS Parameters / CKKS加密参数
+
+| Parameter / 参数 | Value / 值 | Description / 说明 |
+|------------------|-----------|-------------------|
+| Poly Modulus Degree / 多项式模数度 | 8192 | CKKS多项式环的维度 |
+| Coeff Mod Bit Sizes / 系数模数位宽 | [60, 40, 40, 60] | 系数模数的位宽序列 |
+| Global Scale / 全局缩放因子 | 1099511627776 | CKKS编码缩放因子 |
+| Slot Packing / 槽打包 | True | 是否启用SIMD槽打包 |
+
+## 2. Key Metrics Summary / 关键指标汇总
+
+| Metric / 指标 | Value / 数值 | Description / 含义 |
+|---------------|-------------|-------------------|
+| Final Test Accuracy / 最终测试准确率 | **90.66%** | 全局模型在测试集上的最终精度 |
+| Final Test Loss / 最终测试损失 | 0.2984 | 全局模型在测试集上的交叉熵损失 |
+| Total Real CPU Time / 总真实CPU时间 | 2905.29 s | 单机串行执行的实际耗时 |
+| Total Simulated Time / 总模拟时间 | 427.77 s | 含计算与网络传输的模拟 wall-clock 时间（可横向对比） |
+| Total Simulated Comm Time / 总模拟通信时间 | 399.73 s | 纯网络传输时间 = Σ max(client_upload) + Σ max(client_download) |
+| Avg Real Round Time / 平均真实轮次时间 | 58.11 s | 真实 CPU 平均每轮耗时 |
+| Avg Sim Round Time / 平均模拟轮次时间 | 8.56 s | 模拟 wall-clock 平均每轮耗时 |
+| Total Communication / 总通信量 | 7340.00 MB | 所有轮次上传+下载之和 |
+| Total Upload / 总上传量 | 4766.15 MB / 7.02 s | 所有轮次上传开销+时间之和 |
+| Total Download / 总下载量 | 2573.86 MB / 1.24 s | 所有轮次下载开销+时间之和 |
+| MASER ① 加密上传 | 2383.07 MB | 客户端原始密文更新上传累计 |
+| MASER ② 聚合密文广播 | 2383.07 MB | 服务器聚合后密文下发给客户端做 partial decrypt |
+| MASER ③ 解密份额上传 | 2383.07 MB | 客户端 partial decrypt 份额回传累计 |
+| MASER ④ 明文模型下发 | 190.78 MB | 服务器解密后下发明文全局模型累计 |
+| Avg Upload Cost / 平均上传开销 | 100.27 MB | mean(upload_cost)/2^20 |
+| Avg Download Cost / 平均下载开销 | 56.42 MB | mean(download_cost)/2^20 |
+| Avg Expansion Ratio / 平均密文膨胀率 | 12.49x | 密文大小相对明文的平均倍数 |
+| Avg Encryption Time / 平均加密时间 | 0.035 s/client | 每个客户端加密模型更新的平均耗时 |
+| Total CT Blocks (Upload) / 总密文上传块数 | 7475 blocks | 所有客户端所有轮次上传的密文块总数 |
+| Total Aggregated CTs (Download) / 总聚合密文下载数 | 598 blocks | 服务器聚合后广播的密文块总数 |
+| Avg Single Ciphertext Size / 平均单密文大小 | 334292 bytes | 单个客户端密文块的平均大小 |
+| Avg Aggregated CT Size / 平均聚合密文大小 | 334292 bytes | 服务器聚合后密文块的平均大小 |
+| Key Distribution Cost / 密钥分发开销 | 861.45 MB | CKKS公钥/Galois密钥分发总字节数 |
+| CT Upload Time / 密文上传时间 | 292.54 s | 最慢客户端上传密文的模拟 wall-clock 时间之和 |
+| CT Download Time / 密文下载时间 | 107.19 s | 最慢客户端下载密文的模拟 wall-clock 时间之和 |
+
+## 3. Client Participation & Statistics / 客户端参与统计与详情
+
+| CID | Part / 参与轮次 | CTs / 密文数 | DL BW / 下行带宽 | UL BW / 上行带宽 |
+|-----|----------------|--------------|------------------|------------------|
+| 0 | 50 | 299 | 31013 kbps | 30222 kbps |
+| 1 | 50 | 299 | 339099 kbps | 472285 kbps |
+| 2 | 50 | 299 | 254789 kbps | 181815 kbps |
+| 3 | 50 | 299 | 96962 kbps | 99657 kbps |
+| 4 | 50 | 299 | 39759 kbps | 18071 kbps |
+| 5 | 50 | 299 | 27438 kbps | 26345 kbps |
+| 6 | 50 | 299 | 105349 kbps | 21922 kbps |
+| 7 | 50 | 299 | 269298 kbps | 67032 kbps |
+| 8 | 50 | 299 | 28807 kbps | 12061 kbps |
+| 9 | 50 | 299 | 54690 kbps | 5467 kbps |
+| 10 | 50 | 299 | 41651 kbps | 44816 kbps |
+| 11 | 50 | 299 | 8057 kbps | 8610 kbps |
+| 12 | 50 | 299 | 279465 kbps | 261900 kbps |
+| 13 | 50 | 299 | 227204 kbps | 21076 kbps |
+| 14 | 50 | 299 | 93105 kbps | 23265 kbps |
+| 15 | 50 | 299 | 29282 kbps | 27951 kbps |
+| 16 | 50 | 299 | 123339 kbps | 36087 kbps |
+| 17 | 50 | 299 | 17150 kbps | 14397 kbps |
+| 18 | 50 | 299 | 93249 kbps | 6653 kbps |
+| 19 | 50 | 299 | 144829 kbps | 67399 kbps |
+| 20 | 50 | 299 | 103970 kbps | 9934 kbps |
+| 21 | 50 | 299 | 110526 kbps | 11922 kbps |
+| 22 | 50 | 299 | 650580 kbps | 37402 kbps |
+| 23 | 50 | 299 | 231919 kbps | 22700 kbps |
+| 24 | 50 | 299 | 329695 kbps | 19824 kbps |
+
+## 4. Per-Round Results / 每轮详细结果
+| Round / 轮次 | Test Acc / 测试准确率 | Test Loss / 测试损失 | Round Time / 轮次耗时 | Upload Time / 上传时间 | Download Time / 下载时间 | Comm / 通信量 | CT Uploads / 密文上传数 | CT Downloads / 聚合密文数 | Encrypt / 加密耗时 | Expansion / 膨胀率 |
+|--------------|----------------------|---------------------|----------------------|----------------------|-----------------------|---------------|--------------------------|--------------------------|---------------------|---------------------|
+| 1 | 81.69% | 0.5321 | 222.29s | 169.18s | 113.33s | 123.37 MB | 5 | 5 | 0.031s | 10.44x |
+| 2 | 85.85% | 0.3931 | 266.44s | 203.02s | 135.96s | 147.28 MB | 5 | 5 | 0.031s | 12.53x |
+| 3 | 87.25% | 0.3565 | 266.44s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 4 | 87.87% | 0.3385 | 266.44s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 5 | 88.27% | 0.3258 | 266.45s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.029s | 12.53x |
+| 6 | 88.64% | 0.3175 | 266.46s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.029s | 12.53x |
+| 7 | 88.90% | 0.3102 | 266.45s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.028s | 12.53x |
+| 8 | 88.98% | 0.3060 | 266.46s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 9 | 89.11% | 0.3013 | 266.44s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.030s | 12.53x |
+| 10 | 89.31% | 0.2977 | 266.43s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.029s | 12.53x |
+| 11 | 89.50% | 0.2951 | 266.73s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.029s | 12.53x |
+| 12 | 89.61% | 0.2927 | 266.45s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.031s | 12.53x |
+| 13 | 89.69% | 0.2910 | 266.34s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 14 | 89.78% | 0.2873 | 266.44s | 203.02s | 135.96s | 147.29 MB | 5 | 6 | 0.029s | 12.53x |
+| 15 | 89.75% | 0.2873 | 266.45s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 16 | 89.87% | 0.2855 | 266.43s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 17 | 90.00% | 0.2847 | 266.43s | 203.02s | 135.96s | 147.29 MB | 5 | 6 | 0.029s | 12.53x |
+| 18 | 90.04% | 0.2844 | 266.44s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.029s | 12.53x |
+| 19 | 89.91% | 0.2833 | 266.46s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.029s | 12.53x |
+| 20 | 90.02% | 0.2801 | 266.46s | 203.02s | 135.96s | 147.29 MB | 5 | 6 | 0.030s | 12.53x |
+| 21 | 90.12% | 0.2841 | 266.41s | 203.02s | 135.96s | 147.29 MB | 5 | 6 | 0.029s | 12.53x |
+| 22 | 90.23% | 0.2823 | 266.45s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.030s | 12.53x |
+| 23 | 90.20% | 0.2818 | 266.47s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.031s | 12.53x |
+| 24 | 90.25% | 0.2832 | 266.47s | 203.02s | 135.96s | 147.27 MB | 5 | 6 | 0.031s | 12.53x |
+| 25 | 90.32% | 0.2827 | 266.46s | 203.02s | 135.96s | 147.28 MB | 5 | 6 | 0.033s | 12.53x |
+| 26 | 90.25% | 0.2839 | 266.44s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 27 | 90.31% | 0.2842 | 266.49s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.034s | 12.53x |
+| 28 | 90.24% | 0.2821 | 266.48s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 29 | 90.27% | 0.2852 | 266.43s | 203.02s | 135.96s | 147.29 MB | 6 | 6 | 0.036s | 12.53x |
+| 30 | 90.26% | 0.2857 | 266.35s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.037s | 12.53x |
+| 31 | 90.42% | 0.2845 | 266.46s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.041s | 12.53x |
+| 32 | 90.38% | 0.2859 | 266.45s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.037s | 12.53x |
+| 33 | 90.44% | 0.2858 | 266.49s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.034s | 12.53x |
+| 34 | 90.48% | 0.2876 | 266.44s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.036s | 12.53x |
+| 35 | 90.50% | 0.2882 | 266.30s | 203.02s | 135.96s | 147.29 MB | 6 | 6 | 0.036s | 12.53x |
+| 36 | 90.51% | 0.2896 | 266.45s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.033s | 12.53x |
+| 37 | 90.60% | 0.2847 | 266.44s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.034s | 12.53x |
+| 38 | 90.52% | 0.2887 | 266.44s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.035s | 12.53x |
+| 39 | 90.61% | 0.2882 | 266.43s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 40 | 90.62% | 0.2909 | 266.45s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.034s | 12.53x |
+| 41 | 90.58% | 0.2912 | 266.44s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.033s | 12.53x |
+| 42 | 90.57% | 0.2918 | 266.44s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 43 | 90.67% | 0.2923 | 266.46s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.035s | 12.53x |
+| 44 | 90.59% | 0.2927 | 266.32s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.033s | 12.53x |
+| 45 | 90.59% | 0.2934 | 266.10s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 46 | 90.60% | 0.2930 | 266.30s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.033s | 12.53x |
+| 47 | 90.64% | 0.2954 | 266.44s | 203.02s | 135.96s | 147.27 MB | 6 | 6 | 0.034s | 12.53x |
+| 48 | 90.71% | 0.2976 | 266.47s | 203.02s | 135.96s | 147.29 MB | 6 | 6 | 0.035s | 12.53x |
+| 49 | 90.59% | 0.2967 | 266.37s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.034s | 12.53x |
+| 50 | 90.66% | 0.2984 | 266.45s | 203.02s | 135.96s | 147.28 MB | 6 | 6 | 0.036s | 12.53x |
+
+
+## 5. Communication & Ciphertext Details / 通信与密文计算详情
+
+### 5.1 Formula Definitions / 公式定义
+
+| # | Metric / 指标 | Formula / 公式 |
+|---|---------------|----------------|
+| 1 | Plaintext Size / 明文大小 | `sum(v.numel() * 4 for v in model_update.values())` |
+| 2 | Ciphertext Size / 密文大小 | `sum(len(ct.serialize()) for ct in encrypted_update.values())` |
+| 3 | Ciphertext Blocks / 密文块数 | `sum(len(v) for v in encrypted_update.values())` |
+| 4 | Upload Cost / 上传开销 | `sum(ciphertext_size of selected clients)` |
+| 5 | Download Cost / 下载开销 | `global_model_size_bytes * num_selected_clients` |
+| 6 | Total Communication / 总通信 | `upload_cost + download_cost` |
+| 8 | MASER ① 加密上传 | `sum(client ciphertext sizes)` |
+| 9 | MASER ② 聚合密文广播 | `num_selected * num_batches * agg_ct_size` |
+| 10 | MASER ③ 解密份额上传 | `num_selected * num_batches * agg_ct_size` |
+| 11 | MASER ④ 明文模型下发 | `global_model_size_bytes * num_selected_clients` |
+| 7 | Expansion Ratio / 膨胀率 | `total_ciphertext_size / total_plaintext_size` |
+
+### 5.2 Substituted Values / 数值代入
+
+| # | Metric / 指标 | Formula / 代入公式 | Result / 结果 |
+|---|---------------|-------------------|---------------|
+| 1 | Total Plaintext / 总明文 | `sum(plaintext_size) = 200050000` | 190.78 MB |
+| 2 | Total Ciphertext / 总密文 | `sum(ciphertext_size) = 2498834201` | 2.33 GB |
+| 3 | Total CT Blocks (Upload) / 总密文上传块 | `sum(num_ciphertexts) = 7475` | 7475 blocks |
+| 4 | Total Aggregated CTs (Download) / 总聚合密文 | `sum(aggregated_ciphertexts) = 598` | 598 blocks |
+| 5 | Avg Single CT Size / 平均单密文大小 | `2498834201/7475 = 334292` | 326.46 KB |
+| 6 | Avg Aggregated CT Size / 平均聚合密文大小 | `= single_ct_size (ideal xMK-CKKS assumption)` | 326.46 KB |
+| 7 | Total Upload / 总上传 | `maser_ct_upload + maser_partial_dec_upload = 2498834201 + 2498834201` | 4.65 GB |
+| 8 | Total Download / 总下载 | `maser_agg_ct_download + maser_plaintext_download = 2498834201 + 200050000` | 2.51 GB |
+| 9 | Total Communication / 总通信 | `4997668402 + 2698884201 = 7696552603` | 7.17 GB |
+| 10 | Avg Expansion / 平均膨胀率 | `mean(expansion_ratio) = 12.4910` | 12.49x |
+| 11 | MASER ① 加密上传 | `sum(maser_ct_upload) = 2498834201` | 2.33 GB |
+| 12 | MASER ② 聚合密文广播 | `= maser_ct_upload (ideal xMK-CKKS assumption) = 2498834201` | 2.33 GB |
+| 13 | MASER ③ 解密份额上传 | `= maser_ct_upload (ideal xMK-CKKS assumption) = 2498834201` | 2.33 GB |
+| 14 | MASER ④ 明文模型下发 | `sum(maser_plaintext_download) = 200050000` | 190.78 MB |
+
+
+### 5.2.1 MASER Communication Structure / MASER 通信结构
+
+- **① Encrypted Upload / 加密上传:** 2.33 GB — 客户端本地 mask 裁剪后用 TenSEAL 加密的稀疏更新
+- **② Aggregated CT Broadcast / 聚合密文广播:** 2.33 GB — 服务器聚合后的密文下发给所有客户端（按 xMK-CKKS 理想假设：聚合密文大小 = 单密文大小）
+- **③ Partial Decryption Upload / 解密份额上传:** 2.33 GB — 客户端 partial decrypt 份额回传（按 xMK-CKKS 理想假设）
+- **④ Plaintext Model Download / 明文模型下发:** 190.78 MB — 服务器解密后下发明文全局模型
+- **Total Upload / 总上传:** 4.65 GB = ① + ③
+- **Total Download / 总下载:** 2.51 GB = ② + ④
+- **Total Communication / 总通信:** 7.17 GB = ① + ② + ③ + ④
+  ✅ 验证通过：分量加总与总上传/总下载一致
+
+> **Note / 说明：** 本报告中的 MASER ②、③ 以及 Section 4 的 `Comm` 列按 xMK-CKKS 论文理想假设折算，即聚合密文大小与单个密文大小相等。当前 MASER 底层实现仍使用 MK-CKKS 同态加法，实际运行中聚合密文会膨胀；此处数值为理论对比口径。Section 4 的 `Round Time`、`Upload Time`、`Download Time` 仍为原模拟执行时的 wall-clock 记录。
+
+
+## 6. Conclusion / 结论
+
+- **Privacy / 隐私性:** 本实验采用 **CKKS 同态加密** 实现隐私保护联邦学习，服务器始终无法访问客户端原始模型更新。
+- **Accuracy / 准确率:** 经过 **50** 轮训练，最终测试准确率达到 **90.66%**，测试损失为 **0.2984**。
+- **Communication Overhead / 通信开销:** CKKS 密文引入 **12.49x** 的通信膨胀率。
+- **Encryption Cost / 加密开销:** 平均每轮每个客户端加密耗时 **0.035s**。

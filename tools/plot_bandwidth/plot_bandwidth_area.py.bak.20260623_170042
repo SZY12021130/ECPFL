@@ -1,0 +1,957 @@
+"""
+带宽分布可视化工具集 — 多种图表 × 多种配色
+==============================================
+
+读取 fedfetch_bandwidth.pkl，按 Mbps 单位绘制上行 / 下行带宽的多种展示图表。
+
+支持的图表类型 (可通过 --type all 全部生成):
+
+  ── 面积与曲线 ──
+    area              非堆叠面积图（重叠）
+    stacked           堆叠面积图
+    ridge             岭线图 (Joy Plot)
+
+  ── 频率分布 ──
+    histogram         直方图（重叠）
+    histogram_side    上下并列直方图
+    log_histogram     对数分箱直方图
+    kde               核密度估计曲线
+    kde_mirror        镜面 KDE 对称图
+
+  ── 统计分布 ──
+    box               箱线图
+    violin            小提琴图
+    strip_swarm       条形抖动图 + 蜂群图
+    comparison_bar    统计量对比柱状图
+
+  ── 相关性与比例 ──
+    scatter           上行 vs 下行散点图
+    hexbin            六边形密度散点图
+    ratio_dist        上/下行带宽比分布图
+
+  ── 分段分析 ──
+    quantile_area     分位数分段面积图
+    heatstrip         带宽热力条（全体客户端带宽快照）
+    waterfall         上/下行带宽瀑布对比图
+
+配色方案 (可通过 --palette 指定):
+    contrast    蓝 + 红（默认）
+    ocean        深蓝 + 青绿
+    warm         橙 + 品红
+    forest       绿 + 棕
+    pastel       浅蓝 + 粉
+    all          生成所有配色方案
+
+用法:
+    python tools/plot_bandwidth/plot_bandwidth_area.py --type all --palette contrast
+    python tools/plot_bandwidth/plot_bandwidth_area.py --type ridge,hexbin,kde_mirror --palette ocean
+    python tools/plot_bandwidth/plot_bandwidth_area.py --type all --palette all
+"""
+
+import sys
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
+import numpy as np
+import pickle
+
+# ---------------------------------------------------------------------------
+# 路径配置
+# ---------------------------------------------------------------------------
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+TOOLS_DIR = PROJECT_ROOT / "tools"
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from tools.plotter import Plotter
+
+# ---------------------------------------------------------------------------
+# 常量
+# ---------------------------------------------------------------------------
+PKL_PATH = PROJECT_ROOT / "fedfetch_bandwidth.pkl"
+KBPS_TO_MBPS = 1.0 / 1000.0
+
+ALL_TYPES = sorted([
+    "area", "stacked", "ridge",
+    "histogram", "histogram_side", "log_histogram", "kde", "kde_mirror",
+    "box", "violin", "strip_swarm", "comparison_bar",
+    "scatter", "hexbin", "ratio_dist",
+    "quantile_area", "heatstrip", "waterfall",
+])
+
+# ---------------------------------------------------------------------------
+# 配色方案
+# ---------------------------------------------------------------------------
+COLOR_PALETTES: Dict[str, Dict[str, str]] = {
+    "contrast": {
+        "upload_fill": "#3498db", "upload_line": "#2980b9",
+        "download_fill": "#e74c3c", "download_line": "#c0392b",
+        "label": "Contrast (Blue/Red)",
+    },
+    "ocean": {
+        "upload_fill": "#1a5276", "upload_line": "#154360",
+        "download_fill": "#17a589", "download_line": "#0e6655",
+        "label": "Ocean (Deep Blue/Teal)",
+    },
+    "warm": {
+        "upload_fill": "#e67e22", "upload_line": "#d35400",
+        "download_fill": "#c0392b", "download_line": "#922b21",
+        "label": "Warm (Orange/Crimson)",
+    },
+    "forest": {
+        "upload_fill": "#27ae60", "upload_line": "#1e8449",
+        "download_fill": "#8d6e63", "download_line": "#5d4037",
+        "label": "Forest (Green/Brown)",
+    },
+    "pastel": {
+        "upload_fill": "#85c1e9", "upload_line": "#5dade2",
+        "download_fill": "#f1948a", "download_line": "#ec7063",
+        "label": "Pastel (Light Blue/Pink)",
+    },
+}
+
+# ---------------------------------------------------------------------------
+# 数据加载
+# ---------------------------------------------------------------------------
+def load_bandwidth_data(pkl_path: Path = PKL_PATH) -> dict:
+    with open(pkl_path, "rb") as f:
+        raw = pickle.load(f)
+    data = {}
+    for idx, val in raw.items():
+        data[idx] = {
+            "computation": float(val.get("computation", 0)),
+            "communication": float(val.get("communication", 0)),
+            "dl_mbps": float(val["dl_kbps"]) * KBPS_TO_MBPS,
+            "ul_mbps": float(val["ul_kbps"]) * KBPS_TO_MBPS,
+        }
+    return data
+
+
+def extract_arrays(data: dict, sort_by: str = "ul_mbps"):
+    entries = []
+    for idx, val in data.items():
+        entries.append({"index": idx, "ul_mbps": val["ul_mbps"], "dl_mbps": val["dl_mbps"]})
+    if sort_by:
+        entries.sort(key=lambda e: e[sort_by])
+    x = list(range(len(entries)))
+    ul = np.array([e["ul_mbps"] for e in entries])
+    dl = np.array([e["dl_mbps"] for e in entries])
+    return x, ul, dl, entries
+
+
+# ---------------------------------------------------------------------------
+# 辅助
+# ---------------------------------------------------------------------------
+def _add_stats_box(ax, ul, dl, font_size):
+    stats_text = (
+        f"Upload:   median={np.median(ul):.2f} Mbps\n"
+        f"Download: median={np.median(dl):.2f} Mbps\n"
+        f"Clients:  {len(ul)}"
+    )
+    ax.text(
+        0.98, 0.98, stats_text,
+        transform=ax.transAxes, fontsize=font_size - 2,
+        verticalalignment="top", horizontalalignment="right",
+        bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="gray", alpha=0.85),
+    )
+
+
+def _bandwidth_bins(data, n_bins=10):
+    """按上行带宽分成 n_bins 个分位数桶，返回 (labels, indices_list)。"""
+    sorted_idx = np.argsort(data)
+    n = len(data)
+    chunk = n // n_bins
+    bins = []
+    for i in range(n_bins):
+        start = i * chunk
+        end = (i + 1) * chunk if i < n_bins - 1 else n
+        lo = data[sorted_idx[start]]
+        hi = data[sorted_idx[end - 1]]
+        label = f"{lo:.0f}-{hi:.0f}"
+        bins.append((label, sorted_idx[start:end]))
+    return bins
+
+
+# ===================================================================
+#  1. 面积与曲线
+# ===================================================================
+
+def plot_area(p, x, ul, dl, palette, filename, sort_by="ul_mbps"):
+    """非堆叠面积图 — 两条半透明面积重叠展示。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+        ax.fill_between(x, 0, ul, color=palette["upload_fill"], alpha=0.45, linewidth=0)
+        ax.fill_between(x, 0, dl, color=palette["download_fill"], alpha=0.30, linewidth=0)
+        ax.plot(x, ul, color=palette["upload_line"], linewidth=0.8, alpha=0.9)
+        ax.plot(x, dl, color=palette["download_line"], linewidth=0.8, alpha=0.9)
+        ax.set_xlabel(f"Client Index (sorted by {sort_by})")
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Bandwidth Distribution: Upload vs. Download")
+        ax.legend(
+            handles=[
+                plt.Line2D([0], [0], color=palette["upload_fill"], lw=6, alpha=0.5, label="Upload"),
+                plt.Line2D([0], [0], color=palette["download_fill"], lw=6, alpha=0.35, label="Download"),
+            ],
+            loc="upper left", fontsize=p.font_size - 1,
+        )
+        ax.grid(True, linestyle="--", alpha=0.5)
+        _add_stats_box(ax, ul, dl, p.font_size)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_stacked(p, x, ul, dl, palette, filename, sort_by="ul_mbps"):
+    """堆叠面积图。"""
+    p.stacked_area(
+        data={"x": list(x), "series": {
+            "Upload (Mbps)": ul.tolist(),
+            "Download (Mbps)": dl.tolist(),
+        }},
+        xlabel=f"Client Index (sorted by {sort_by})",
+        ylabel="Bandwidth (Mbps)",
+        title="Stacked Bandwidth Distribution",
+        colors={"Upload (Mbps)": palette["upload_fill"], "Download (Mbps)": palette["download_fill"]},
+        alpha=0.6, legend_loc="upper left",
+        filename=filename, formats=["png", "pdf"],
+    )
+
+
+def plot_ridge(p, ul, dl, palette, filename, n_bins=8):
+    """
+    岭线图 (Joy Plot) — 按上行带宽分桶，每层绘制上/下行的 KDE。
+
+    优雅的堆叠分布图，清晰展示不同带宽区间的分布形态差异。
+    """
+    from scipy.stats import gaussian_kde
+
+    with plt.style.context(p.style):
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharey=False)
+
+        for ax, arr, title, color in zip(
+            axes, [ul, dl],
+            ["Upload (KDE)", "Download (KDE)"],
+            [palette["upload_fill"], palette["download_fill"]],
+        ):
+            sorted_idx = np.argsort(arr)
+            n = len(arr)
+            chunk = n // n_bins
+
+            for i in range(n_bins):
+                start = i * chunk
+                end = (i + 1) * chunk if i < n_bins - 1 else n
+                subset = arr[sorted_idx[start:end]]
+                if len(subset) < 5:
+                    continue
+
+                log_sub = np.log10(subset[subset > 0])
+                if len(log_sub) < 5:
+                    continue
+                kde = gaussian_kde(log_sub)
+                x_kde = np.linspace(log_sub.min() - 0.3, log_sub.max() + 0.3, 300)
+                y_kde = kde(x_kde)
+
+                # 基线偏移
+                baseline = i * (np.max(y_kde) * 1.6)
+                ax.fill_between(
+                    10 ** x_kde, baseline, baseline + y_kde,
+                    color=color, alpha=0.25 + 0.06 * i, linewidth=0,
+                )
+                ax.plot(10 ** x_kde, baseline + y_kde, color=color, linewidth=0.7, alpha=0.7)
+                # 标注区间
+                mid = 10 ** np.mean(log_sub)
+                ax.text(
+                    mid, baseline + np.max(y_kde) * 1.15,
+                    f"{np.min(subset):.0f}-{np.max(subset):.0f}",
+                    fontsize=p.font_size - 4, ha="center", color=color, alpha=0.7,
+                )
+
+            ax.set_xscale("log")
+            ax.set_title(title)
+            ax.set_xlabel("Bandwidth (Mbps)")
+            ax.grid(True, linestyle="--", alpha=0.3, which="both")
+            ax.spines["left"].set_visible(False)
+            ax.set_yticks([])
+
+        fig.suptitle("Ridge Plot: Bandwidth Distribution by Quantile Bin", fontsize=p.font_size + 1, y=1.02)
+        fig.tight_layout()
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+# ===================================================================
+#  2. 频率分布
+# ===================================================================
+
+def plot_histogram(p, ul, dl, palette, filename, bins=80):
+    """重叠直方图。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+        ax.hist(ul, bins=bins, color=palette["upload_fill"], alpha=0.55,
+                edgecolor=palette["upload_line"], linewidth=0.5, label="Upload")
+        ax.hist(dl, bins=bins, color=palette["download_fill"], alpha=0.45,
+                edgecolor=palette["download_line"], linewidth=0.5, label="Download")
+        ax.set_xlabel("Bandwidth (Mbps)")
+        ax.set_ylabel("Frequency (count)")
+        ax.set_title("Bandwidth Histogram: Upload vs. Download")
+        ax.legend(loc="upper right", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5)
+        _add_stats_box(ax, ul, dl, p.font_size)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_histogram_side(p, ul, dl, palette, filename, bins=60):
+    """上下并列直方图。"""
+    with plt.style.context(p.style):
+        fig, axes = plt.subplots(2, 1, figsize=(p.figsize[0], p.figsize[1] * 1.4), constrained_layout=True)
+        for ax, arr, label, color, line_color in zip(
+            axes, [ul, dl], ["Upload", "Download"],
+            [palette["upload_fill"], palette["download_fill"]],
+            [palette["upload_line"], palette["download_line"]],
+        ):
+            ax.hist(arr, bins=bins, color=color, alpha=0.6, edgecolor=line_color, linewidth=0.5)
+            ax.axvline(np.median(arr), color=line_color, linestyle="--", linewidth=1.2,
+                       label=f"median={np.median(arr):.1f} Mbps")
+            ax.axvline(np.mean(arr), color="gray", linestyle=":", linewidth=1.0,
+                       label=f"mean={np.mean(arr):.1f} Mbps")
+            ax.set_xlabel("Bandwidth (Mbps)")
+            ax.set_ylabel("Frequency (count)")
+            ax.set_title(f"{label} Bandwidth Distribution")
+            ax.legend(fontsize=p.font_size - 2)
+            ax.grid(True, linestyle="--", alpha=0.5)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_log_histogram(p, ul, dl, palette, filename, bins=80):
+    """对数分箱直方图。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+        for arr, color, label in [
+            (ul, palette["upload_fill"], "Upload"),
+            (dl, palette["download_fill"], "Download"),
+        ]:
+            log_arr = np.log10(arr[arr > 0])
+            ax.hist(log_arr, bins=bins, color=color, alpha=0.5, edgecolor="black", linewidth=0.3, label=label)
+        ax.set_xlabel("Bandwidth (Mbps, log\u2081\u2080 scale)")
+        ax.set_ylabel("Frequency (count)")
+        ax.set_title("Log-Scale Bandwidth Histogram")
+        ax.legend(loc="upper right", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_kde(p, ul, dl, palette, filename):
+    """核密度估计曲线（对数空间）。"""
+    from scipy.stats import gaussian_kde
+
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+        for arr, color, label in [
+            (ul, palette["upload_fill"], "Upload"),
+            (dl, palette["download_fill"], "Download"),
+        ]:
+            log_arr = np.log10(arr[arr > 0])
+            kde = gaussian_kde(log_arr)
+            x_kde = np.linspace(log_arr.min(), log_arr.max(), 500)
+            y_kde = kde(x_kde)
+            ax.fill_between(10 ** x_kde, y_kde, alpha=0.35, color=color, linewidth=0)
+            ax.plot(10 ** x_kde, y_kde, color=color, linewidth=1.5, label=label)
+        ax.set_xscale("log")
+        ax.set_xlabel("Bandwidth (Mbps, log scale)")
+        ax.set_ylabel("Density")
+        ax.set_title("Kernel Density Estimation (KDE)")
+        ax.legend(loc="upper right", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5, which="both")
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_kde_mirror(p, ul, dl, palette, filename):
+    """
+    镜面 KDE 对称图 — 上行向上、下行向下，形成蝴蝶/蝴蝶图。
+
+    优雅地展示两个分布在同一轴上的对比关系。
+    """
+    from scipy.stats import gaussian_kde
+
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+
+        # 上行 → 向上
+        log_ul = np.log10(ul[ul > 0])
+        kde_ul = gaussian_kde(log_ul)
+        x_kde = np.linspace(min(log_ul.min(), np.log10(dl[dl > 0]).min()) - 0.3,
+                            max(log_ul.max(), np.log10(dl[dl > 0]).max()) + 0.3, 500)
+        y_ul = kde_ul(x_kde)
+        ax.fill_between(10 ** x_kde, 0, y_ul, color=palette["upload_fill"], alpha=0.5, linewidth=0)
+        ax.plot(10 ** x_kde, y_ul, color=palette["upload_line"], linewidth=1.2, label="Upload")
+
+        # 下行 → 向下（镜面翻转）
+        log_dl = np.log10(dl[dl > 0])
+        kde_dl = gaussian_kde(log_dl)
+        x_kde2 = np.linspace(x_kde[0], x_kde[-1], 500)
+        y_dl = kde_dl(x_kde2)
+        ax.fill_between(10 ** x_kde2, 0, -y_dl, color=palette["download_fill"], alpha=0.5, linewidth=0)
+        ax.plot(10 ** x_kde2, -y_dl, color=palette["download_line"], linewidth=1.2, label="Download")
+
+        ax.axhline(0, color="black", linewidth=0.5)
+        ax.set_xscale("log")
+        ax.set_xlabel("Bandwidth (Mbps, log scale)")
+        ax.set_ylabel("Density")
+        ax.set_title("Mirror KDE: Upload (above) vs. Download (below)")
+        ax.legend(loc="upper right", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5, which="both")
+
+        # 标注
+        ax.text(
+            0.02, 0.98,
+            f"Upload median: {np.median(ul):.2f} Mbps\nDownload median: {np.median(dl):.2f} Mbps",
+            transform=ax.transAxes, fontsize=p.font_size - 2,
+            va="top",
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", edgecolor="gray", alpha=0.85),
+        )
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+# ===================================================================
+#  3. 统计分布
+# ===================================================================
+
+def plot_box(p, ul, dl, palette, filename):
+    """箱线图。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(5, 4.5))
+        bp = ax.boxplot(
+            [ul, dl],
+            tick_labels=["Upload", "Download"],
+            patch_artist=True, widths=0.5, showfliers=True,
+            flierprops=dict(marker="o", markersize=2, alpha=0.3),
+        )
+        for patch, color in zip(bp["boxes"], [palette["upload_fill"], palette["download_fill"]]):
+            patch.set_facecolor(color)
+            patch.set_alpha(0.6)
+        for median in bp["medians"]:
+            median.set_color("black")
+            median.set_linewidth(1.5)
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Bandwidth Box Plot")
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_violin(p, ul, dl, palette, filename):
+    """小提琴图。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(5, 4.5))
+        parts = ax.violinplot([ul, dl], positions=[1, 2], showmeans=False, showmedians=True, showextrema=False)
+        for i, pc in enumerate(parts["bodies"]):
+            pc.set_facecolor([palette["upload_fill"], palette["download_fill"]][i])
+            pc.set_alpha(0.6)
+            pc.set_edgecolor("black")
+            pc.set_linewidth(0.5)
+        parts["cmedians"].set_color("black")
+        parts["cmedians"].set_linewidth(1.5)
+        ax.set_xticks([1, 2])
+        ax.set_xticklabels(["Upload", "Download"])
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Bandwidth Violin Plot")
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+        np.random.seed(42)
+        ax.scatter(np.ones(len(ul)) + np.random.normal(0, 0.06, len(ul)), ul,
+                   s=1, alpha=0.15, color=palette["upload_line"])
+        ax.scatter(2 * np.ones(len(dl)) + np.random.normal(0, 0.06, len(dl)), dl,
+                   s=1, alpha=0.15, color=palette["download_line"])
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_strip_swarm(p, ul, dl, palette, filename, max_points=800):
+    """
+    条形抖动图 — 在箱线图基础上叠加 jitter 散点。
+
+    结合了箱线图的统计摘要和原始数据点的分布展示。
+    """
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(6, 4.5))
+
+        for i, (arr, color, label) in enumerate([
+            (ul, palette["upload_fill"], "Upload"),
+            (dl, palette["download_fill"], "Download"),
+        ]):
+            # 降采样
+            if len(arr) > max_points:
+                idx = np.random.choice(len(arr), max_points, replace=False)
+                arr_s = arr[idx]
+            else:
+                arr_s = arr
+
+            # 箱线图底层
+            bp = ax.boxplot(
+                [arr], positions=[i], widths=0.35,
+                patch_artist=True, showfliers=False,
+                manage_ticks=False,
+            )
+            bp["boxes"][0].set_facecolor(color)
+            bp["boxes"][0].set_alpha(0.3)
+            bp["medians"][0].set_color("black")
+            bp["medians"][0].set_linewidth(1.2)
+
+            # jitter 散点
+            jitter = np.random.normal(0, 0.1, len(arr_s))
+            ax.scatter(
+                i + jitter, arr_s,
+                s=3, alpha=0.25, color=color, edgecolors="none",
+            )
+
+        ax.set_xticks([0, 1])
+        ax.set_xticklabels(["Upload", "Download"])
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Strip-Swarm Plot with Box Overlay")
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_comparison_bar(p, ul, dl, palette, filename):
+    """统计量对比柱状图。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(6, 4))
+
+        def stats(arr):
+            return [np.min(arr), np.percentile(arr, 25), np.median(arr), np.percentile(arr, 75), np.max(arr)]
+
+        ul_s, dl_s = stats(ul), stats(dl)
+        labels = ["Min", "Q1", "Median", "Q3", "Max"]
+        x_pos = np.arange(len(labels))
+        width = 0.35
+
+        ax.bar(x_pos - width / 2, ul_s, width, color=palette["upload_fill"],
+               alpha=0.7, edgecolor="black", linewidth=0.5, label="Upload")
+        ax.bar(x_pos + width / 2, dl_s, width, color=palette["download_fill"],
+               alpha=0.7, edgecolor="black", linewidth=0.5, label="Download")
+
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Bandwidth Statistics Comparison")
+        ax.legend(loc="upper left")
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+
+        for bars, vals in [(ax.patches[:5], ul_s), (ax.patches[5:], dl_s)]:
+            for bar, v in zip(bars, vals):
+                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                        f"{v:.1f}", ha="center", va="bottom", fontsize=p.font_size - 3)
+
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+# ===================================================================
+#  4. 相关性与比例
+# ===================================================================
+
+def plot_scatter(p, ul, dl, palette, filename, max_points=3000):
+    """上行 vs 下行散点图（含 Pearson r）。"""
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+        n = len(ul)
+        if n > max_points:
+            idx = np.random.choice(n, max_points, replace=False)
+            ul_s, dl_s = ul[idx], dl[idx]
+        else:
+            ul_s, dl_s = ul, dl
+        ax.scatter(ul_s, dl_s, s=6, alpha=0.3, color=palette["upload_fill"], edgecolors="none")
+        ax.axline((0, 0), slope=1, color="gray", linestyle="--", linewidth=0.8, alpha=0.5, label="y = x")
+        corr = np.corrcoef(ul_s, dl_s)[0, 1]
+        ax.text(
+            0.02, 0.98, f"Pearson r = {corr:.3f}\nn = {n}",
+            transform=ax.transAxes, fontsize=p.font_size - 2, va="top",
+            bbox=dict(boxstyle="round,pad=0.4", facecolor="white", edgecolor="gray", alpha=0.85),
+        )
+        ax.set_xlabel("Upload Bandwidth (Mbps)")
+        ax.set_ylabel("Download Bandwidth (Mbps)")
+        ax.set_title("Upload vs. Download Bandwidth Correlation")
+        ax.legend(loc="lower right", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_hexbin(p, ul, dl, palette, filename, gridsize=60):
+    """
+    六边形密度散点图 (Hexbin) — 大数据量散点图的优雅替代方案。
+
+    用六边形的颜色深浅表示数据点密度，清晰展示上行/下行的联合分布热点。
+    """
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=p.figsize)
+
+        hb = ax.hexbin(ul, dl, gridsize=gridsize, cmap="YlOrRd",
+                       mincnt=1, linewidths=0.2, edgecolors="gray")
+        cb = fig.colorbar(hb, ax=ax, label="Count")
+
+        ax.axline((0, 0), slope=1, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
+
+        # 标注高密度区域
+        counts = hb.get_array()
+        offsets = hb.get_offsets()
+        if len(counts) > 0:
+            top_idx = np.argsort(counts)[-1]
+            top_x, top_y = offsets[top_idx]
+            ax.annotate(
+                f"Densest\n({top_x:.0f}, {top_y:.0f}) Mbps",
+                xy=(top_x, top_y), fontsize=p.font_size - 3,
+                ha="center", va="bottom",
+                xytext=(10, 10), textcoords="offset points",
+                arrowprops=dict(arrowstyle="->", color="black", lw=0.8),
+                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="gray", alpha=0.8),
+            )
+
+        ax.set_xlabel("Upload Bandwidth (Mbps)")
+        ax.set_ylabel("Download Bandwidth (Mbps)")
+        ax.set_title("Hexbin Density: Upload vs. Download Bandwidth")
+        ax.grid(True, linestyle="--", alpha=0.3)
+
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_ratio_dist(p, ul, dl, palette, filename, bins=100):
+    """
+    上行/下行带宽比分布图 + 散点图双面板。
+
+    展示 dl/ul 比率的频率分布与位置关系，体现不对称性。
+    """
+    ratio = dl / np.maximum(ul, 1e-9)
+
+    with plt.style.context(p.style):
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4.5), constrained_layout=True)
+
+        # 左：ratio 直方图
+        ax = axes[0]
+        # 截断极端值便于可视化
+        ratio_clip = np.clip(ratio, 0, np.percentile(ratio, 99))
+        ax.hist(ratio_clip, bins=bins, color=palette["download_fill"], alpha=0.6,
+                edgecolor="black", linewidth=0.3)
+        ax.axvline(1.0, color="black", linestyle="--", linewidth=1.0, label="ratio = 1 (symmetric)")
+        ax.axvline(np.median(ratio_clip), color=palette["upload_line"], linestyle="-.",
+                   linewidth=1.2, label=f"median = {np.median(ratio_clip):.2f}")
+        ax.set_xlabel("Download / Upload Ratio")
+        ax.set_ylabel("Frequency (count)")
+        ax.set_title("Bandwidth Ratio Distribution (DL/UL)")
+        ax.legend(fontsize=p.font_size - 2)
+        ax.grid(True, linestyle="--", alpha=0.5)
+
+        # 右：散点 ul vs dl，按 ratio 着色
+        ax2 = axes[1]
+        n = len(ul)
+        if n > 3000:
+            idx = np.random.choice(n, 3000, replace=False)
+            ul_s, dl_s, ratio_s = ul[idx], dl[idx], ratio[idx]
+        else:
+            ul_s, dl_s, ratio_s = ul, dl, ratio
+        sc = ax2.scatter(ul_s, dl_s, c=ratio_s, s=4, alpha=0.3, cmap="RdYlBu_r",
+                         edgecolors="none", vmin=0, vmax=np.percentile(ratio, 95))
+        fig.colorbar(sc, ax=ax2, label="DL/UL Ratio")
+        ax2.axline((0, 0), slope=1, color="gray", linestyle="--", linewidth=0.8, alpha=0.5)
+        ax2.set_xlabel("Upload Bandwidth (Mbps)")
+        ax2.set_ylabel("Download Bandwidth (Mbps)")
+        ax2.set_title("Scatter Colored by DL/UL Ratio")
+        ax2.set_xscale("log")
+        ax2.set_yscale("log")
+        ax2.grid(True, linestyle="--", alpha=0.5, which="both")
+
+        fig.suptitle("Bandwidth Asymmetry Analysis", fontsize=p.font_size + 1)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+# ===================================================================
+#  5. 分段分析
+# ===================================================================
+
+def plot_quantile_area(p, ul, dl, palette, filename, n_bins=10):
+    """
+    分位数分段面积图 — 将客户端按上行带宽分桶，
+    每桶计算上/下行均值，用面积图展示分桶间的趋势变化。
+    """
+    bins_info = _bandwidth_bins(ul, n_bins=n_bins)
+
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+
+        x_labels = [b[0] for b in bins_info]
+        x_pos = np.arange(len(x_labels))
+        ul_means = [np.mean(ul[b[1]]) for b in bins_info]
+        dl_means = [np.mean(dl[b[1]]) for b in bins_info]
+
+        width = 0.85
+        ax.bar(x_pos, ul_means, width, color=palette["upload_fill"], alpha=0.65,
+               edgecolor=palette["upload_line"], linewidth=0.5, label="Upload (mean)")
+        ax.bar(x_pos, dl_means, width, bottom=ul_means, color=palette["download_fill"], alpha=0.55,
+               edgecolor=palette["download_line"], linewidth=0.5, label="Download (mean)")
+
+        # 连线趋势
+        ax.plot(x_pos, ul_means, "o-", color=palette["upload_line"], linewidth=1.0, markersize=3, alpha=0.8)
+        ax.plot(x_pos, dl_means, "s-", color=palette["download_line"], linewidth=1.0, markersize=3, alpha=0.8)
+
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(x_labels, rotation=30, ha="right", fontsize=p.font_size - 3)
+        ax.set_xlabel("Upload Bandwidth Bin (Mbps)")
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Quantile Binned: Upload & Download Mean per Bin")
+        ax.legend(loc="upper left", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_heatstrip(p, ul, dl, palette, filename, sorted_indices=None):
+    """
+    带宽热力条 — 将所有客户端的带宽值映射为一行像素，
+    按上行带宽排序，形成两条细长的热力条（上行 + 下行）。
+
+    类似基因组学中的 Circos / heatmap stripe，直观展示带宽异构性的全景。
+    """
+    # 按 ul 排序
+    sort_idx = np.argsort(ul)
+
+    with plt.style.context(p.style):
+        fig, axes = plt.subplots(2, 1, figsize=(14, 2.0), constrained_layout=True)
+
+        for ax, arr, title, cmap_name in zip(
+            axes,
+            [ul[sort_idx], dl[sort_idx]],
+            ["Upload", "Download"],
+            ["Blues", "Reds"],
+        ):
+            # 将一维数组 reshape 为 (1, N) 以形成热力条
+            img = np.array([arr[sort_idx]])
+            im = ax.imshow(
+                img, aspect="auto", cmap=cmap_name,
+                interpolation="nearest",
+            )
+            ax.set_yticks([])
+            ax.set_xticks([])
+            ax.set_xlabel("Clients (sorted by upload bandwidth)", fontsize=p.font_size - 1)
+            ax.set_title(title, fontsize=p.font_size, loc="left", pad=2)
+            fig.colorbar(im, ax=ax, orientation="vertical", fraction=0.02, pad=0.01,
+                         label="Mbps")
+
+        fig.suptitle("Bandwidth Heatstrip: Client Heterogeneity Overview",
+                     fontsize=p.font_size + 1, y=1.15)
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+def plot_waterfall(p, ul, dl, palette, filename, n_bins=10):
+    """
+    瀑布对比图 — 将客户端按上行带宽分为 N 段，
+    用浮动柱状图展示上/下行带宽在各段中的均值，
+    上下错开排列，形如瀑布。
+
+    优雅地对比不同带宽区间的上/下行差异。
+    """
+    bins_info = _bandwidth_bins(ul, n_bins=n_bins)
+
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+
+        x_labels = [b[0] for b in bins_info]
+        x_pos = np.arange(len(x_labels))
+        ul_means = [np.mean(ul[b[1]]) for b in bins_info]
+        dl_means = [np.mean(dl[b[1]]) for b in bins_info]
+        gap = max(np.max(ul_means), np.max(dl_means)) * 0.15  # 中间间隔
+
+        # 下行从 gap 开始向上画
+        ax.bar(x_pos, ul_means, 0.7, bottom=0, color=palette["upload_fill"],
+               alpha=0.65, edgecolor=palette["upload_line"], linewidth=0.5, label="Upload (mean)")
+        ax.bar(x_pos, dl_means, 0.7, bottom=gap, color=palette["download_fill"],
+               alpha=0.65, edgecolor=palette["download_line"], linewidth=0.5, label="Download (mean)")
+
+        # 连接线：从上行顶端到下行底端
+        for i in range(len(x_pos)):
+            ax.plot([i, i], [ul_means[i], gap], color="gray", linewidth=0.8, linestyle="-.", alpha=0.5)
+
+        # 基线
+        ax.axhline(0, color="black", linewidth=0.5)
+        ax.axhline(gap, color="black", linewidth=0.5, linestyle=":")
+
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(x_labels, rotation=30, ha="right", fontsize=p.font_size - 3)
+        ax.set_ylabel("Bandwidth (Mbps)")
+        ax.set_title("Waterfall: Upload vs. Download by Bandwidth Bin")
+        ax.legend(loc="upper left", fontsize=p.font_size - 1)
+        ax.grid(True, linestyle="--", alpha=0.5, axis="y")
+
+        # 标注间隔
+        ax.text(
+            len(x_pos) - 0.5, gap / 2, "gap",
+            ha="right", va="center", fontsize=p.font_size - 3, color="gray", style="italic",
+        )
+
+        p._save(filename, formats=["png", "pdf"])
+        plt.close(fig)
+
+
+# ===================================================================
+#  类型注册
+# ===================================================================
+PLOT_FUNCS = {
+    # 面积与曲线
+    "area":             ("bandwidth_area",               plot_area),
+    "stacked":          ("bandwidth_area_stacked",       plot_stacked),
+    "ridge":            ("bandwidth_ridge",              plot_ridge),
+    # 频率分布
+    "histogram":        ("bandwidth_histogram",           plot_histogram),
+    "histogram_side":   ("bandwidth_histogram_side",     plot_histogram_side),
+    "log_histogram":    ("bandwidth_log_histogram",       plot_log_histogram),
+    "kde":              ("bandwidth_kde",                 plot_kde),
+    "kde_mirror":       ("bandwidth_kde_mirror",          plot_kde_mirror),
+    # 统计分布
+    "box":              ("bandwidth_box",                plot_box),
+    "violin":           ("bandwidth_violin",             plot_violin),
+    "strip_swarm":      ("bandwidth_strip_swarm",        plot_strip_swarm),
+    "comparison_bar":   ("bandwidth_comparison_bar",      plot_comparison_bar),
+    # 相关性与比例
+    "scatter":          ("bandwidth_scatter",             plot_scatter),
+    "hexbin":           ("bandwidth_hexbin",              plot_hexbin),
+    "ratio_dist":       ("bandwidth_ratio_dist",          plot_ratio_dist),
+    # 分段分析
+    "quantile_area":    ("bandwidth_quantile_area",       plot_quantile_area),
+    "heatstrip":        ("bandwidth_heatstrip",           plot_heatstrip),
+    "waterfall":        ("bandwidth_waterfall",           plot_waterfall),
+}
+
+
+# ===================================================================
+# 主入口
+# ===================================================================
+def generate_plots(
+    pkl_path: Path = PKL_PATH,
+    types: Optional[List[str]] = None,
+    palette_name: str = "contrast",
+    sort_by: str = "ul_mbps",
+    output_dir=None,
+):
+    if output_dir is None:
+        output_dir = TOOLS_DIR / "pic"
+    output_dir = Path(output_dir)
+
+    data = load_bandwidth_data(pkl_path)
+    print(f"[INFO] 已加载 {len(data)} 条带宽记录 (单位: Mbps)")
+
+    x, ul, dl, entries = extract_arrays(data, sort_by=sort_by)
+    print(f"[INFO] Upload  — median={np.median(ul):.2f}, min={ul.min():.2f}, max={ul.max():.2f} Mbps")
+    print(f"[INFO] Download — median={np.median(dl):.2f}, min={dl.min():.2f}, max={dl.max():.2f} Mbps")
+
+    if types is None or "all" in types:
+        types = list(PLOT_FUNCS.keys())
+
+    if palette_name == "all":
+        palettes = list(COLOR_PALETTES.keys())
+    else:
+        palettes = [palette_name]
+
+    saved_all = []
+
+    for pname in palettes:
+        pal = COLOR_PALETTES[pname]
+        print(f"\n{'=' * 60}")
+        print(f"[PALETTE] {pal['label']}")
+        print(f"{'=' * 60}")
+
+        if len(palettes) > 1:
+            sub_dir = output_dir / f"palette_{pname}"
+            sub_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            sub_dir = output_dir
+
+        p = Plotter(
+            style=["science", "grid"],
+            figsize=(8, 4.5),
+            dpi=300,
+            output_dir=sub_dir,
+            use_latex=False,
+            font_size=12,
+            theme="contrast",
+        )
+
+        for plot_type in types:
+            if plot_type not in PLOT_FUNCS:
+                print(f"  [SKIP] 未知类型: {plot_type}")
+                continue
+
+            base_name, func = PLOT_FUNCS[plot_type]
+            fname = f"{base_name}_{pname}" if len(palettes) > 1 else base_name
+
+            print(f"  [PLOT]  {plot_type:<20s} -> {fname}")
+            try:
+                if plot_type in ("area", "stacked"):
+                    func(p, x, ul, dl, pal, fname, sort_by=sort_by)
+                elif plot_type in ("scatter", "hexbin"):
+                    func(p, ul, dl, pal, fname)
+                else:
+                    func(p, ul, dl, pal, fname)
+                saved_all.append(fname)
+            except Exception as e:
+                print(f"  [ERROR] {plot_type}: {e}")
+
+    print(f"\n{'=' * 60}")
+    print(f"[DONE] 共生成 {len(saved_all)} 张图表")
+    print(f"       输出目录: {output_dir}")
+    print(f"{'=' * 60}")
+    return saved_all
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="带宽分布可视化工具集 — 多种图表 x 多种配色",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例:
+  python tools/plot_bandwidth/plot_bandwidth_area.py --type all --palette contrast
+  python tools/plot_bandwidth/plot_bandwidth_area.py --type ridge,hexbin,kde_mirror --palette ocean
+  python tools/plot_bandwidth/plot_bandwidth_area.py --type all --palette all
+  python tools/plot_bandwidth/plot_bandwidth_area.py --type cdf,kde --palette warm --sort-by dl_mbps
+
+支持的图表类型: {types}
+支持的配色方案: {palettes}
+        """.format(
+            types=", ".join(ALL_TYPES),
+            palettes=", ".join(COLOR_PALETTES.keys()),
+        ),
+    )
+    parser.add_argument("--pkl", type=str, default=str(PKL_PATH),
+                        help=f"带宽 pkl 文件路径 (默认: {PKL_PATH})")
+    parser.add_argument("--type", type=str, default="all",
+                        help=f"图表类型，逗号分隔或 'all'")
+    parser.add_argument("--palette", type=str, default="contrast",
+                        help=f"配色方案名称或 'all'")
+    parser.add_argument("--sort-by", type=str, default="ul_mbps",
+                        choices=["ul_mbps", "dl_mbps"],
+                        help="面积图排序依据 (默认: ul_mbps)")
+    parser.add_argument("--output-dir", type=str, default=None,
+                        help="输出目录 (默认: tools/pic)")
+    args = parser.parse_args()
+
+    types = [t.strip() for t in args.type.split(",")]
+    output_dir = Path(args.output_dir) if args.output_dir else None
+
+    generate_plots(
+        pkl_path=Path(args.pkl),
+        types=types,
+        palette_name=args.palette,
+        sort_by=args.sort_by,
+        output_dir=output_dir,
+    )

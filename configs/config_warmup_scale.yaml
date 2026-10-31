@@ -1,0 +1,174 @@
+# ============================================================================
+# CKKS-Fed / CipherFetch 联邦学习实验配置文件
+# 【Warmup + 大规模客户端 实验配置】
+# ============================================================================
+# 实验目标：验证"先充分收敛、再压缩通信"的两阶段策略在大量客户端下的效果
+#
+# 核心设计：
+#   Phase 1 (Warmup): 前 5 轮不启用客户端稀疏化，所有客户端上传完整 11 个 batch
+#                     让模型快速收敛到 basin，避免早期信息瓶颈
+#   Phase 2 (Sparse): 第 6 轮起启用 TopK 50% 稀疏化，在已收敛 basin 内微调
+#                     此时梯度方向更一致，稀疏化损失对精度影响小
+#
+# 规模设计：
+#   • 50 个客户端（5 倍于基线），模拟中小规模联邦场景
+#   • 每轮采样 10 个客户端（client_sampling_rate=0.2）
+#   • 30 轮总训练，前 5 轮 warmup，后 25 轮稀疏化
+# ============================================================================
+
+system:
+  # 【调整】num_clients: 10 -> 50
+  # 原因：模拟更大规模的联邦学习场景，验证 warmup 策略的可扩展性
+  num_clients: 50
+
+  # 【调整】num_rounds: 10 -> 30
+  # 原因：
+  #   - 更多客户端意味着需要更多轮次才能覆盖所有客户端的本地数据
+  #   - 前 5 轮 warmup 后还有 25 轮稀疏化阶段，足够观察长期行为
+  num_rounds: 30
+
+  # 保持 num_epochs=3：在 Non-IID 下平衡本地计算与全局稳定性
+  num_epochs: 3
+
+  batch_size: 64
+  learning_rate: 0.01
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+
+  # 【调整】client_sampling_rate: 0.5 -> 0.2
+  # 原因：
+  #   - 50 clients * 0.2 = 每轮 10 个参与客户端，与基线（10*0.5=5）相比增加一倍
+  #   - 既保持了足够的聚合样本量，又控制了每轮通信开销
+  #   - 如果设为 0.5（25 clients/轮），warmup 期间通信量会过大（25*11=275 CTs/轮）
+  client_sampling_rate: 0.2
+
+  upload_difference: true
+
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 0.5
+
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+  width_mult: 1.0
+  growth_rate: 12
+  block_config: [6, 6, 6]
+  num_init_features: 24
+  bn_size: 4
+  drop_rate: 0.0
+
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+
+  packing:
+    strategy: "merged"
+    quant_bits: 16
+
+  # --------------------------------------------------------------------------
+  # 【关键】客户端包级稀疏化 + Warmup 机制
+  # --------------------------------------------------------------------------
+  sparsification:
+    strategy: "topk"
+    sparsity_rate: 0.5
+    batch_size: 4096
+    seed: 42
+
+    # 【可插拔开关】warmup 期间跳过客户端稀疏化
+    # false = 老行为：从一开始就稀疏化（无 warmup，回退到修改前的逻辑）
+    # true  = 新行为：warmup 期间不稀疏化，warmup 结束后再启用稀疏化
+    use_warmup_skip_sparse: true
+
+    # 【配合开关】warmup 轮数，仅当 use_warmup_skip_sparse=true 时生效
+    # 第 0 ~ (warmup_rounds-1) 轮：跳过稀疏化，上传完整 11 个 batch
+    # 第 warmup_rounds 轮起：正常启用 TopK 稀疏化
+    warmup_rounds: 5
+
+  ptopk:
+    enable: true
+    client_residual:
+      enabled: true
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+
+blinding_mask:
+  enabled: true
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+
+tee:
+  enabled: true
+
+  compression:
+    enabled: true
+    sparsity_rate: 0.5
+
+  residual_strategy:
+    mode: "both"
+    decay_gamma: 0.9
+    clip_tau: 0.0
+    clip_window: 5
+
+
+prefetch:
+  enable_prefetch: true
+  use_sticky_sampling: true
+  max_prefetch_round: 3
+  warmup_round: 1
+  scheduler_beta: 1.0
+  overcommitment: 2
+  sticky_decay: 0.9
+  sticky_group_size: 8
+  sticky_change_num: 1
+
+
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: "lognormal"
+
+
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+  communication_rounds: true
+  dropout_rate: true
+  cpu_utilization: true
+  key_distribution_cost: true
+  memory_usage: true
+
+visualization:
+  enabled: true
+  save_format: "png"
+  dpi: 300
+  figure_size: [10, 6]
+  style: "seaborn-v0_8-whitegrid"
+
+output:
+  results_dir: "./results"
+  model_dir: "./history_models"
+  viz_dir: "./visualization"
+  save_interval: 999

@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "20260604_103413",
+    "output_dir": "accuracy_threshold_v2/20260604_fashion_mnist_threshold_pct_0.1",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 90.01,
+      "final_test_loss": 0.2877813744222283,
+      "total_time_sec": 302.06090376076224,
+      "total_communication_mb": 2633.151490211487,
+      "avg_round_time_sec": 6.041218075215246,
+      "avg_upload_kb": 52722.60921875,
+      "avg_download_kb": 1204.33330078125,
+      "avg_expansion_ratio": 13.493614556360905,
+      "avg_encryption_time_sec": 0.040645703506469726,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.646249771118164,
+      "total_ciphertext_blocks": 8075,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.153911590576172e-05,
+      "avg_fetch_time_sec": 0.05034996468179886,
+      "avg_apply_time_sec": 0.01740040740966797,
+      "total_prefetch_download_kb": 3467421.9365234375,
+      "total_fetch_download_kb": 60216.6650390625
+    }
+  }
+]

@@ -1,0 +1,2105 @@
+
+===== PAGE 1 =====
+3868 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+ESAFL: Efficient Secure Additively Homomorphic
+Encryption for Cross-Silo Federated Learning
+JiahuiWu ,WeizheZhang ,SeniorMember,IEEE,andFucaiLuo
+Abstract—Cross-silo federated learning (FL) enables multiple submitsitslocalgradientstotheserverformodelupdate.The
+clients to collaboratively train a machine learning model with- server aggregates the local gradients of all clients into global
+out sharing training data, but privacy in FL remains a major
+gradientsandsendstheglobalgradientsbacktotheclients.The
+challenge.Techniquesusinghomomorphicencryption(HE)have
+clientsthenupdatetheirlocalmodel.Afternumerousiterations,
+beendesignedtosolvethisbutbringtheirownchallenges.Many
+techniquesusingsingle-keyHE(SKHE)requireclientstofullytrust eachclientfinallyobtainsatrainedmodel.
+eachothertopreventprivacydisclosurebetweenclients.However, Toensurethatnoclient’supdateisrevealedfromitssubmitted
+fullytrustedclientsarehardtoensureinpractice.Othertechniques gradients during data transfer and aggregation, many privacy-
+usingmulti-keyHE(MKHE)aimtoprotectprivacyfromuntrusted
+preservingtechniqueshavebeendesigned[3],[4],[5],[6],[7],
+clientsbutleadtothedisclosureoftrainingresultsinpublicchan-
+[8], [9], [10], [11], [12], [13], [14], [15], [16], [17]. Among
+nelsbyuntrustedthirdparties,e.g.,thepubliccloudserver.Besides,
+MKHE has higher computation and communication complexity them, homomorphic encryption (HE) is particularly attractive
+comparedwithSKHE.WepresentanewFLprotocolESAFLthat tocross-siloFL,asitprovidesstrongerprivacyguaranteeswith
+leveragesanovelefficientandsecureadditivelyHE(ESHE)based nolossoflearningaccuracy.Inaddition,comparedwithother
+on the hard problem of ring learning with errors. ESAFL can
+privacy-preservingtechniques,HEcangreatlyreducethenum-
+ensurethesecurityoftrainingdatabetweenuntrustedclientsand
+berofcommunicationroundsinFLtraining,anditcanbeeasily
+protectthetrainingresultsagainstuntrustedthirdparties.Inaddi-
+tion,theoreticalanalysespresentthatESAFLoutperformscurrent pluggedintotheexistingFLframeworkstoaugmentthepopular
+techniquesusingMKHEincomputationandcommunication,and parameter server architecture. Traditional HE algorithms with
+intensive experiments show that ESAFL achieves approximate singlekeys(SKHE)likePaillierandCKKShavebeenadopted
+204×−953× and 11×−14× training speedup while reducing
+inmanyFLapplications[11],[12],[13].Intheseapplications,
+thecommunicationburdenby77×−109×and1.25×−2×com-
+all clients have the same encryption and decryption keys. The
+paredwiththestate-of-the-artFLmodelsusingSKHE.
+clients encrypt their local gradients using the same encryption
+IndexTerms—Federatedlearning,privacyprotection,homomo- key and submit the encrypted ones to the cloud server. As all
+rphicencryption,secureadditioncomputation.
+clients’gradientsareencrypted,noinformationcanbelearned
+bythecloudserverorexternaladversaries.However,sincethe
+I. INTRODUCTION clients have the same decryption key, the ciphertexts of any
+clientcanbedecryptedbyasemi-honestclient.Therefore,FL
+MASSIVE amounts of training datasets are required to
+applications using SKHE can be secure when all clients fully
+build high-quality machine learning (ML) models. In
+trusteachother,butthisishardtoensureinpractice.Toprotect
+someareaslikehealthcareorfinance,managinglargedatasets
+privacy against semi-honest clients, multi-key HE algorithms
+is often difficult and costly, not to mention that these datasets
+(MKHE) [14], [15], [16], [17] are proposed and applied to
+containalargenumberofsensitivedata(e.g.,financialrecords,
+FL, where clients encrypt their local gradients with different
+biometrichealthrecords,locationinformation,shoppingrecord)
+encryptionkeys.
+and cannot be disclosed [1]. Cross-silo federated learning
+Although federated learning based on MKHE is promising,
+(FL)[2]risestothischallenge.Itenablesagroupofdistributed
+twoissuesstillneedtobewelladdressed.MKHEbringsanew
+clients (such as medical and health institutions) and a central
+privacythreattoFL,namelythatitcannotguaranteethesecurity
+servertocollaborativelytrainamodelwhilekeepingtheclients’
+of the training results in the public channels against passive
+sensitivedatalocal.Specifically,inaniterationofFL,eachclient
+eavesdroppers[18].InMKHE,adistributeddecryptionprotocol
+is required to decrypt a multi-key aggregation ciphertext. The
+Received21April2023;accepted10February2025.Dateofpublication13 distributed decryption protocol consists of two steps: Partial
+February2025;dateofcurrentversion11July2025.Thisworkwassupported
+decryption:Eachclientdecryptsanaggregationciphertextpar-
+inpartbytheKeyProgramoftheJointFundoftheNationalNaturalScience
+Foundation of China under Grant U22A2036, and in part by the Key-Area tially with its secret key and then outputs a partial decryption
+Research and Development Program of Guangdong Province under Grant result; Final decryption: Each client operates all the clients’
+2020B010136001.(Correspondingauthor:WeizheZhang.)
+partialdecryptionresultsandobtainstheaggregationplaintext.
+JiahuiWuandWeizheZhangarewiththeDepartmentofNewNetworks,
+PengChengLaboratory,Shenzhen518000,China(e-mail:wjh01@pcl.ac.cn; In the protocol, the final decryption step takes only partial
+weizhe.zhang@pcl.ac.cn). decryption results without any key. In other words, the partial
+FucaiLuoiswiththeSchoolofComputerScienceandTechnology,Zhejiang
+decryptionresultsarenotciphertextsanymore.Thus,anypassive
+GongshangUniversity,Hangzhou310018,China(e-mail:lfucai@126.com).
+DigitalObjectIdentifier10.1109/TDSC.2025.3541612 eavesdropping adversary can obtain the aggregation plaintext
+1545-5971©2025IEEE.Allrightsreserved,includingrightsfortextanddatamining,andtrainingofartificialintelligenceandsimilartechnologies.
+Personaluseispermitted,butrepublication/redistributionrequiresIEEEpermission.Seehttps://www.ieee.org/publications/rights/index.htmlformoreinformation.
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 2 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3869
+for free by merely getting the partial decryption results from burden by 77×-109× and 1.25×-2× compared with the
+thepublicchannelandthenimplementingthefinaldecryption state-of-the-artSKHE-basedFLmodels.
+step.Anaivesolutionistousesecurepair-wisecommunication PaperOrganization:Theremainderofthisarticleisorganized
+channelstotransmitpartialdecryptionresultsbetweenclients, asfollows.InSectionII,wedescribesomerelatedworksabout
+but as the number of clients and FL training rounds increases, privacy-preservingfederatedlearning.InSectionIII,wegivea
+the cost of establishing and maintaining secure channels may formaldescriptionofoursystemmodel,threatmodel,anddesign
+becomeveryhigh.Second,MKHEownslowcomputationaland goals. Section IV introduces the preliminaries of deep learn-
+communication efficiency. Most of the existing HE algorithms ing, federated learning, and related cryptographic knowledge.
+perform complex cryptographic operations such as modular We propose an efficient and secure homomorphic encryption
+multiplication and exponentiation which are extremely expen- algorithm(ESHE)anddesignapolynomialpackingmethodfor
+sivetocompute.Usually,theirencryption/decryptiontakesover ESHE in Section V, then we construct ESAFL model using
+80%ofthetrainingtime,andencryptiongreatlyexpandsthesize ESHE in Section VI. Section VII analyzes the security and
+ofciphertexts,whichincreasestheamountoftransmissiondata thecomplexityofESAFL.SectionVIIIpresentsaperformance
+bymorethan150×comparedwithpureplaintexttraining[12]. evaluationofESAFL,followedbyaconclusionandfutureworks
+Moreover, in MKHE, since the local gradient updates are en- inSectionIX.
+cryptedwithdifferentkeys,inordertogeneratecorrectaggre-
+II. RELATEDWORK
+gationgradientupdates,theexistingMKHEalgorithmsrequire
+additional interaction among clients in each model iteration. Generallyspeaking,alltheexistingtechniquestoprotectthe
+Thisbringsextrasignificantcomputationalandcommunication privacyofclientsinfederatedlearningcanbeclassifiedintofour
+overheadtoclients. categories,asdescribedbelow.
+OurApproachandContributions:Inthisarticle,wepropose Secure aggregation (SA) [4] aims to ensure that the server
+ESAFL,anefficientandsecurecross-silofederatedlearningso- learnsnoindividualsubmissionsfromanyclientsbuttheaggre-
+lutiontoaddresstheaforementionedissues.Technically,ESAFL gationresultsonly.WhileSAhasbeensuccessfullydeployedin
+leverages anovel efficient andsecureadditively HEalgorithm cross-device FL [5], [6] in which the server hosts the training
+(ESHE) to protect the privacy of local gradients and training andobtainsthetrainedmodel,itisunsuitableforcross-siloFL
+results against honest-but-curious entities. In summary, this which requires that no one other than the clients knows the
+articlecontainsthefollowingcontributions. aggregationresults.Moreover,securitytechniquesinSAfocus
+(cid:2)
+Based on the hard problem of ring learning with errors only on protecting the privacy of clients in a single training
+(RLWE)andusingasecurepseudorandomgenerator,we round [19]. To ensure multi-round privacy security, in many
+proposeanoveladditivelyHEalgorithm,ESHE,whichcan SA-based models [5], [6], [7], [8], clients must synchronize
+provideprivacyprotectionforlocalgradientsandtraining secretkeysorzero-summasksineachtrainingiteration,which
+results without the need for secure channel transmission imposes a huge communication burden and is impractical for
+of ciphertexts. We prove that ESHE is IND-CPA secure cross-siloFL.
+and can resist collusion attacks of κ<N −1 untrusted Differential privacy (DP) usually facilitates privacy-
+clients. ESHE only has one-step secure decryption, and preserving FL by adding tailored noises to clients’ gradients.
+thisdecryptionstepdoesnotrequireinteractionsandsecure DP-based model in [9] proposes a distributed selective SGD
+channels between clients, so it has lower communication with DP to make a trade-off between data privacy and model
+andcomputationalcomplexitythanexistingMKHEalgo- accuracy. Although the model can be efficiently implemented,
+rithms. itisproventobeinsecureunderhonest-but-curiousserver[11].
+(cid:2)
+We design a polynomial packing method to pack multi- DP-based model in [10] aims to protect data privacy against
+ple local gradients into a single plaintext and utilize fast thecuriousserverbycombiningDPwiththehardnessoflearn-
+Fouriertransform(FFT)forfastpolynomialmultiplication ing with errors. However, the model cannot ensure the secu-
+inplaintextencryption.Thesefurtherimprovethecompu- rity of the training results under the curious server. Moreover,
+tational efficiency and reduce the communication traffic due to DP’s noise injection, neither [9] nor [10] can achieve
+causedbytheencryptionalgorithmofESHE. the best accuracy. While these privacy violations and model
+(cid:2)
+We provide a complexity analysis and comparison of accuracy degradations may be tolerable for mobile clients in
+ESAFL and the state-of-the-art privacy-preserving FL cross-device FL, they raise serious concerns for institutions in
+modelsusingMKHEorSKHE.Theanalysisresultspresent cross-siloFL.
+thatESAFLoutperformscurrentFLmodelsusingMKHE Securemultipartycomputation(SMC)enablesmultiplepar-
+andithasthesamecomputationandcommunicationcom- ties to securely compute an agreed-upon function with their
+plexityasFLmodelsusingSKHE. individualdata.Inthisway,allpartiesknownothingexcepttheir
+(cid:2)
+We conduct intensive experiments on a fully-connected owninputsandoutputs.SMCutilizesspecificallydesignedcom-
+neuralnetwork(FCN)withFMNISTdataset,anALexNet putationandsynchronizationprotocolsamongmultipleparties.
+network with CIFAR10 dataset, and an LSTM network Ithasstrongprivacyguaranteesofzeroknowledgebutishardto
+with Shakespeare dataset. The experimental results show achieve efficiently in a geo-distributed scenario like cross-silo
+thatESAFLachievesapproximate204×-953×and11×- FL [20]. ML algorithms must be specially adapted to suit the
+14×trainingspeedupwhilereducingthecommunication SMCparadigm[21],[22],[23],[24],[25],[26].Toachievebetter
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 3 =====
+3870 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+performance, privacy requirements may be lowered in some
+designs[21],[22],[23].Thestate-of-the-artSMCprotocols[24],
+[25],[26]attempttoachievestrongsecuritywithhighefficiency,
+butareonlysuitabletoMLalgorithmsonafewclients(nomore
+thanfiveclients).
+Homomorphic encryption (HE) allows performing certain
+computations(e.g.,addition)directlyonencrypteddata.Many
+researchers design SKHE-based [11], [12], [13] or MKHE-
+based[15],[17],[27]cross-siloFLmodelstoprotecttheprivacy Fig.1. ESAFLsystemmodel.
+of the clients: each client submits its encrypted local updates
+to the central server for aggregating, and then downloads the
+aggregation result from the server for its local model update. TheASisanalternativeentity1thatgeneratespublicparameters
+HEsuitscross-siloFLforthreereasons.First,itcanprotectthe and keys for all clients in ESAFL. The general task flow of
+privacyoftheclientsfromuntrustedthirdpartiesincludingthe the three entities is as follows. The N clients establish their
+cloudserverandexternaladversariesastheclients’submissions cooperationintrainingmodelswithallclients’datasetsandthen
+are encrypted. Second, it brings no loss in model accuracy, as send a request to AS and the cloud server. Upon receiving the
+no noise is injected into the clients’ submissions during the request from clients, AS initializes the neural network model,
+whole training process. Third, it requires no modifications of generateskeysandparameters,anddistributesthemtoNclients.
+MLalgorithms,asHEcanbeimplementedasaplug-inmodule After receiving an identical neural network model from AS,
+in the cross-silo FL framework. Although HE is promising the N clients separately train the network model with their
+to FL training, the existing HE algorithms have shortcomings respectivedatasetstogeneratelocalparameters.Theclientsthen
+in protecting data privacy against internal clients or ensuring submit their local parameters to the cloud server. The cloud
+training result security from untrusted third parties. Besides, server aggregates all the received local parameters to a global
+bothSKHEandMKHEintroducesignificantcomputationand parameter. The cloud then returns the global parameter to the
+communicationburdens. clients for local model updates. After numerous client-cloud
+Ingeneral,eachoftheseprivacyprotectiontechnologieshas iterations,thenetworkmodelcanbetrainedfinally.
+its advantages and disadvantages. MPC can provide powerful (2 Threat Model: AS is considered to be a trusted entity
+privacy protection but requires expert efforts to modify the (Alternatively,withoutthetrustedAS,theclientscangenerate
+existingMLalgorithmstoensurethecorrectnessofsecurecom- theirkeysusingtheexistingMPCtechniques[28].Forconve-
+putation among distributed parties. DP can be used easily and nience,unlessotherwisespecified,weuseASinthesubsequent
+efficiently,butprovidesweakprivacyguaranteesandintroduces parts of this article). The clients collaborate to train a model
+alossinmodelaccuracy.SAisapplicabletocross-deviceFL, which is profitable to the clients themselves, so the clients are
+but not to cross-silo FL, as it cannot guarantee the security of consideredtobehonest-but-curious.Thatis,theclientsperform
+aggregationresultsandbringsheavysynchronizationcosts.HE the training processes honestly but are curious about the other
+canbesimplypluggedincross-siloFLtoprovidestrongprivacy clients’privacy.Thepubliccloudserverthatsellscomputingser-
+guarantees of clients’ datasets against external parties without vicesisalsohonest-but-curious[29],[30],[31].Therefore,the
+algorithm modifications or accuracy loss. However, without possiblethreatscomefromtheclients,thepubliccloudserver,
+securechannelsfortransmittingciphertexts,HEcannotprotect and outside adversaries who eavesdrop on the communication
+data privacy from internal clients, and its variant algorithm channels between the clients and the cloud server. Each client
+MKHE aims to address this problem but brings new privacy mayinfertheotherclients’privacyfromthetransferredgradients
+threats to training results. Besides, HE’s computational and byusingtheirsharedknowledge.Thecloudservermayrecover
+communication burden makes it less practical for production the sensitive information of the clients and steal the training
+deployment. results/trainedmodelfromthedataitcanaccess.Theadversaries
+caneavesdroponmessagessentbytheclientstothecloudfrom
+communicationchannels.Thus,theadversariescanalsorecover
+III. PROBLEMFORMULATION thesensitiveinformationoftheclientsandstealthemodel.Since
+thethreatbehaviorsoftheadversariesarethesameasthatofthe
+Inthissection,weintroducesystemmodel,threatmodel,and
+cloud,inthisarticle,weonlyconsiderthethreatfromthepublic
+designgoalsofESAFL.
+cloudandtheclients.
+InESAFL,wedonotassumesecurechannelsbetweenclients
+and the cloud server. All clients and the cloud transmit their
+A. SystemModelandThreatModel
+messages on public channels. The trusted AS is employed to
+(1SystemModel:AsshowninFig.1,thesystemofESAFL generateanddistributesecretkeysandpublicparametersonly
+consists of three entities: An administration server (AS), N intheinitializationphaseofthefederatedmodel.Duetothefact
+distributedclients,andacentralcloudserver.TheN distributed
+clients are a small number of clients who collaborate to train
+1Theclientscanalsogenerateparametersandkeysbythemselvesusinga
+their respective models with all the N clients’ datasets. The
+securedistributedkeygenerationmethodweintroduceinSectionVI:ESAFL–
+cloud server is a coordinator to assist clients in collaboration. Initialization.
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 4 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3871
+that a federated model trained to converge generally requires TABLEI
+thousandsofiterations,theamortizedcost(i.e.,theaveragecost
+THENOTATIONSANDTHEIRSEMANTICMEANINGS
+takenpertrainingiteration)ofASisverysmall.Therefore,the
+amortizedcostofESAFLwiththetrustedASassumptionisless
+thanthatofFLmodelswiththesecurechannelsassumptionthat
+ineachtrainingiteration,theclientsandthecloudcommunicate
+throughsecurepair-wisecommunicationchannels.
+B. DesignGoals
+ESAFLaimstoachievethefollowingdesigngoals.
+(cid:2)
+Accuracy:Thepredictionaccuracyofciphertextlearning
+shouldnotbereducedcomparedwithplaintextlearning.
+(cid:2)
+Security: The clients’ private dataset should keep hidden
+from the other clients and the public cloud server. The
+aggregationresultsshouldbesecrettothecloudserver.
+(cid:2)
+Efficiency: The computation and communication burden
+ontheclientsandthecloudshouldbelow.
+IV. PRELIMINARIES
+In this section, we introduce the background knowledge
+of deep learning, cross-silo federated learning, homomorphic
+encryption, ring learning with errors problem, and CKKS’s
+encoding method. Table I summarizes mathematical notations
+usedinthisarticle.
+A. DeepLearning
+Deeplearningisamachinelearningmethodthattrainsdeep
+neuralnetworkthroughiterativelyperformingfeedforwardand
+backpropagationprocesses,andthefinaltrainedneuralnetwork
+can be used to predict the output result of a given input. The
+feedforwardprocesscanbeexpressedasyˆ =f(w,x),wherex
+isaninputvector,wisaweightparametervectoroftheneural
+network,andyˆ isthepredictedvalueoftheinputvector.Given
+alossfunctionl,thetrainingtaskistominimizetheloss
+(cid:2)
+1
+L(w;D)=
+|D|
+l(y
+i
+,f(xi,w)),
+(x
+i
+,y i)∈D
+whereD ={(xi,y i );i∈I}representsthetrainingdatasetand B. Cross-SiloFederatedLearning
+|D|isthesizeofthedataset.Inthebackpropagationphase,the
+FLisamachinelearningframeworkwhichenablesagroupof
+stochasticgradientdescent(SGD)methodisusedtominimize
+distributedclientstocollaborativelytrainasharedmodelwhile
+thelossfunctionandthenupdatetheweightparameters.Specif-
+keepingtheclients’privatedatalocally.Acoordinationserver
+ically,intthiteration,SGDfindsthegradient
+(cid:3) (cid:4) is employed to orchestrate the training process. A typical FL
+g t =∇ w L w t ;D t , (1) training process is presented as follows. First, a coordination
+server and N clients initialize FL by deciding a training task,
+where Dt ⊆D is a mini-batch of training dataset randomly asharedglobalmodelw0,andthehyperparameters.Then,the
+selected from D, and ∇ w L(wt;Dt) represents the derivative server and the clients collaborate to train a machine learning
+of the loss with respect to the weight parameters. Then, SGD
+model by repeating the following steps until the final trained
+updatestheweightparametersas
+modelisreached.
+w t+1 ←w t−η·g t , (2) 1) Clientlocaltraining:Foreachclienti,ittrainstheglobal
+modelwt (wheretisthecurrentiterationindex)withits
+wherethehyperparameterηisthelearningratethatdetermines privatedatasetinlocaltoobtainalocalgradient
+(cid:3) (cid:4)
+t r h ea e c w h e t i h g e ht o p p a ti r m am um ete , r s s t ’ e d p es b c y en s t te s p p , ee a d c . co T r h d e in w g e t i o gh t t he pa g ra ra m d e ie te n r t s . g t i =∇ w L w t ;D i t .
+Finally,thetrainedneuralnetworkisobtained. Then,itsubmitsthelocalgradientgttotheserver.
+i
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 5 =====
+3872 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+2) Serveraggregation:Afterreceivingallclients’localgra- with a vector of coefficients (a
+0
+,...,an−1 ) in Zn (or Zn
+q
+).
+dients,theserveraggregatesthemwithanaggregationrule Let χs and χe be distributions over R which output small
+f
+add
+toformaglobalgradient polynomials, i.e., for s←χs,e←χe and small bounds Bs
+t t t and Be, there are (cid:6)s(cid:6) ∞ ≤Bs and (cid:6)e(cid:6) ∞ ≤Be with an over-
+G =f (g ,...,g ).
+add 1 N whelming probability. A typical RLWE assumption states that
+In this article, we utilize FedAvg [32] as our federated the RLWE samples (b,a)∈R2 are computationally indistin-
+q
+aggregationmethodasitisthemostcommonlyused,then guishable from uniformly random elements of U(R2), where
+q
+theaggregationrulecanbegeneralizedas b=[−a·s+e]q,a←U(R q),e←χe,s←χs.
+(cid:2)N
+t t t
+f add (g 1 ,...,g N )= αig i , E. CKKS’sMessageEncodingandDecoding
+i=1
+The plaintext space of RLWE-based HE schemes is usu-
+whereαi =|Di |.Thentheserverreturnstheglobalgra- allyacyclotomicpolynomialringZ q[X]/(Xn+1)ofafinite
+t
+dientG totheclients. characteristic. However, the messages in the federated learn-
+3) Clientmodelupdate:Eachclientupdatesitslocalmodel ing that need to be encrypted are real numbers. Therefore,
+as we should encode real numbers as integral coefficient plain-
+w t+1 =w t−η·
+G t
+, fori∈[N].
+texts in the ring Z q[X]/(Xn+1) before encrypting. CKKS
+i i N scheme proposes an efficient encoding and decoding method
+for transforming between complex vectors and integral coeffi-
+According to different application scenarios, FL can be
+cient polynomials. With this encoding method, operations on
+roughly divided into cross-device FL and cross-silo FL [2]. In
+the encoded polynomials can be accelerated by using FFT.
+cross-device FL, the clients are a very large number of mo-
+CKKS’s encoding method Ecd(z)→m(X) encodes a com-
+bile/edgedeviceswithlimitedcomputingpowerandunreliable
+communications.Incross-siloFL,theclientsareasmallnumber
+plex message vector z =(z
+1
+,...,zn/2 )∈Cn/2 as a plain-
+ofcompanies/organizationswithrichcomputingresourcesand text polynomial m(X)∈R q :=Z q/(Xn+1) by computing
+reliablecommunication.
+m(X)=(cid:10)Δ·φ−1(z)(cid:11)∈R q, where Δ>1 is a scaling factor
+and φ is a ring isomorphism φ:R[X]/(Xn+1)→Cn/2. Its
+corresponding decoding method Dcd(m(X))→z decodes a
+C. AdditivelyHomomorphicEncryption
+plaintextpolynomialm(X)∈R qtoacomplexvectorz ∈Cn/2
+Additivelyhomomorphicencryption(AHE)enablesthearith- bycomputingz =Δ−1·φ(m(X))∈Cn/2.Thescalingfactor
+meticoperationofadditiontobeperformedonanumberofci-
+Δ>1isutilizedtocontroltheencoding/decodingerrorwhich
+phertextswhichisequivalenttoperformingthesameoperations
+is occurred by the rounding process. Therefore, the approx-
+onthecorrespondingplaintexts.Therefore,theprivacy-sensitive imate equation Dcd(Ecd(z;Δ);Δ)≈z can be obtained by
+information of the plaintexts can be preserved using AHE to
+controlling Δ. The ring-isomorphic property of the mapping
+encrypt and implement the ciphertext aggregation computa- φ:R[X]/(Xn+1)→Cn/2canensurehomomorphiccomput-
+tions. In general, AHE algorithm consists of four algorithms: ingofaddition,i.e.,thereareDcd(Ecd(z )+Ecd(z );Δ)≈
+1 1
+(GenKey,Enc,Dec,Eval),whichareakeygenerationalgo-
+z +z . Therefore, when Δ is chosen appropriately, the ap-
+1 2
+rithm,anencryptionalgorithm,adecryptionalgorithm,andan
+proximatecorrectnessoftheadditionsintheencodedstatecan
+evaluationalgorithm,respectively.AHEalgorithmishomomor-
+beguaranteed.
+phic, if Dec(dk,E
+(cid:5)
+val(Enc(ek,m
+1
+),...,Enc(ek,mN)))=
+Dec(dk,Enc(ek, N i=1 mi))holds,where{mi } i∈[N] isasetof V. ESHEDESIGN
+plaintexts,andekanddkaregeneratedbyKeyGenalgorithm,
+representingtheencryptionkeyandthedecryptionkey,respec- ThissectionintroducesthedesignofESHEwhichisusedto
+tively. Its potential meaning is that the aggregation result of protectprivacy-sensitiveinformationincross-siloFL.
+theplaintextscanbeobtainedbyevaluatingtheircorresponding
+ciphertexts,ratherthandirectlycalculatingtheplaintexts,soas A. OverviewofESHE
+torealizesecurecomputationofaddition.
+Here are four important considerations for ESHE design to
+achieveitssecurityandefficiency.
+D. RingLearningWithErrors
+1) Forprivacyprotectionoftheclients’localgradientsun-
+RLWEisacomputationalproblemthatservesasthefounda- derhonest-but-curiousentities:Incross-siloFL,curious
+tionofquantum-resistantcryptographicalgorithmsandalsopro- entities (the clients and the cloud) may infer the privacy
+videsthebasisforhomomorphicencryption,suchasBFV[33] of(other)clientsfromtheinformationtransmittedduring
+and CKKS [34]. RLWE problem is built on the arithmetic of training.Therefore,ESHEshouldsupportsecureaggrega-
+polynomialswithcoefficientsfromafinitefield.Letnbeapower tiontopreventthisprivacyleakage.ThedesignofESHE
+oftwo.WedenotebyR=Z[x]/(Xn+1)theringofintegers mainlyliesinthefollowingtwofolds.
+(cid:2)
+of the (2n)th cyclotomic field and R q =Z q[x]/(Xn+1) the We design the encryption algorithm of ESHE in the
+residue ring of R modulo a(cid:5)n integer q. An element of R (or form of multiple keys, in which clients encrypt their
+R q)isapolynomiala(x)= n
+i=
+−
+0
+1ai ·xi andcanbeidentified plaintextswithdifferentsecretkeys.Thus,anycurious
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 6 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3873
+entitycannotinferthe(other)clients’plaintextsfrom trafficofciphertextinthewholemodelisreduced.Further,
+thetransmissionciphertextsiteavesdropsonfrompub- FFTcanbeutilizedforfastpolynomialmultiplicationin
+licchannels.Besides,theclientscancorrectlydecrypta theencryptionalgorithmofESHE.
+ciphertextonlywhentheciphertextisanaggregationof
+allclients’localciphertexts;Otherwise,anaggregation B. ESHEDesign
+ciphertextofpartialclients’localciphertextscannotbe
+Inthissection,wefirstintroducethedesignofESHEwhichis
+correctly decrypted. Thus, ESHE can prevent privacy
+usedtoprotecttheprivacyoflocalgradientsandtrainingresults
+leakagefrompubliclysharedinformationinFLandit
+inFL.Thenwepresenthowmultiplemessagescanbeencoded
+isrobusttocollusionbetweenκ<N −1clients.
+(cid:2) and packed into a single plaintext to improve the efficiency of
+The secure aggregation of ESHE should ensure both
+ESHE.
+securityandefficiencyovermultipletrainingroundsin
+1) Encryption Algorithm of ESHE: We design ESHE as a
+FL.Themostcommonsolutionofsecureaggregation
+symmetricHEalgorithmbasedonthehardproblemofRLWE.
+to ensure multi-round privacy security is enabling all
+Specifically,ESHEconsistsofatupleofsixalgorithmsdenoted
+clientsinFLtoregeneratethezero-summasks/secret
+as ΠHE =(HE.Setup,HE.KeyGen,HE.Enc,HE.Dec,
+keysofitsprivacyprotectionalgorithm.Ineachitera-
+HE.Eval,HE.PRPG).
+tion,itrequirestheclientstocoordinatetogenerateand (cid:2)
+HE.Setup(1λ)→PP: Setup algorithm HE.Setup
+then share the masks/keys in secure channels, which
+takes as input a security parameter λ and outputs public
+significantlyincreasesthecostofmask/keygeneration
+parametersPP ={n,p,q,χs,χe },wherenistheRLWE
+and communication. Different from the common so-
+dimension,q =q(λ)isapower-of-twointeger,p<qisan
+lution,weturntogenerateaprimaryrandomelement
+integer,andχsandχearesecretkeydistributionanderror
+in the encryption algorithm to replace each round of
+distribution,respectively.
+secretkeygenerationandenabletheclientstogenerate (cid:2)
+the same primary random element locally, to provide
+HE.KeyGen(PP)→({si }
+i∈[N]
+,s,a0,B):Thekeygen-
+eration algorithm HE.KeyGen takes as input the public
+multi-roundprivacyguaranteeswhilerequiringnoex-
+parametersPP generatedinHE.Setup,andoutputsN
+tracommunicationburden.
+2) For security of the decryption result under the honest-
+secret/encryptionkeys{si } i∈[N] ,adecryptionkeys,aran-
+dompublicpolynomiala0,andarandomsecretparameter
+but-curious public cloud server: Considering that the
+B.Then,itdistributes{a0,si,s}totheithclientthrough
+distributed decryption protocol is not secure in public
+asecurechannel.Thus,thedifferentclientsowndifferent
+channels, as the final decryption process does not need
+encryptionkeysandthesamedecryptionkey.Notethata0
+any key and anyone can obtain the decryption result for
+and sarethesameforalltheclients.The specific values
+free,wethusdesignthatdecryptioncanonlybeperformed
+oftheparametersandthekeysareasfollows.
+locally by clients who have the decryption key. Thereby
+– Thepublicparametera0isuniformlysampledfromR q.
+ensuringthatthedecryptionresultisnotobtaineddirectly
+orthroughinferring.
+– TheN encryptionkeys{si } i∈[N] havethesamedistri-
+bution.WesampletheN encryptionkeysfromχs.
+3) For communication efficiency: The previous MKHE al-
+– Thedecryptionkeyisthesumo(cid:5)ftheNencryptionkeys,
+gorithms require two-step decryption, i.e., partially de- N
+crypted and fully decrypted. The partial decryption pro-
+i.e.,thedecryptionkeyiss=[
+i=1
+si]q.
+– The random secret parameter B is uniformly sampled
+cess consumes large communication traffic because it
+from [0,1]k, where k is equal to or greater than the
+requires all clients to decrypt an aggregation ciphertext
+numberofbinarybitsofthemaximumiterationofFL
+separately with their respective keys, and then interact
+training.
+witheachothertotransmittheirpartialdecryptionresults (cid:2)
+whicharestillciphertexts.Therefore,wetendtodesigna
+HE.Enc(at, si, mt
+i
+)→ct
+i
+: Encryption algorithm
+HE.Enc encrypts a plaintext polynomial mt using
+one-stepdecryptionprotocolthatremovesthepartialde- i
+the encryption key si and the random public polynomial
+cryptionstep,toimprovecommunicationefficiency.With
+at ∈R q,wheretrepresentsthecurrentiterationnumber.
+our one-step decryption protocol, the clients who have
+Thealgorithmthenoutputsaciphertextpolynomial
+a decryption key can decrypt an aggregation ciphertext
+(cid:6) (cid:7)
+locallywithoutinteraction. c t
+i
+←HE.Enc(a t ,si,m t
+i
+)= a t·si+p˜·e t
+i
++m t
+i q
+,
+4) For computational efficiency: After removing the partial
+(3)
+decryption step, the computation cost of ESHE mainly
+liesinencryptionfortheRLWE-basedcryptography.To whereei ←χeandp˜isapolynomialofdegreen−1with
+improvetheefficiencyofencryption,weemployCKKS’ (cid:2) allcoefficientsofp.
+encoding method to encode clients’ gradients into poly- HE.Eval({ct i } i∈[N] )→C t : Evaluation algorithm
+nomials and design a polynomial packing technique to HE.Eval adds N ciphertexts {ct i } i∈[N] , and outputs an
+pack multiple polynomials into a single plaintext. With aggregationciphertext
+the use of the encoding and the packing, the number of
+(cid:3) (cid:4) (cid:2)N
+plaintexts to be encrypted is reduced by times, so the C t ←HE.Eval {c t i } i∈[N] = c t i
+computation cost of encryption and the communication
+i=1
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 7 =====
+3874 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+(cid:8) (cid:9)
+(cid:2)N (cid:2)N (cid:2)N TheproofofthisresultispresentedinSectionVII-A:Security
+= a t· si+p˜· e t i + m t i Analysis–theproofofTheorem1.
+i=1 i=1 i=1 q (2 ESHE can provide multi-round privacy guarantees under
+(cid:6) (cid:7)
+= a
+t·s+p˜·e t
++m
+t
+, (4)
+theRLWEassumptionofparameter(n,q,χs,χe)andtheran-
+add q domnessoftheprimaryrandomelementat,(t=1,2,···).We
+(cid:5) (cid:5)
+(cid:2) whereet = N i=1 et i ∈R q andmt add = N i=1 mt i ∈R q. proveitbypresentingthatthedistribution
+HE.Dec(at, s, C t )→Mt: Decryption algorithm {(a t ,a τ ,C˜ t ,M˜t ):
+HE.Dec decrypts an aggregation ciphertext C t of
+thetthiterationusingthedecryptionkeysandoutputsthe a t ←HE.PRPG(t,B),a τ ←HE.PRPG(τ,B),
+aggregationplaintext
+(cid:10)(cid:6) (cid:7) (cid:11) C˜ t ←[C t−c t i +c τ i ]q,
+M t ←HE.Dec(a t ,s,C t )= C t−a t·s
+(cid:12)(cid:10)(cid:6) (cid:7) (cid:11)
+q
+(cid:13)
+p M˜t ←HE.Dec(a t ,s,C˜ t )}
+= a t·s+p˜·e+m
+add q
+−[a t·s]q
+q p
+i
+t
+s
+io
+c
+n
+om
+ov
+p
+e
+u
+r
+ta
+R
+ti
+3 q
+on
+×
+al
+R
+ly
+p
+in
+fo
+d
+r
+ist
+a
+i
+r
+n
+b
+g
+i
+u
+tr
+i
+a
+s
+r
+h
+y
+ab
+s
+l
+p
+e
+a
+f
+n
+r
+n
+o
+i
+m
+ng
+t
+-
+h
+r
+e
+ou
+u
+n
+n
+d
+if
+s
+or
+a
+m
+gg
+d
+re
+is
+g
+t
+a
+ri
+t
+b
+io
+u
+n
+-
+=m , (5) ciphertext C˜ (which is an aggregation of N local ciphertexts
+add
+(cid:2) spanningtworounds)anditsN originalplaintexts.Theabove
+HE.PRPG(t+1,B)→at+1: The pseudorandom poly-
+proofcanbeextendedtoarbitraryspanning-roundsaggregation
+nomialgenerationalgorithmHE.PRPGtakesasinputsthe
+ciphertextthatisanaggregationofNlocalciphertextsspanning
+iterationnumbert+1andthesecretparameterB,thenit
+multiple rounds. This presents that the decrypted plaintext of
+outputsapseudorandompolynomialat+1 ∈R q as arbitrary spanning-rounds aggregation ciphertext is a random
+a t+1 ←HE.PRPG(t+1,B) polynomial in R p. The proof of this result is presented in
+SectionVII-A:SecurityAnalysis–theproofofTheorem2.
+=Vec2Poly(PRG((x
+1
+⊕b
+1
+)||···||(xk ⊕bk))),
+(3 ESHE is secure against collusion attacks of κ<N −1
+(6)
+clients. We prove it by presenting that in the worst-case sce-
+where “||” represents the concatenation of binary nario,i.e.,collusionoccursbetweenN −2clients(assumethe
+digits and (x
+1
+||···||xk)
+2
+=(x
+1
+···xk)
+2
+=t+1 and colludedN −2clientsaretheclient1toN −2),thedistribution
+(b
+1
+||···||bk)
+2
+=(b
+1
+···bk)
+2
+=B hold; PRG is a secure ofa
+(cid:14)
+narbitraryhonestclient’ssecrets
+pseudorandom generator defined in [4] with input space
+[0,1]k and output space [0,q)n; ((x
+1
+⊕b
+1
+)||···||(xk ⊕ (si,ei,mi),i∈{N −1,N}:
+bk)) is the seed of PRG; Vec2Poly transforms the n-
+dimension output vector of PRG to a polynomial in R q. N(cid:2)−2
+Usingthepseudorandompolynomialgenerationalgorithm sj ←χs(j ∈[N]),sN−1 +sN =s− sk,
+HE.PRPG, in each training iteration t, the clients can k=1
+generatethesameprimaryrandomelementat locallyfor a←U(R p),ej ←χe,cj ←HE.Enc(a,sj,mj),
+theencryptionalgorithmHE.Encwithoutinteraction,thus (cid:3) (cid:4)
+providingmulti-roundprivacyguaranteeswhilerequiring C ←HE.Eval {cj } j∈[N] ,M ←HE.Dec(a,s,C),
+(cid:12)
+noextracommunicationburden.
+Security:ESHEisIND-CPAsecureanditcanresistcollusion eN−1 +eN = cN−1 +cN −a(sN−1 +sN)
+attacks between κ<N −1 clients. Besides, the decryption (cid:15) (cid:16)(cid:9)
+algorithm of ESHE requires only one-step decryption and the N(cid:2)−2
+decryption results can only be obtained by the one who has
+− M − mk
+thedecryptionkey,sothesecurityofdecryptionresultscanbe k=1 q
+(cid:17)
+ensured.WenextprovethesecurityofESHE. N(cid:2)−2
+(1ESHEisIND-CPAsecureundertheRLWEassumptionof |p,mN−1 +mN =M − mk
+parameter (n,q,χs,χe) and the security/randomness of PRG. k=1
+Weproveitbyshowingthatthedistribution
+is computationally indistinguishable from the distribution
+{(B,a0,a t ,c t
+i
+):PP ={n,p,q,χs,χe }←HE.Setup(1 λ ), (χs,χe,U(R p)). The proof of this result is presented in
+SectionVII-A:SecurityAnalysis–theproofofTheorem5.
+({si }
+i∈[N]
+,s,a0,B)←HE.KeyGen(PP),
+Efficiency:TheefficiencyimprovementofESHEmainlylies
+a t ←HE.PRPG(t,B), in three folds. (1) ESHE provides privacy protection but does
+notrequiresecurechannelstotransmitciphertextsanddecryp-
+c t
+i
+←HE.Enc(a t ,si,m t
+i
+)} tion results while existing SKHEs and MKHEs require secure
+channels; otherwise, their original plaintexts or decryption re-
+sultswillbeleakedfromtheirtransmissionmessages.(2)The
+is computationally indistinguishable from the uniform distri- decryption algorithm of ESHE has only one-step decryption
+bution over [0,1]k×R q ×R q ×R q for an arbitrary mt i ∈R p. andrequiresnoclientinteractions.Thus,bothcomputationand
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 8 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3875
+i) Messages encoding: This algorithm encodes each n
+messages of the vector g as an (n−1)-degree poly-
+nomialinringR q .Wepad0attheendofgifthereare
+0
+morethan1andlessthannmessagesleftwithoutbeing
+chosen. We denote the n messages chosen in the ith
+timeas{gi,j } j∈[n] .Thenmessagesarefirstconverted
+toacomplexvectorzi ∈Cn/2,thenthecomplexvector
+is encoded as an (n−1)-degree integral coefficient
+polynomial
+(cid:6) (cid:7)
+zi(X)= (cid:10)p·φ −1(zi)(cid:11)
+q
+0
+(cid:2)n−1
+= αi,jX j , fori∈[T] (7)
+Fig.2. Messagesencodingandpolynomialpacking.(T−1)×nrealnum- j=0
+bersarefirstencodedandthenpackedtoformaplaintextpolynomial.
+where zi(X)∈R q and φ:R[X]/(Xn+1)→Cn/2
+0
+isaringisomorphismconstructedinCKKSscheme.
+ii) Polynomialspacking:ThisalgorithmpackseachT −1
+communication efficiencies of ESHE are higher than that of encoded message polynomials zi(X) (i∈[T −1]) as
+existingMKHEswhosedecryptionalgorithmcontainstwo-step well as a zero polynomial ϑ of degree (n−1) into a
+decryption and requires interactions between clients. Besides, singlepolynomial
+the newly added pseudorandom polynomial generation algo-
+rithmHE.PRPGdoesnotbringextracommunicationburdenfor
+(cid:2)n−1
+j
+ESHE, because each client generates the same pseudorandom
+m(X)= βjX , (8)
+polynomial at locally without interaction. The computational j=0
+costofgeneratingat canbeignoredcomparedtothecomputa- wherem(X)∈R p,andβj isthejthcoefficientofthe
+tionalcostofencryptionanddecryption.(3)Messagesencoding packed polynomial m(X). The binary representation
+andpolynomialspackingmethodisdesignedtofurtherimprove ofβj is
+the efficiency of ESHE in Section V-B2. We give theoretical
+⎛ ⎞
+complexity analyses and comparisons of the FL model using (cid:21) T(pad+(cid:22)lo(cid:23)gq 0)bits (cid:24)
+⎜ ⎟
+ESHEandtheFLmodelsusingthepriorSKHEsandMKHEs ⎜ the1stslot the(T−1)thslot theTthslot ⎟
+inSectionVII-B:ComplexityAnalysis. βj=⎜ ⎝ 0 (cid:23)pa(cid:24)d(cid:21) α 1,(cid:22)j ··· 0 (cid:23)padα (cid:24)(cid:21)T−1,(cid:22)j 0 (cid:23)pa(cid:24)d(cid:21) ϑ (cid:22)j ⎟ ⎠ ,
+2) MessagesEncodingandPolynomialsPacking: Toenable
+(pad+logq 0)bits (pad+logq 0)bits (pad+logq 0)bits
+ESHE to support homomorphic operations over real numbers 2
+and reduce the number of polynomials to be encrypted, forj ∈[0,n−1], (9)
+we encode real numbers as integral coefficient polynomials
+using CKKS’s encoding method and design a polynomial whereϑj =0isthejthcoefficientofthezeropolynomial
+packing method to pack multiple encoded polynomials into ϑ.
+(cid:2)
+a single plaintext polynomial for encrypting. Messages EP.DcdUnpk(m(X))→g(cid:17): The unpacking and de-
+encoding and polynomials packing mechanism for ESHE coding algorithm EP.DcdUnpk is the reverse of
+consists of a tuple of four algorithms denoted as ΠEP = EP.EcdPack. For each plaintext polynomial in the set
+{EP (cid:2) .Setup,EP.EcdPack,EP.DcdUnpk,EP.Eval}. {m(X)∈R p }, EP.DcdUnpk unpacks it as T message
+EP.Setup(PP,logq 0 ,N)→(T,pad): Setup algo- polynomials{di(X)∈R q 0 ·2pad } i∈[T] ,decodestheformer
+rithm EP.Setup takes as inputs the public parameters T −1messagepolynomials(thelastmessagepolynomial
+PP ={1λ,p,q,χs,χe } of ESHE, the precision of isthezeropolynomialwhichisdiscarded)asT −1com-
+messages logq 0 , and the number of clients N. It outputs plexvectors{di ∈Cn/2} i∈[T−1] ,andrearrangesthecom-
+a zero-padding number pad≥(cid:15)logN(cid:11)+1 and a slot plexvectorsasrealmessages.Specifically,EP.DcdUnpk
+numbersT ≤(cid:10) logp (cid:16)asthebatchsizeofpolynomials unpacksanddecodeseachplaintextpolynomialintheset
+forpacking.
+logq 0+pad
+{m(X)}asfollows.
+(cid:2)
+EP.EcdPack(q 0 ,p,T,pad,g)→m(X): Messages en- i) Polynomial unpacking: A polynomial m(X)∈R p is
+coding and packing algorithm EP.EcdPack takes as unpackedasT polynomials
+inputs q ,p,T,pad and a message vector g ∈RL, where
+0 (cid:2)n−1
+L
+po
+i
+l
+s
+yn
+th
+o
+e
+m
+l
+i
+e
+a
+n
+l
+g
+s
+t
+e
+h
+t
+o
+{
+f
+m
+th
+(
+e
+X
+v
+)
+e
+∈
+cto
+R
+r.
+p
+I
+}
+t
+.
+o
+A
+ut
+n
+pu
+e
+t
+x
+s
+a
+a
+m
+p
+p
+a
+le
+ck
+o
+e
+f
+d
+m
+p
+e
+la
+s
+i
+s
+n
+a
+t
+g
+e
+e
+x
+s
+t di(X)= αi,jX j ,fori∈[T] (10)
+j=0
+encodingandthenpackingispresentedinFig.2.Specifi-
+cally,EP.EcdPackalgorithmperformsthefollowingtwo where αi,j is calculated by shifting right βj (9) by
+algorithms. (pad+logq )(T +1−i) bits and intercepting the
+0
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 9 =====
+3876 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+lowest(pad+logq )bits,i.e., continuestotrainitsmodelforthenexttrainingrounduntilthe
+0
+finalmodelisobtained.
+αi,j =[βj >>(pad+logq
+0
+)
+(T +1−i)] ,
+β
+j
+>>(pad+logq 0)(T+2−i)
+VII. THEORETICALANALYSIS
+where “>>” is a right shift operator that shifts the
+Inthissection,weanalyzethesecurityandthecomplexityof
+firstoperandrightbythespecifiednumber(thesecond
+ESAFL.
+operand)ofbits.
+ii) Polynomial decoding: The T −1 polynomials
+{di(X)} i∈[T−1] are decoded as T −1 complex
+A. SecurityAnalysis
+vectors
+The security of ESAFL is ensured by ESHE algorithm in
+di =φ(di(X))/p, fori∈[T −1]. (11)
+whichtheclients’encryption/decryptionkeysaregeneratedby
+After unpacking and decoding all the plaintext poly- a trusted party, the clients’ submissions are encrypted using
+nomials in {m(X)}, a message vector g(cid:17) ≈g can be ESHE, and aggregation results can only be decrypted locally
+obtainedbyrearrangingallthecomplexvectors. by clients with the decryption key. The security of ESHE is
+(cid:2)
+EP.Eval({mi(X)} i∈[N] →m add (X)):Evaluationalgo- ensured by the hardness of the RLWE assumption and the
+rithmEP.EvaladdsN encodedandpackedpolynomials security/randomness of the pseudorandom generator PRG [4].
+{mi(X)∈R p } i∈[N] toanaggregationpolynomials We next prove that ESHE is IND-CPA secure in Theorem 1,
+⎛ ⎞
+ESHEcanprovidemulti-roundprivacyguaranteesinTheorem2,
+m
+add
+(X)=
+(cid:2)N
+mi(X)=
+(cid:2)N ⎝ (cid:2)n−1(cid:3)
+βi,jX
+j (cid:4) ⎠∈R
+p.
+a
+cl
+n
+i
+d
+en
+E
+ts
+S
+i
+H
+n
+E
+Th
+i
+e
+s
+o
+s
+r
+e
+e
+c
+m
+ur
+5
+e
+.
+against collusion attacks of κ<N −1
+i=1 i=1 j=0
+Theorem 1: ESHE is IND-CPA secure under the
+(12)
+RLWE assumption of parameter (n,q,χs,χe) and the
+Withthemessagesencodingandpolynomialspackingmech- security/randomnessofPRG.
+anism,aplaintextcancontainuptonT realnumbers. Proof: Givenaplaintextmt i ∈R p,wedefinethedistribution
+D={(B,a0,at,ct)}over[0,1]k×R3asfollows:
+i q
+VI. ESAFL a) B ←U([0,1]k),a0 ←U(R q),at ←MR.PRPG(t,B)=
+WeconstructESAFLusingESHE.TheworkflowofESAFL
+Vec2Poly(PRG((x
+1
+⊕b
+1
+)||···||(xk ⊕bk))),
+issummarizedinFig.3.
+b) si ←χs,et
+i
+←χe,ct
+i
+←MR.REnc(at,si,mt
+i
+)=
+Initialization: In this phase, public parameters and keys of
+[at·si+p˜·et
+i
++mt
+i
+]q.
+We consider a distribution D(cid:17) over [0,1]k×R3 which is
+ESHE and the machine learning model are generated. This q
+obtainedfromDbychangingitsdefinitionas
+generation process can be performed by the trusted AS or by
+the clients themselves. Specifically, (1) Performing by AS: In
+a) B ←U([0,1]k),a0 ←U(R q),at ←U(R q).
+Indefinition(a),MR.PRPGissecureanditsoutputiscompu-
+responsetotheclients’request,ASgeneratespublicparameters
+tationallyindistinguishablefromauniformlysampledelement
+and encryption keys/decryption keys. Then, AS sends all the
+initialization parameters to the clients and distributes different of its output space R q because its underlying pseudorandom
+generator PRG is secure and pseudo-random [4]. Thus, the
+encryption keys and the same decryption key to the clients.
+distributionsDandD(cid:17)
+arecomputationallyindistinguishable.
+(2) Performing by the clients: Without the trusted AS, the
+Wenextmodifythedefinition(b)as
+t c h li e e n nt j s oi g n e t n ly er g a e te ne th ra e t i e r t r h e e sp d e e c c ti r v y e pt e i n o c n ry k p e t y io s n = ke [ y(cid:5)ss N i= i 1 lo s c i a ]q lly us a i n n d g b w ) hi c c t i h ← isc U om (R p q u ) ta , tionallyindistinguishablefromD(cid:17) sincethe
+existingMPCtechniques(suchastheMPCtechniquein[28]),
+andtheclientsgenerateanddistributepublicparametersbyone
+RLWEproblem(relatedtokeysi)withparameter(n,q,χs,χe)
+ishard.
+electedclient.
+Since U([0,1]k×R3) is independent of the given plaintext
+Training and encryption: After initialization, each client q
+mt,weconcludethatESHEisIND-CPAsecure. (cid:2)
+trainsitslocalmodelwithitsdataset,executesencoding,pack- i
+Theorem2: ESHEcanprovidemulti-roundprivacyguaran-
+ing, and encryption algorithms to generate a local gradient
+ciphertext,andtransmitstheciphertexttothecloud.Then,each
+tees under the RLWE assumption of parameter (n,q,χs,χe)
+and the randomness of the primary random element at,(t=
+client generates a pseudo-random polynomial using a pseudo-
+1,2,···).
+randomfunctionforencryptioninthenexttraininground.
+Proof: Denote the tth and the τth round plaintexts
+Aggregation: The cloud aggregates all the received cipher-
+textsfromtheNclientsandsendstheaggregationresult/aglobal of N clients as {mt k } k∈[N] ∈RN p and {mτ k } k∈[N] ∈RN p ,
+respectively, where t=1,2,..., τ =1,2,..., and t(cid:18)=τ.
+gradientciphertexttotheclients.
+t
+Decryptionandmodelupdate:Onreceivingtheglobalgradi- Given a spanning-rounds aggregation ciphertext C˜ =
+entciphertext,eachclientexecutesdecryption,unpacking,and [C t−ct i +cτ i ]q(i∈[N]), we define the distribution D=
+decodingalgorithmswithitsdecryptionkeytoobtaintheglobal {(at,aτ,C˜ t ,M˜t)}overR3 q ×R p asfollows:
+gradient plaintext. The client then updates its local model and a) at ←MR.PRPG(t,B),aτ ←MR.PRPG(τ,B),
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 10 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3877
+Fig.3. Detaileddescriptionoftheefficientandsecurehomomorphicencryptionforfederatedlearning(ESAFL).
+b) sk ←χs,si ←χs,et
+k
+←χe,eτ
+i
+←χe, C˜ t = c) M˜t ←MR.RDec(at,s,C˜ t )=[[C˜ t −at·s]q]p.
+(cid:5)
+[C t−ct
+i
++cτ
+i
+]q ←[MR.REnc(aτ,si,mτ
+i
+)+ WeconsideradistributionD(cid:17) overR3
+q
+×R pwhichisobtained
+e (cid:5) τ i N k N k + = = 1 1 m , , k k τ i (cid:18)= (cid:18)= ) i i + M m R ( t k . a )] t R q (cid:5) E , n N k c = ( 1 a ,k t, (cid:18)= s i k s , k m + t k ) p˜ ]q(cid:5) = N k= [( 1 a ,k τ (cid:18)= · i s e i t k + + p˜· fro b a m ) ) D a C˜ t t b ← y ← c U h U a ( n ( R R g q i q ) n ) , g . a i τ ts ← defi U n ( i R tio q) n , as
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 11 =====
+3878 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+ThedistributionsDandD(cid:17) arecomputationallyindistinguish- xi is fX |Y(xi |y) which is the conditional probability density
+i
+ablebecauseoftherandomnessoftheprimaryrandomelement functionofXigivenY.
+at and aτ in definition (a) and the randomness of the RLWE Basecase:ShowthatTheorem4holdsforn=2.
+samplesindefinition(b). When n=2, we have Y =X +X . The joint probability
+1 2
+Wethenmodifydefinition(c)as densityfunctionofX
+1
+andY isf(x
+1
+,y)=fX
+1
+(x
+1
+)·fX
+2
+(y−
+c) M˜t ←U(R p). x
+1
+). Then, the conditional probability density function of X
+1
+Indefinition(c),wehave givenY is
+M˜t ←MR.RDec(a t ,s,C˜ t )= (cid:12)(cid:10) C˜ t −a t·s (cid:11) q (cid:13) p fX 1 |Y(x 1 |y) = f f ( Y x 1 ( , y y ) ) = fX 1 (x 1 ! ) f · Y f ( X y 2 ) (y−x 1 )
+⎡⎡⎡ ⎤ ⎤⎤
+(cid:2)N (cid:2)N (cid:2)N 1 exp −(x 1 −μ)2+(y−x 1 −μ)2
+= ⎣⎣⎣ a t sk+p˜ e t
+k
++ m t
+k
+⎦ ⎦⎦ = 2πσ2
+√1 exp −(y
+2
+−
+σ
+2
+2
+μ)2
+!
+k=1,k(cid:18)=i k=1,k(cid:18)=i k=1,k(cid:18)=i q 2 πσ 4σ2
+(cid:12)(cid:10) (cid:11) (cid:13) 1 " (x −μ )2 #
++[a τ ·si+p˜·e τ i +m τ i ] q −a t·s q p (cid:3)A 1 · √ 2πσ 1 exp − 1 2σ 1 2 1 , (13)
+⎡⎡ ⎛ ⎞
+= ⎣⎣ (a t +a τ )si+p˜ ⎝ (cid:2)N e t k +e τ i ⎠ f w X h 1 e | r Y e (x A 1 | 1 y = )c e a x n p b ( e − s 2 e y σ e 2 2 n ) a , s μ t 1 he = re y 2 s , u σ lt 1 2 o = fm σ 2 u 2 l . tip F ly o i r ng a th fi e x p e r d oba y - ,
+k=1,k(cid:18)=i bility density function of Gaussian distribution N(μ 1 ,σ 1 2) by
+⎤ ⎤ the scaling factor A . That is to say, for all given constant
+1
+(cid:2)N
+t τ⎦ ⎦
+y =x
+1
++x
+2
+, the possible value of xi(i=1,2) follows Gaus-
++ m +m ,
+k i siandistribution. (cid:5)
+k=1,k(cid:18)=i q p Inductionstep:Showthatfor (cid:5) everyk ≥2andy = k i=1 xi,if
+where[(at+aτ)s i+p˜( (cid:2) N k=1,k(cid:18)=i et k+eτ i)+ (cid:2) N k=1,k(cid:18)=i mt k+mτ i]q iscom- Th A eo s r s e u m me 4 t h h o e ld i s n , d t u h c e t n io f n or h y yp = othes k i= i + s 1 1 th x a i t ,T fo h r eo a r p e a m rt 4 ic a u l l s a o r h k o , l t d h s e .
+t
+p
+o
+ut
+t
+a
+h
+t
+e
+io
+h
+n
+a
+a
+r
+l
+d
+ly
+ne
+in
+s
+d
+s
+i
+o
+st
+f
+in
+th
+g
+e
+ui
+R
+sh
+L
+a
+W
+ble
+E
+f
+p
+ro
+ro
+m
+bl
+a
+em
+ra
+.
+nd
+T
+o
+h
+m
+us
+sa
+M˜
+m
+t
+pl
+i
+e
+s
+o
+c
+f
+o
+R
+m
+q
+pu
+d
+t
+u
+a
+e
+-
+singlecasen=kholds,i.e.,forallfixedy,fX
+k
+|Y(xk |y)canbe
+seenastheresultofmultiplyingtheprobabilitydensityfunction
+t d i i o s S n tr a i i n l b l c u y e ti i o n U n d ( s i R s D ti 3 q n × a g n u R d is p h D ) a (cid:17) b i a l s e re i f n r c o d o m e m p p e a u n r t d a a e n t n i d o t o n m o a f ll s y t a h m i e n p d g l i e s iv t o i e n f n g R u s p i p s a h a n n a n b d i l n e th g . e - p o r f o W G b a a h u b e s i n l s i i t n a y n = d d e i k n st s + r i i t b y 1 u , t f w i u o n e n c h t N i a o v ( n e μk o Y , f σ = X k 2) k X + b 1 1 y + t a h n · e d · s · Y c + ali i X n s g k f + f ( a 1 x c . k t T o + r h 1 e A ,y j k o ) . in = t
+r
+p
+o
+la
+u
+i
+n
+n
+d
+te
+s
+x
+a
+t
+g
+s
+g
+in
+re
+t
+g
+w
+a
+o
+ti
+r
+o
+o
+n
+u
+c
+n
+i
+d
+p
+s
+h
+,
+e
+i
+r
+.e
+te
+.,
+x
+t
+t
+h
+a
+e
+n
+t
+d
+th
+th
+a
+e
+nd
+co
+th
+rr
+e
+e
+τ
+s
+t
+p
+h
+o
+r
+n
+o
+d
+u
+i
+n
+n
+d
+g
+,
+N
+ES
+o
+H
+ri
+E
+gi
+c
+n
+a
+a
+n
+l fX
+k+1
+(xk+1 )f(xk,y−xk+1 ). Then, the conditional probabil-
+itydensityfunctionofXk+1 givenY is
+provideprivacyguaranteesoftwo-roundencryption.Similarly,
+it can be proven that U(R3 q ×R p) is independent of the given fX k+1 |Y(xk+1 |y)
+spanning-roundsaggregationciphertextinvolvingarbitrarymul-
+tiple rounds. Therefore, we conclude that ESHE can provide =
+f(xk+1 ,y)
+=
+fX
+k+1
+(xk+1 )·f(xk,y−xk+1 )
+multi-roundprivacyguarantees. (cid:2) fY(y) fY(y)
+tha
+T
+t
+h
+a
+e
+r
+o
+e
+re
+n
+m
+orm
+3:
+al
+L
+ly
+et
+d
+X
+istr
+a
+i
+n
+b
+d
+ut
+Y
+ed,
+b
+t
+e
+he
+in
+n
+de
+th
+p
+e
+e
+i
+n
+r
+d
+s
+e
+u
+n
+m
+t ra
+is
+nd
+a
+o
+ls
+m
+o n
+v
+o
+ar
+r
+i
+m
+ab
+a
+l
+l
+e
+ly
+s
+=
+fX
+k+1
+(xk+1 )·fX
+k
+|Y(xk |(y−xk+1 ))·fY(y−xk+1 )
+fY(y)
+distributed.i.e.,ifX ∼N(μX,σ
+X
+2 )andY ∼N(μY,σ
+Y
+2)then " #
+Z ∼N(μX +μY,σ X 2 +σ Y 2),whereZ =X +Y isthesumof = Ak exp − (xk+1 −μ)2 − (y−xk+1 −μk)2
+the two variables and N(μ,σ2) represents normal (Gaussian) 2πσσk 2σ2 2σ
+k
+2
+distributionwithmeanμandvarianceσ2. " #
+TheproofofTheorem3canbeseenin[35]. ·exp −
+x2
+k+1
+−2yxk+1 +4μxk+1
+4σ2
+Theorem4: LetX ,X ,...beindependentrandomvariables
+1 2 (cid:15) (cid:16)
+t
+t
+v
+i
+h a
+v
+a l
+e
+u t
+l
+e
+y
+o s
+.
+b o
+T
+e f y
+h
+t
+e
+n h
+n
+o e
+,
+r r m
+f
+a
+o
+n a
+r
+d l o
+a
+(
+l
+m G
+l
+a
+g
+v u
+i
+a
+v
+s r s
+e
+ia i
+n
+a b n
+c
+le )
+o
+s d
+n
+X i
+s
+s
+t
+t
+a 1
+r
+n
+, ib X
+t
+u
+v 2
+t
+a
+i , o
+l
+.
+u
+n .
+e
+. N
+s
+as
+y
+( x μ
+= 1
+, , σ
+x
+x 2
+2
+) , .
++
+. D .
+x
+e ., n r o
++
+e t s e p
+·
+t e
+·
+h c
+·
+e -
+,
+(cid:3) Ak+1 · √
+2π
+1
+·σk+1
+exp − (xk+1
+2σ
+−
+k 2 +
+μ
+1
+k+1 )2 ,
+1 2 !
+i
+t
+n
+h
+d
+e P
+u
+p r
+c
+o o
+t
+o s
+io
+s f: i
+n
+b L l
+o
+e
+n
+e v t
+t
+a
+h
+Y l
+e
+u = e
+na
+o
+t
+(cid:5)f
+ur
+x n i
+a
+i =
+l
+f 1
+n
+o
+u
+X ll
+m
+o i. w
+b
+W
+e
+s
+r
+e G
+n
+g a
+.
+u iv s e si a an pr d o i o st f ri b b y ut m io a n th . ematical where A k+1= Ak·exp − 2σ k 2μ2+2σ2(μ √ 2 k +
+π
+y
+(3
+2
+σ
+−
+2
+2 4
++
+y σ μ
+2
+2 k
+σ
+σ )
+2
+k 2 −
+)
+(σ k 2y+2σ2y−2σ2μk)2 ,
+k
+Xi The is pr f o X b i a ( b x il i i ) ty = √ d 2 e 1 π n σ si e ty xp(− fun (x c i 2 t − σ io μ 2 n )2 ). of A t c h c e ordi v n a g riab t l o e μ k+ F 1 o = r σ a k 2y fi + 3 x 2 σ σ k 2 e 2 + d y 2 − σ y 2 2 σ , 2 f μk X , k+ an 1 | d Y σ ( k x 2 + k 1 + = 1 3 | σ y 2 k 2 σ ) + 2σ c 2 k 2 σ a 2 n . be seen as the result
+Theorem 3, the probability density function of Y is of multiplying the probability density function of Gaussian
+fY(y)= √
+2n
+1
+πσ
+exp(−(x i
+2
+−
+n
+n
+σ
+μ
+2
+)2 ). For all given constant distribution N(μk+1 ,σ
+k
+2
++1
+) by the scaling factor Ak+1 . Thus,
+valuey,theprobabilitydensityfunctionforpossiblevaluesof forallgivenconstanty =x
+1
++···+xk+1 ,thepossiblevalue
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 12 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3879
+ofxk+1 followsGaussiandistribution.Thatis,whenn=k+1, iteration, each client performs its encryption algorithm once.
+Theorem4alsoholdstrue,establishingtheinductionstep. Thus, the computational complexity of [12], [36] and ESAFL
+Conclusion:Sinceboththebasecaseandtheinductionstep is O(NMn(cid:12)). In [15], an MKHE encryption of a plaintext
+havebeenprovenastrue,bymathematicalinductionTheorem4 m is a ciphertext vector ct=(c
+0
+,c
+1
+,...,cN), where c
+0
+is the
+holdsforeverynaturalnumbern. (cid:2) ciphertext of m and cj (j ∈[N]) is a ciphertext of a random
+Theorem5: ESHEissecureagainstcollusionattacksofκ< number, and these ciphertexts are all encrypted by an RLWE-
+N −1clients. basedencryptionalgorithm.Thatis,ineachiteration,eachclient
+Proof: Given the N −2 colluded clients’ plaintexts should perform its encryption algorithm N +1 times. Thus,
+{mk } k∈[N−2] ∈RN p −2 and the decryption key s∈R, we de- the computational complexity of FL using MKHE in [15] is
+fine the distribution D={(si,ei,mi),i∈{N −1,N}} over O((N +1)NMn(cid:12)).In[16],anMKHEencryptionofaplaintext
+R2×R pasfollows:
+(cid:5)
+m is a ciphertext vector ct=(c
+0
+,c
+1
+), where c
+0
+and c
+1
+are
+a) sj ←χs(j ∈[N]),sN−1 +sN =s− N
+k=
+−
+1
+2sk (cid:3)s(cid:17), theciphertextsofmandarandomnumber,respectively.Thus,
+b) a←U(R p),ej ←χe, cj ←MR.REnc(a,sj,mj)= the computational complexity of FL using MKHE in [16] is
+[ (cid:5) a·sj +p˜·ej +mj]q, C ←MR.REval({cj } j∈[N] )= O(2NMn(cid:12)).
+N
+j=1
+cj(j ∈[N]),M ←MR.RDec(a,s,C)=[[C−a In the cloud-side aggregation phase, the cloud aggregates
+·s]q]p,
+(cid:5)
+eN−1 +eN =[cN−1 +cN −a(sN−1 +sN)− all N clients’ ciphertexts/ciphertext vectors as an aggrega-
+W c) e ( m c M o N n − s − i 1 de + ra N k m = d − N 1 i 2 st m = rib k M u ) t ] i q o − |p n (cid:5) D (cid:3) (cid:17) N k e o = (cid:17) v − , 1 e 2 r m R k 2 . ×R pwhichisobtained E(cid:5) tio S N i n A = F c 1 i L c p i , h , e t r h s t o e e i x r t t h / a c e g i i p r g h r c e e o r g t m a e t x i p o t u n v ta e t p c i r o to o n r c a . e l I s n s c e o F s m L a p r m l e e o x p d it e e y r l f s o is [ r 1 m O 2 e ] d ( , N [ a 3 M s 6] C n a (cid:12) n = ) d .
+fro b a m ) ) ’ ’ D s ei i b ← ← ych χ χ a (cid:17)
+e
+(cid:17) s n ( ( g i i i ∈ ∈ ng { { i N N tsd − − efi 1 1 n , , N N itio } } n ) ) , , as r
+T
+T ( e (cid:5)
+h
+h s
+u
+e e N i n
+s
+=
+,
+t a 1 s g
+t
+c
+h
+g t t
+e
+h r i e [ e 0 g
+c
+] a ,
+o
+j t .
+m
+i + o .
+p
+. n ,
+u
+1 (cid:5)
+t
+t
+a
+p h
+t
+r N i
+i
+o =
+o
+e c
+n
+1 l e e
+a
+c s m
+l
+t s i e [
+c
+n N i
+o
+n t
+m
+]) o
+p
+, [ f
+l
+1 w
+e
+5
+x
+t h ] h
+i
+e
+t
+e
+y
+r i e s c
+o
+c i t
+f
+p p i h e [j
+F
+e r ] f
+L
+r ( o t j e r x m
+u
+∈ t
+s
+e
+i
+[ d
+n
+v 0
+g
+e , c N a t s
+M
+o ] r )
+K
+C r c
+H
+e t p =
+E
+i - .
+c)’ mi ←U(R p)(i∈{N −1,N}).
+in[15]isO((N +1)NMn(cid:12)).Theaggregationprocessin[16]
+(cid:5) (cid:5)
+Indefinitions(a)and(b),accordingtoTheorem4,forafixed N N
+s(cid:17) and a fixed e(cid:17), si and ei (i∈{N −1,N}) obey Gaussian is performed as C =( i=1 cti[0], i=1 cti[1]). Thus, the
+distributionswhichwedenoteasχ(cid:17) andχ(cid:17),respectively.Indef- computational complexity of FL using MKHE in [16] is
+s e
+O(2NMn(cid:12)).
+inition(c),thecolludedclientsknowonlythehonestclients’ci-
+In the client-side decryption phase, each client decrypts ag-
+phertexts cN−1 ←MR.REnc(a,sN−1 ,mN−1 )=[a·sN−1 +
+gregation results. In FL models [12], [36] and ESAFL, each
+p˜·eN−1 +mN−1 ]q and cN ←MR.REnc(a,sN,mN)=[a·
+clientdecryptsanaggregationciphertextbyperformingitsde-
+s m N N + = p˜ M ·eN − + (cid:5) m N k= N − 1 2 ]q m a k n , d t s h o e s m um i ← of U th ( e R ir p p )( la i i ∈ nte { x N ts − m 1 N , − N 1 } + ) c o r f y a pt c i l o i n en a t lg is or O ith (M mo n n (cid:12) c ) e . , T a h n e d t t o h t u a s l t c h o e m co p m ut p at u i t o a n ti a o l n c a o l m co p m le p x l i e ty xi o ty f
+holdsbecauseofthehardnessoftheRLWEassumption.Thus,
+decryption for N clients is O(NMn(cid:12)). In [15], the client i
+the distributions D and D(cid:17) are computationally indistinguish- (i∈[N])firstpartiallydecryptsthe(i+1)thciphertextofthe
+able.
+aggregation ciphertext vector C by using its own secret key,
+SincethedistributionDisindependentofthegivenplaintext
+and then it merges all clients’ partial decryption results as a
+{mk }
+k∈[N−2]
+∈RN
+p
+−2,weconcludethatESHEissecureagainst
+final decrypted result. Thus, the computational complexity of
+collusionattacksofκ<N −1clients. (cid:2)
+decryptionforeachclientisO(Mn(cid:12)+NMn(cid:12))andthecom-
+putationalcomplexityofdecryptionforFLmodelsusingMKHE
+B. ComplexityAnalysis in [15] is O((N +1)NMn(cid:12)). Similarly, in [16], the client i
+Here,weanalyzethecomplexityofESAFLandfourstate-of- (i∈[N]) first partially decrypts the (cid:5) second ciphertext of the
+N
+the-artprivacy-preservingcross-siloFLmodelsusingdifferent aggregation ciphertext vector C, i.e., i=1 cti[1], by using its
+HE algorithms in [12], [15], [16], [36], where HE algorithms ownsecretkey,andthenitperformsfulldecryptionbymerging
+in[15],[16]aremulti-keyvariantsofCKKScryptosystemwith all clients’ partial decryption results. Thus, the computational
+additive homomorphism, and HE algorithms in [12], [36] are complexityofdecryptionforeachclientisO(Mn(cid:12)+2Mn(cid:12))
+single-keyadditivelyHEalgorithms. andthecomputationalcomplexityofdecryptionforFLmodels
+ComputationalComplexity:Wedenotethenumberofcollab- usingMKHEin[15],[16]isO(3NMn(cid:12)).
+orativeclientsasN andthenumberoftheclient-clouditeration Therefore, the computational complexity of the whole FL
+as M. For one client, the number of weight parameters in modelsusingMKHEin[15]and[16]isO(3(N +1)NMn(cid:12)+
+a network model is denoted as (cid:12). The security parameter of NM(cid:12))andO(7NMn(cid:12)+NM(cid:12)),respectively,whilethecom-
+encryptionisdenotedasn. putational complexity of the whole FL models using SKHE
+Intheclient-sidetrainingphase,eachclientmainlyperforms in [12], [36] and the whole ESAFL model is O(3NMn(cid:12)+
+model training. All five models have the same computational NM(cid:12)).
+complexityfortheN clients,thatis,O(NM(cid:12)). CommunicationComplexity:Wedenotethespacecostofthe
+In the client-side encryption phase, each client mainly en- network model as (cid:13). In the client-side training phase, all N
+crypts its local gradient. In FL models [12], [36] and ESAFL, clientssendtheirencryptedgradientstothecloud.In[12],[36]
+theirencryptionofaplaintextmisaciphertextc.Thatis,inone and ESAFL, their ciphertext numbers are all 1, while in [15]
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 13 =====
+3880 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+and[16],theirciphertextnumbersareN +1and2,respectively. TABLEII
+Thus, for FL models using SKHE in [12], [36] and ESAFL,
+NETWORKBANDWIDTHBETWEENTHESERVERANDTHECLIENTSIN
+DIFFERENTREGIONS
+thecommunicationcomplexityfromtheN clientstothecloud
+serverisO(NMn(cid:13)),andforFLmodelsusingMKHEin[15]
+and [16], the communication complexity from the N clients
+to the cloud server is O((N +1)NMn(cid:13)) and O(2NMn(cid:13)),
+respectively.
+Inthecloud-sideaggregationphase,thecloudaggregatesall
+frameworkoverPython3.8.ToimplementESAFL,wegenerate
+clients’ ciphertexts/ciphertext vectors and transmits the aggre-
+adynamiclibraryofalltheESHEcodesandcallitinaPython
+gation result to all N clients. The numbers of ciphertext of an
+script.
+aggregationresultin[12],[36]andESAFLareall1,whilethat
+2) BenchmarkModelsandESHEParameters: WedenoteFL
+in [15] and [16] are N +1 and 2, respectively. Thus, for FL
+modelsof[12]and[36]asBatchCryptandFATE,respectively.
+models using SKHE in [12], [36] and ESAFL, the commu-
+For the convenience of comparison, we implement three ML
+nication complexity from the cloud server to the N clients is
+applications in both BatchCrypt and FATE. In the first appli-
+O(NMn(cid:13)),andforFLmodelsusingMKHEin[15]and[16],
+cation, a 3-layer fully-connected neural network (FCN) with
+thecommunicationcomplexityfromthecloudservertotheN
+101.77 K weights is trained over FMNIST dataset, with batch
+clientsisO((N +1)NMn(cid:13))andO(2NMn(cid:13)),respectively.
+size128andAdamoptimizer.Thesecondapplicationistraining
+In the client-side decryption phase, for FL models using
+anAlexNetmodelwith1.25MweightsusingCIFAR10dataset,
+SKHEin[12],[36]andESAFL,eachclientdecryptsaggregation
+where training batch size is 128 and RMSprop optimizer is
+resultslocally,sotheircommunicationcomplexitiesofdecryp-
+adopted with 10−6 decay. The third application is an LSTM
+tionareall0.ForFLmodelsusingMKHEin[15]and[16],each
+model with 4.02 M weights trained over Shakespeare dataset,
+clientfirstpartiallydecryptsaggregationresultsandthensends
+withbatchsize64andAdamoptimizer.Therearenineclients
+itspartialdecryptionresultstoallotherN −1clientsforfinal
+inESAFL.Foreachapplication,werandomlyshuffleitsdataset
+decryption,sotheircommunicationcomplexitiesofdecryption
+and assign it to the nine clients. The clients’ datasets in FCN
+areO((N −1)NMn(cid:13)).
+andAlexNetareIID(identicallyandindependentlydistributed)
+Therefore,thewholecommunicationcomplexityofFLmod-
+whilethoseinLSTMarenon-IID.Wesetα =···=α =1.
+elsusingSKHEin[12],[36]andESAFLisO(NMn(cid:13)),andthe 1 9
+We consider the same geo-distributed FL scenario as
+wholecommunicationcomplexityofFLmodelsusingMKHE
+BatchCrypt,wheretheclientstrainanMLmodelinfiveAWS
+in[15]and[16]isO(N2Mn(cid:13)).
+EC2 datacenters located in Hong Kong, London, Tokyo, N.
+From the above complexity analyses, we know that ESAFL
+Virginia, and Oregon, and the aggregator is run in the Oregon
+has lower computation and communication complexity com-
+datacenter.Thenetworkbandwidthbetweentheaggregatorand
+paredwithFLmodelsusingMKHEs.Besides,thecomputation
+the clients is presented in Table II. We employ synchronous
+andcommunicationcomplexityofESAFListhesameasthatof
+stochasticgradientdescentmethodtotrainalltheMLmodels.
+SKHE-basedFLmodels,whosecomputationandcommunica-
+The precision of all three models is logq =16 unless oth-
+tioncomplexityislinearlyrelatedtothenumberofclients,the 0
+erwisespecified.WechooseparametersofESHEaccordingto
+numberofiterations,thesecurityparameterofencryption,and
+Albrecht’sLWEestimator[39]whichestimatesthebitsecurity
+thenetworkarchitecture.
+of the RLWE-based encryption algorithm on known attacks.
+Specifically, in our experiments, we set logq =478,logp=
+VIII. PERFORMANCEEVALUATION
+460,logn=15. We choose χs as ternary distribution (i.e.,
+In this section, we evaluate the performance of ESAFL via each coefficient is sampled uniformly from {−1,0,1}) with
+experiments. We first examine the effectiveness of ESAFL’s parameter64andchooseχeasGaussiandistributionwithmean
+packing(SectionVIII-B).Wethenassessthecomputationand 0 and variance 1.22. According to the standard of HE in [39],
+communicationbenefitsESAFLbringscomparedtoFLmodels thesecuritylevelofourmodelisλ=256.
+usingSKHEin[12],[36]andhowESAFLperformscompared
+tothebaselinefederatedlearningonplaintext(SectionVIII-C). B. EffectivenessofESAFL’sPacking
+Finally,wedemonstratethetotaltrainingtimeandcommunica-
+TheeffectivenessofESAFL’spackingliesintwofolds.
+tiontrafficthatFLmodelstakeuntiltheyconverge.
+(1Itreducesthecomputationcostandcommunicationtraffic
+caused by encryption. To compare computation cost, we train
+A. ExperimentalSetup
+ESAFL with and without packing and train the plain baseline
+1) Implementation: The experiments are done on a com- until they converge. Fig. 4(a), (b), and (c) depict the training
+puter with Intel Core i7-6700 CPU. The ESHE’s encryp- speedofthethreemodels,andFig.4(d),(e),and(f)presentthe
+tion/decryption,encoding/decoding,andpacking/unpackingal- modelqualityofthethreetrainedmodelsatdifferentiterations.
+gorithms are coded with C++ language and employ NTL ThesefiguresshowthatESAFL’spackingmitigatesthetraining
+10.4.0 [37] and GMP 6.2.1 libraries [38] for implementing speeddelaycausedbyencryption(ESAFL’sencryptionwithout
+arbitrarylengthintegersandarbitraryprecisionarithmetic.The packing)bymorethan3×,andESAFLwithpackingonlyslows
+federated learning models are performed with PyTorch 1.11.0 downthetrainingtimebylessthan2×fortheFCN,AlexNet,
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 14 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3881
+Fig.4. ThequalityandthetrainingspeedofplainbaselineandourESAFLwithandwithoutpacking.
+TABLEIII theaggregatedoriginalgradients.Wecanseefromthetablethat
+COMPARISONSOFCOMMUNICATIONTRAFFICFORONEITERATIONON
+whenpackingisused,theerrorsofthethreemodelsareallclose
+ENTITIESBETWEENESAFLWITHANDWITHOUTPACKING
+to0.Onthecontrary,ifpackingisnotused,theirerrorsarequite
+large.
+The model quality of the plain baseline and ESAFL with
+packing are nearly the same. Fig. 4 depicts the experimental
+results of test accuracy with and without packing. For FCN
+modeltrainedwithFMNISTdataset,plainbaselinereachespeak
+accuracy89.15%atthe36thepoch,whileESAFLwithoutand
+withpackingreach89.01%and89.05%atthe36thepochand
+34thepoch,respectively.ForAlexNetmodeltrainedCIFAR10
+TABLEIV dataset, plain baseline reaches peak accuracy 73.35% at the
+THEMAGNITUDEOFDIFFERENCEBETWEENTHEDECRYPTEDMESSAGESAND 265th epoch, while ESAFL without and with packing reach
+THEORIGINALMESSAGESFORFCN,ALEXNET,ANDLSTMMODELSA
+70.14% and 73.85% at the 265th epoch and the 255th epoch,
+QUANTIFICATIONBITWIDTHOF32
+respectively.Finally,forLSTM,plainbaselinereachesbottom
+loss0.0336atthe20thepoch,whileESAFLwithoutandwith
+packingreach0.0358and0.0337atthe21stepochandthe20th
+epoch,respectively.Therefore,withthepackingtechnique,the
+encodingofESHEbringsnegligiblenegativeimpactonthefinal
+modelqualityofESAFL.
+and LSTM models compared with their plain baseline models
+whichrequirenoencryptionandthusarethefastesttoconverge.
+C. EffectivenessofESAFL
+Table III presents the number of messages and the communi-
+cation traffic of the plain FL (plain), ESAFL without packing ESAFLcomparedwithBatchCryptandFATE:Wenextcom-
+(unpk),andESAFLwithpacking(pack).Itcanbeseenfromthe paretheeffectivenessofESAFLwithBatchCryptandFATEin
+tablethatESAFL’spackingmethodcanpackabout20messages termsofrunningtimeandnetworktraffic.Thequantizationbit
+intooneciphertext,andESAFLwithpackingsignificantlyde- widthissetto16,whichisthesameasBatchCryptandFATE
+creasesthenumberofciphertextsandthecommunicationtraffic in[12].WeruntheexperimentsofESAFLfor50iterationsand
+causedbyencryption(ciphertrafficwithoutpacking). show their averaged result against the same measurements of
+(2ItreducestheimpactofESHE’sencodingonmodelaccu- BatchCryptandFATEinFigs.5and6.FromFig.5,wecansee
+racy/loss.TableIVpresentsthemagnitudeoferrorofthethree that compared with BatchCrypt and FATE, ESAFL improves
+benchmark models after encryption with and without polyno- the computational efficiency of encryption by about one order
+mial packing. An error of a model is calculated by averaging of magnitude and two orders of magnitude, respectively. The
+thedifferencesbetweenthedecryptedaggregationgradientsand “idle”timefortransmittingciphertextsinESAFLisalsoreduced
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 15 =====
+3882 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+Fig.5. ComparisonsoftrainingiterationtimeamongFATE,BatchCrypt,andESAFL,where“idle”representstheidlewaitingtimeofparticipates(theclientsor
+theserver),and“encrypt”inESAFLmeasuresthetimeofthepseudo-randomgeneration,encoding,packing,andencryptionontheclient.Allmodelsaretrained
+for50iterationsandtheruntimeistheaverageresult.
+TABLEV
+COMPARISONSOFTOTALTRAININGTIMEANDNETWORKTRAFFICFOR
+CONVERGEDFCN,ALEXNET,ANDLSTMMODELSUNDERDIFFERENT
+TRAININGMODES
+Fig.6. NetworktrafficcomparisonsamongFATE,BatchCrypt,andESAFL
+inonetrainingiteration.
+TrainingtoConvergence:Wenextcomparethetotaltraining
+timeandnetworktrafficofFATE,BatchCrypt,andESAFLuntil
+Fig. 7. Comparisons of time and communication costs on clients between they are trained to convergence. Because the whole training
+ESAFLandplainFLforoneiteration.
+processrequiresexceedinglyhighcostsinbothtimeandtraffic,
+we simulate distributed training of FL locally until the model
+converges,andestimatethetotaltimeandcommunicationcost
+becauseofthereductionofthenetworktraffic.Fig.6compares needed for convergence according to the network bandwidth
+the specific network traffic of one training iteration among in Table II and the number of iterations in the local training.
+ESAFL, BatchCrypt, and FATE. We see that ESAFL reduces Table V presents the estimation results of FATE, BatchCrypt,
+the communication traffic of FATE by up to 68×,103×, and ESAFL, and plain FL. Compared with FATE and BatchCrypt,
+112×forFCN,AlexNet,andLSTM,respectively,andreduces ESAFLlowersbothtrainingtimeandnetworktrafficrequiredfor
+thatofBatchCryptbyupto1MB,60MB,and50MBforFCN, convergence.Specifically,ESAFLreducesthetrainingtimeof
+AlexNet,andLSTM,respectively. FATEby204×,930×,and953×forFCN,AlexNet,andLSTM,
+ESAFLversusPlaintextLearning:Next,wecompareESAFL respectively,andreducesthatofBatchCryptby14×,12×,and
+with the plain FL that involves no encryption and thus is an 11×, respectively. In the meantime, ESAFL shrinks the net-
+ideal baseline offering the optimal performance. We present worktrafficofFATEby77×,90×,109×and2×,1.5×,1.25×,
+thetrainingtimeandcommunicationtrafficforoneiterationin respectively. Besides, compared with plain FL, ESAFL slows
+Fig.7.Fromthefigureweknowthatwhileencryptionremains down the training time towards convergence by 2×,1.68×,
+themajorperformancebottleneck,ESAFLsuccessfullyreduces and 1.69× for FCN, AlexNet, and LSTM, respectively. It
+both the computation and communication burdens, making it expands the communication traffic of plain FL by less than
+practicaltoobtainthesametrainedmodelastheplainFL. 1.5×(1.26×,0.5×,0.39×) for the three models. Therefore,
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 16 =====
+WUetal.:ESAFL:EFFICIENTSECUREADDITIVELYHOMOMORPHICENCRYPTIONFORCROSS-SILOFEDERATEDLEARNING 3883
+ESAFLsignificantlyreducesboththecomputationandcommu- [15] H.Chen,W.Dai,M.Kim,andY.Song,“Efficientmulti-keyhomomorphic
+nicationburdencausedbyencryption,enablingefficientsecure encryptionwithpackedciphertextswithapplicationtoobliviousneural
+network inference,” in Proc. ACM SIGSAC Conf. Comput. Commun.
+multipartycomputationforcross-siloFL.
+Secur.,2019,pp.395–412.
+[16] J. Ma, S.-A. Naas, S. Sigg, and X. Lyu, “Privacy-preserving federated
+IX. CONCLUSIONANDFUTUREWORK
+learningbasedonmulti-keyhomomorphicencryption,”Int.J.Intell.Syst.,
+vol.37,pp.5880–5901,2022.
+Inthisarticle,weproposeESAFL,anefficientsecurecross- [17] A. Aloufi, P. Hu, H. W. H. Wong, and S. S. M. Chow, “Blindfolded
+evaluationofrandomforestswithmulti-keyhomomorphicencryption,”
+silo federated learning model. To protect the confidentiality
+IEEETrans.DependableSecureComput.,vol.18,no.4,pp.1821–1835,
+of the clients’ datasets and ensure the security of the training Jul./Aug.2021.
+resultsunderhonest-but-curiousentities,wedevelopanefficient [18] H.-S. Lee and J. Park, “On thesecurity ofmultikey homomorphicen-
+cryption,”inProc.IMAInt.Conf.CryptographyCoding,2019,pp.236–
+andsecureadditivelyhomomorphicencryptionalgorithmESHE
+251.
+based on RLWE hard problem. ESHE can provide privacy [19] J.So,R.E.Ali,B.Guler,J.Jiao,andS.Avestimehr,“Securingsecureag-
+protectionwithouttheneedforsecurechanneltransmissionof gregation:Mitigatingmulti-roundprivacyleakageinfederatedlearning,”
+2021,arXiv:2106.03328.
+ciphertext.Toimprovethecomputationalefficiencyandreduce
+[20] Q. Yang, Y. Liu, T. Chen, and Y. Tong, “Federated machine learning:
+thecommunicationcostoftheexistingMKHEalgorithms,we Conceptandapplications,”ACMTrans.Intell.Syst.Technol.,vol.10,no.2,
+endow ESHE with a one-step decryption process and a poly- pp.1–19,2019.
+[21] M.W.Berry,U.Dayal,C.Kamath,andD.Skillicorn,“Privacy-preserving
+nomial packing method. Besides, FFT is also used to accel-
+multivariatestatisticalanalysis:Linearregressionandclassification,”in
+erate polynomial multiplications. Our theoretical analyses and Proc.SIAMInt.Conf.DataMining,2004,pp.222–233.
+experimentalevaluationspresentthatESAFLmodelcanachieve [22] P. Mohassel and P. Rindal, “ABY3: A mixed protocol framework for
+machinelearning,”inProc.ACMSIGSACConf.Comput.Commun.Secur.,
+securityandefficiencywithoutreducingthemodelaccuracy.In
+2018,pp.35–52.
+our future work, we plan to extend our ESHE to fully homo- [23] P.MohasselandY.Zhang,“SecureML:Asystemforscalableprivacy-
+morphic encryption and plug it into cross-silo FL to achieve preservingmachinelearning,”inProc.IEEESymp.Secur.Privacy,2017,
+pp.19–38.
+securenonlinearaggregationwithwhichFLcanbemorerobust
+[24] I. Damgård, D. Escudero, T. Frederiksen, M. Keller, P. Scholl, and N.
+toheterogeneousclientswithdifferentdatasetquantities,dataset Volgushev, “New primitives for actively-secure MPC over rings with
+distribution,computingpower,communicationbandwidth,etc. applications to private machine learning,” in Proc. IEEE Symp. Secur.
+Privacy,2019,pp.1102–1120.
+[25] A. P. Dalskov, D. Escudero, and M. Keller, “Fantastic four: Honest-
+REFERENCES majorityfour-partysecurecomputationwithmalicioussecurity,”inProc.
+USENIXSecur.Symp.,2021,pp.2183–2200.
+[1] D.LiandJ.Wang,“FedMD:Heterogenousfederatedlearningviamodel
+[26] N.Koti,V.B.Kukkala,A.Patra,andB.RajGopal,“PentaGOD:Stepping
+distillation,”2019,arXiv:1910.03581.
+beyondtraditionalgodwithfiveparties,”inProc.ACMSIGSACConf.
+[2] H.B.McMahanetal.,“Advancesandopenproblemsinfederatedlearn-
+Comput.Commun.Secur.,2022,pp.1843–1856.
+ing,”Found.TrendsMach.Learn.,vol.14,no.1,pp.1–210,2021.[Online].
+[27] P.MukherjeeandD.Wichs,“Tworoundmultipartycomputationviamulti-
+Available:https://arxiv.org/abs/1912.04977
+keyFHE,”inProc.Int.Conf.TheoryAppl.CryptographicTechn.,2016,
+[3] Z. Su et al., “Secure and efficient federated learning for smart grid
+pp.735–763.
+withedge-cloudcollaboration,”IEEETrans.Ind.Inform.,vol.18,no.2,
+[28] A.Ben-David,N.Nisan,andB.Pinkas,“FairplayMP:Asystemforsecure
+pp.1333–1344,Feb.2022.
+multi-partycomputation,”inProc.ACMConf.Comput.Commun.Secur.,
+[4] K.Bonawitz,V.Ivanov,B.Kreuter,A.Marcedone,andK.Seth,“Practical
+2008,pp.257–266.
+secure aggregation for privacy-preserving machine learning,” in Proc.
+[29] M.Malekzadeh,A.Borovykh,andD.Gündüz,“Honest-but-curiousnets:
+ACMSIGSACConf.Comput.Commun.Secur.,2017,pp.1175–1191.
+Sensitiveattributesofprivateinputscanbesecretlycodedintotheclas-
+[5] Y.Ben-Itzhaketal.,“ScionFL:Securequantizedaggregationforfederated
+sifiers’outputs,”inProc.2021ACMSIGSACConf.Comput.Commun.
+learning,”2022,arXiv:2210.07376.
+Secur.,2021,pp.825–844.
+[6] M. Mohamad, M. Onen, W. B. Jaballah, and M. Contu, “SoK: Secure
+[30] J.Liu,C.Zhang,K.Xue,andY.Fang,“Privacypreservationinmulti-cloud
+aggregationbasedoncryptographicschemesforfederatedlearning,”in
+securedatafusionforinfectious-diseaseanalysis,”IEEETrans.Mobile
+Proc.PrivacyEnhancingTechnol.Symp.,2023,pp.140–157.
+Comput.,vol.22,no.7,pp.4212–4222,Jul.2023.
+[7] Y.Zheng,S.Lai,Y.Liu,X.Yuan,X.Yi,andC.Wang,“Aggregationservice
+[31] S. Wang, C. Ge, L. Zhou, H. Wang, Z. Liu, and J. Wang,
+forfederatedlearning:Anefficient,secure,andmoreresilientrealization,”
+“Privacy-preserving classification in multiple clouds eHealthcare,”
+IEEETrans.DependableSecureComput.,vol.20,no.2,pp.988–1001,
+IEEE Trans. Serv. Comput., vol. 16, no. 1, pp. 493–503, Jan./Feb.
+Mar./Apr.2023.
+2023.
+[8] J. Song, W. Wang, T. R. Gadekallu, J. Cao, and Y. Liu, “EPPDA: An
+[32] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Ar-
+efficientprivacy-preservingdataaggregationfederatedlearningscheme,”
+cas, “Communication-efficient learning of deep networks from decen-
+IEEETrans.Netw.Sci.Eng.,vol.10,no.5,pp.3047–3057,Sep./Oct.2023.
+tralizeddata,”inProc.Int.Conf.Artif.Intell.Statist.,2017,pp.1273–
+[9] R.ShokriandV.Shmatikov,“Privacy-preservingdeeplearning,”inProc.
+1282.
+ACMSIGSACConf.Comput.Commun.Secur.,2015,pp.1310–1321.
+[33] J.FanandF.Vercauteren,“Somewhatpracticalfullyhomomorphicen-
+[10] T.Stevens,C.Skalka,C.Vincent,J.Ring,S.Clark,andJ.Near,“Effi-
+cryption,” Cryptol. ePrint Arch., pp. 1–19, 2012, Paper no. 212/144.
+cientdifferentiallyprivatesecureaggregationforfederatedlearningvia
+[Online].Available:https://eprint.iacr.org/2012/144
+hardnessoflearningwitherrors,”inProc.USENIXSecur.Symp.,2022,
+[34] J.H.Cheon,A.Kim,M.Kim,andY.Song,“Homomorphicencryption
+pp.1379–1395.
+forarithmeticofapproximatenumbers,”inProc.Int.Conf.TheoryAppl.
+[11] L. T. Phong, Y. Aono, T. Hayashi, L. Wang, and S. Moriai, “Privacy-
+Cryptol.Inf.Secur.,2017,pp.409–437.
+preservingdeeplearningviaadditivelyhomomorphicencryption,”IEEE
+[35] Sumofnormallydistributedrandomvariables,WiKiPEDIA,(n.d.),2023.
+Trans.Inf.ForensicsSecur.,vol.13,no.5,pp.1333–1345,May2018.
+[Online]. Available: https://en.wikipedia.org/wiki/Sum_of_normally_
+[12] C. Zhang, S. Li, J. Xia, W. Wang, F. Yan, and Y. Liu, “BatchCrypt:
+distributed_random_variables
+EfficienthomomorphicencryptionforCross-Silofederatedlearning,”in
+[36] Fate(federatedaitechnologyenabler),2019.[Online].Available:https:
+Proc.USENIXAnnu.Tech.Conf.,2020,pp.493–506.
+//github.com/FederatedAI/FATE
+[13] C. Zhang, Towards Efficient and Secure Large-Scale Systems for Dis-
+[37] NTLlibarary,2017.[Online].Available:https://libntl.org/
+tributedMachineLearningTraining.HongKong:HongKongUniv.Sci.
+[38] BMPlibarary,2020.[Online].Available:https://gmplib.org/
+Technol.,2021.
+[39] M.Albrechtetal.,“Homomorphicencryptionstandard,”inProtectingPri-
+[14] H.Tian,F.Zhang,Y.Shao,andB.Li,“Securelinearaggregationusing
+vacyThroughHomomorphicEncryption.Cham,Switzerland:Springer,
+decentralizedthresholdadditivehomomorphicencryptionforfederated
+2021,pp.31–62.
+learning,”2021,arXiv:2111.10753.
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.
+
+===== PAGE 17 =====
+3884 IEEETRANSACTIONSONDEPENDABLEANDSECURECOMPUTING,VOL.22,NO.4,JULY/AUGUST2025
+JiahuiWureceivedthePhDdegreesinsignaland FucaiLuoreceivedthePhDdegreeincybersecurity
+information processing from Southwest University, fromtheStateKeyLaboratoryofInformationSecu-
+Chongqing,China,in2021.Sheiscurrentlyapost- rity,SchoolofCyberSecurity,UniversityofChinese
+doctoral fellow with the Department of New Net- AcademyofSciences,P.R.China,in2019.Heiscur-
+works, Peng Cheng Laboratory, Shenzhen, China. rentlyapostdoctoralfellowwiththeDepartmentof
+Herresearchinterestsincludeprivacy-preservingma- NewNetworks,PengChengLaboratory,Shenzhen,
+chinelearning,cryptography,andcloudcomputing China. His research interests include lattice-based
+security. cryptography,especiallyfullyhomomorphicencryp-
+tion.Hisrecentworkhasfocusedonsecuremultiparty
+computation,machinelearning,andtheconnections
+betweenthem.
+WeizheZhang(SeniorMember,IEEE)receivedthe
+BEng,MEng,andPhDdegreesincomputerscience
+andtechnologyfromtheHarbinInstituteofTechnol-
+ogy, China, in 1999, 2001, and 2006, respectively.
+Heiscurrentlyaprofessorandthevicedeanwiththe
+SchoolofCyberspaceScienceFacultyofComputing,
+HarbinInstituteofTechnology,Heilongjiang,China,
+andthevicedeanwiththeDepartmentofNewNet-
+works,PengChengLaboratory,Shenzhen,China.He
+hasauthoredorcoauthoredmorethan130academic
+papersinjournals,books,andconferenceproceed-
+ings.Hisresearchinterestsincludecyberspacesecurity,cloudcomputing,and
+highperformancecomputing.HeisalifetimememberoftheACM.
+Authorized licensed use limited to: Anhui University. Downloaded on January 08,2026 at 02:37:41 UTC from IEEE Xplore. Restrictions apply.

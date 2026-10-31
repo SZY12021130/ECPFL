@@ -1,0 +1,184 @@
+% =============================================================================
+% PTopK: Packed TopK with Dual-Scale Residual Decay
+% Unified Notation for Paper
+% =============================================================================
+% Symbols:
+%   - $g_i^{(t)}$          : original local gradient of client $i$ at round $t$
+%   - $\tilde{\mathbf{g}}_{i,j}^{(t)}$ : residual-compensated gradient of batch $j$
+%   - $\mathbf{r}_{i,j}^{(t)}$       : client-side residual accumulator for batch $j$
+%   - $\gamma_d$           : per-round natural decay factor (decay_gamma)
+%   - $\gamma_s$           : cross-round stale decay factor (stale_gamma)
+% =============================================================================
+
+\documentclass{article}
+\usepackage{amsmath, amssymb, amsthm, booktabs}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+
+\begin{document}
+
+\section*{PTopK Dual-Scale Residual Formulation}
+
+\subsection*{Notation}
+
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$t$ & Global round index, $t = 0, 1, \dots, T-1$ \\
+$i$ & Client index, $i \in [n]$ \\
+$j$ & Batch (pack) index, $j \in \{0, 1, \dots, J-1\}$ \\
+$J$ & Total number of batches, $J = \lceil m / S \rceil$ \\
+$S$ & Slots per batch (CKKS SIMD capacity), $S = N/2$ \\
+$g_i^{(t)} \in \mathbb{R}^m$ & Original local gradient of client $i$ at round $t$ \\
+$g_{i,j}^{(t)} = \mathcal{B}_j(g_i^{(t)}) \in \mathbb{R}^S$ & The $j$-th batch of $g_i^{(t)}$ \\
+$\mathbf{r}_{i,j}^{(t)} \in \mathbb{R}^S$ & Client-side residual accumulator for batch $j$ \\
+$\tilde{\mathbf{g}}_{i,j}^{(t)} \in \mathbb{R}^S$ & Residual-compensated gradient for batch $j$ \\
+$\rho \in (0,1]$ & Uplink sparsity rate \\
+$\gamma_d \in (0,1]$ & Per-round natural decay factor (\texttt{decay\_gamma}) \\
+$\gamma_s \in (0,1]$ & Cross-round stale decay factor (\texttt{stale\_gamma}) \\
+\bottomrule
+\end{tabular}
+
+\vspace{1em}
+
+\subsection*{Step 1 -- Batch Decomposition}
+
+The original gradient $g_i^{(t)}$ is flattened and split into $J$ batches:
+%
+\begin{equation}
+g_{i,j}^{(t)} = \mathcal{B}_j\bigl(g_i^{(t)}\bigr) \in \mathbb{R}^S, \qquad j = 0, 1, \dots, J-1.
+\end{equation}
+
+\subsection*{Step 2 -- Residual Compensation}
+
+Client $i$ maintains a residual accumulator $\mathbf{r}_i^{(t)} = (\mathbf{r}_{i,0}^{(t)}, \dots, \mathbf{r}_{i,J-1}^{(t)})$, initialized as $\mathbf{r}_i^{(0)} = \mathbf{0}$.
+Before TopK selection, the historical residual is added to each batch:
+%
+\begin{equation}
+\boxed{
+\tilde{\mathbf{g}}_{i,j}^{(t)} = g_{i,j}^{(t)} + \mathbf{r}_{i,j}^{(t)}, \qquad \forall j \in \{0,\dots,J-1\}
+}
+\label{eq:compensate}
+\end{equation}
+
+\subsection*{Step 3 -- Batch-Level TopK Selection}
+
+Batches are ranked by their $\ell_1$ norms. The selected index set is:
+%
+\begin{equation}
+\mathcal{S}_i^{(t)} = \operatorname{TopK}_\rho\!\left(\bigl\{\|\tilde{\mathbf{g}}_{i,j}^{(t)}\|_1\bigr\}_{j=0}^{J-1}\right),
+\qquad |\mathcal{S}_i^{(t)}| = \max\bigl(1, \lceil \rho J \rceil\bigr).
+\end{equation}
+
+Only selected batches are encrypted and uploaded:
+%
+\begin{equation}
+u_{i,j}^{(t)} =
+\begin{cases}
+\tilde{\mathbf{g}}_{i,j}^{(t)} & \text{if } j \in \mathcal{S}_i^{(t)}, \\[4pt]
+\mathbf{0} & \text{otherwise}.
+\end{cases}
+\end{equation}
+
+\subsection*{Step 4 -- Residual Update (Dual-Scale Decay)}
+
+After selection, the residual accumulator is updated with two decay mechanisms:
+
+\paragraph{Intra-round natural decay ($\gamma_d$).}
+For batches that were \textbf{not} selected in the current round, their compensated values are retained but attenuated by $\gamma_d$ to prevent unbounded growth:
+%
+\begin{equation}
+\mathbf{r}_{i,j}^{(t+1)} =
+\begin{cases}
+\mathbf{0} & \text{if } j \in \mathcal{S}_i^{(t)} \quad \text{(uploaded, reset to zero)}, \\[6pt]
+\gamma_d \cdot \tilde{\mathbf{g}}_{i,j}^{(t)} & \text{if } j \notin \mathcal{S}_i^{(t)} \quad \text{(retained with decay)}.
+\end{cases}
+\label{eq:residual-update}
+\end{equation}
+
+\paragraph{Cross-round stale decay ($\gamma_s$).}
+In cross-device FL, a client may be selected intermittently. Let $\Delta t_i^{(t)} \ge 1$ denote the gap (in rounds) since client $i$'s last participation. Before applying Eq.~\eqref{eq:compensate} at round $t$, the stale residual undergoes exponential decay:
+%
+\begin{equation}
+\boxed{
+\mathbf{r}_{i,j}^{(t)} \;\gets\; \gamma_s^{\,\Delta t_i^{(t)} - 1} \cdot \mathbf{r}_{i,j}^{(t)},
+\qquad \text{if } \Delta t_i^{(t)} > 1.
+}
+\label{eq:stale-decay}
+\end{equation}
+
+When $\Delta t_i^{(t)} = 1$ (consecutive participation), no stale decay is applied.
+
+\subsection*{Compact Vector Form (Core Recurrence)}
+
+Let $\mathbf{g}_i^{(t)} = (g_{i,0}^{(t)}, \dots, g_{i,J-1}^{(t)})$ and define the element-wise TopK masking operator $\mathcal{M}_\rho(\cdot)$ that zeros out unselected batches. The per-round error-feedback recurrence is:
+%
+\begin{equation}
+\boxed{
+\mathbf{r}_i^{(t+1)} = \gamma_d \cdot \Bigl[ \bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr) - \mathcal{M}_\rho\bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr) \Bigr]
+}
+\label{eq:compact}
+\end{equation}
+
+Equivalently, in the classic notation:
+%
+\begin{equation}
+\mathbf{r}_i^{(t+1)} = \gamma_d \cdot \Bigl[ \bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr) - \operatorname{TopK}_\rho\bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr) \Bigr],
+\end{equation}
+where $\operatorname{TopK}_\rho(\cdot)$ returns the input with only the top-$\rho$ batches (by $\ell_1$ norm) preserved and all others zeroed.
+
+\subsection*{Cross-Round Stale Decay (Idle Clients)}
+
+If client $i$ trains at round $t$ and re-appears after a gap of $\Delta t \ge 1$ rounds, the stale residual is decayed \textbf{once} before the next training round:
+%
+\begin{equation}
+\boxed{
+\mathbf{r}_i^{(t+\Delta t)} = \gamma_s^{\,\Delta t - 1} \cdot \mathbf{r}_i^{(t+1)}
+}
+\label{eq:stale-compact}
+\end{equation}
+
+\paragraph{Remarks.}
+\begin{itemize}
+\item The two decays act at \textbf{different time scales}: $\gamma_d$ is applied immediately after every training round, whereas $\gamma_s$ is applied once on the stale residual before rejoining.
+\item During the idle period ($t+1, \dots, t+\Delta t-1$), the residual is \textbf{frozen}; no update occurs.
+\item $\Delta t = 1$ (consecutive participation): $\gamma_s^0 = 1$, so Eq.~\eqref{eq:stale-compact} is a no-op and the system reduces to Eq.~\eqref{eq:compact} only.
+\item $\gamma_d = \gamma_s = 1$: recovers vanilla error feedback.
+\end{itemize}
+
+\subsection*{Special Cases}
+
+\begin{itemize}
+\item \textbf{Standard PTopK (no decay):} $\gamma_d = 1, \gamma_s = 1$. Recovers the vanilla error-feedback rule:
+\begin{equation*}
+\mathbf{r}_i^{(t+1)} = \bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr) - \operatorname{TopK}_\rho\bigl(\mathbf{g}_i^{(t)} + \mathbf{r}_i^{(t)}\bigr).
+\end{equation*}
+
+\item \textbf{Natural decay only:} $\gamma_d < 1, \gamma_s = 1$. Residual of unselected batches shrinks geometrically per round:
+\begin{equation*}
+\mathbf{r}_i^{(t+1)} = \gamma_d \cdot \mathbf{r}_i^{(t)} \quad \text{for unselected batches}.
+\end{equation*}
+
+\item \textbf{Stale decay only:} $\gamma_d = 1, \gamma_s < 1$. Residual decays exponentially with the idle gap:
+\begin{equation*}
+\mathbf{r}_i^{(t)} = \gamma_s^{\,\Delta t_i^{(t)} - 1} \cdot \mathbf{r}_i^{(t_{\text{last}})}.
+\end{equation*}
+
+\item \textbf{Recommended configuration:} $\gamma_d = 0.3, \gamma_s = 0.5$ (empirically tuned for non-IID cross-device FL).
+\end{itemize}
+
+\subsection*{Convergence Property (Informal)}
+
+\begin{proposition}[Residual Vanishing]
+If the gradient sequence $\{\mathbf{g}_i^{(t)}\}_{t\ge 0}$ is bounded and the decay factors satisfy $\gamma_d \in (0,1)$ or $\gamma_s \in (0,1)$, then the expected residual norm decays to zero:
+\begin{equation}
+\lim_{t\to\infty} \mathbb{E}\bigl[\|\mathbf{r}_i^{(t)}\|_2\bigr] = 0.
+\end{equation}
+Consequently, the cumulative upload satisfies $\sum_{\tau=0}^{t} u_i^{(\tau)} \to \sum_{\tau=0}^{t} \mathbf{g}_i^{(\tau)}$ asymptotically, preserving the unbiasedness of aggregation.
+\end{proposition}
+
+\end{document}

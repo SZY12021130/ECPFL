@@ -1,0 +1,51 @@
+# ============================================================================
+# Baseline 统一对比实验参数模板
+# ============================================================================
+# 对齐用户已有实验配置: 50轮/50客户端/采样率0.5/alpha=5/lr=0.001/epochs=3
+# ============================================================================
+
+experiment_name: "mnist_lenet_baseline_50clients"
+description: "MNIST + LeNet 50轮50客户端统一对比实验"
+
+# 数据集与模型
+dataset: "mnist"
+model: "lenet"
+num_classes: 10
+
+# 联邦学习规模
+num_clients: 50
+num_rounds: 50
+client_sampling_rate: 0.5
+
+# 本地训练参数
+local_epochs: 3
+batch_size: 64
+learning_rate: 0.001
+optimizer: "adam"
+momentum: 0.9
+
+# 数据划分
+iid: false
+alpha: 5.0
+
+# 随机种子与硬件
+random_seed: 42
+device: "cpu"
+
+# FedPHE-main 专用映射
+fedphe:
+  weighted: true
+  enc: true
+  isSelection: false
+  isSpars: "topk"
+  topk: 0.1
+  isBatch: true
+  cipher_count: true
+  algorithm: "ckks"
+  quan_bits: 16
+  enc_batch_size: 4096
+  sim_len: 200
+  split: "noniid"
+  noniid_method: "dirichlet"
+  sgm: 0.3
+  n_shards: 5

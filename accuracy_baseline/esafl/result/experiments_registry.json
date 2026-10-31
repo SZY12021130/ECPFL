@@ -1,0 +1,142 @@
+[
+  {
+    "timestamp": "20260614_065359",
+    "output_dir": "accuracy_baseline/esafl/result",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 97.8,
+      "final_test_loss": 0.06783320969949434,
+      "total_time_sec": 1842.9587852954865,
+      "total_communication_mb": 4088.651294708252,
+      "avg_round_time_sec": 36.85917570590973,
+      "avg_upload_kb": 48968.2396484375,
+      "avg_download_kb": 34767.3388671875,
+      "avg_expansion_ratio": 11.286966506100033,
+      "avg_encryption_time_sec": 0.03442582664489746,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.887303352356,
+      "total_ciphertext_blocks": 7500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260614_072942",
+    "output_dir": "accuracy_baseline/esafl/result_fashion",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "lenet",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 81.94,
+      "final_test_loss": 0.49643043784578894,
+      "total_time_sec": 1713.871885061264,
+      "total_communication_mb": 4088.622977256775,
+      "avg_round_time_sec": 34.27743770122528,
+      "avg_upload_kb": 48968.87015625,
+      "avg_download_kb": 34766.12841796875,
+      "avg_expansion_ratio": 11.287111835411697,
+      "avg_encryption_time_sec": 0.033968364906311034,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.7751989364624,
+      "total_ciphertext_blocks": 7500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260614_131745",
+    "output_dir": "accuracy_baseline/esafl/result_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "cnn",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 53.48,
+      "final_test_loss": 1.3031021519831032,
+      "total_time_sec": 10086.985738515854,
+      "total_communication_mb": 16354.374361038208,
+      "avg_round_time_sec": 201.73971477031708,
+      "avg_upload_kb": 195872.1640625,
+      "avg_download_kb": 139065.4228515625,
+      "avg_expansion_ratio": 10.623012340448069,
+      "avg_encryption_time_sec": 0.20826277828216552,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.7803249359131,
+      "total_ciphertext_blocks": 30000,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260614_131808",
+    "output_dir": "accuracy_baseline/esafl/result_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "cnn",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 70.15596189305471,
+      "final_test_loss": 1.026334067820331,
+      "total_time_sec": 13741.163476467133,
+      "total_communication_mb": 16354.429327011108,
+      "avg_round_time_sec": 274.82326952934267,
+      "avg_upload_kb": 195873.3258984375,
+      "avg_download_kb": 139065.38671875,
+      "avg_expansion_ratio": 10.623075351941104,
+      "avg_encryption_time_sec": 0.20874823703765868,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.949125289917,
+      "total_ciphertext_blocks": 30000,
+      "prefetch_enabled": false
+    }
+  }
+]

@@ -1,0 +1,354 @@
+\documentclass[10pt,conference]{IEEEtran}
+%==============================================================================
+% Standard Packages
+%==============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{xspace}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, fit, backgrounds, decorations.pathreplacing, calligraphy, patterns, shadows}
+\usepackage[ruled,linesnumbered,vlined]{algorithm2e}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{cite}
+\usepackage{enumitem}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{mathrsfs}
+\usepackage{tabularx}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+%==============================================================================
+% Color Palette (from Scheme_design.tex)
+%==============================================================================
+\definecolor{ClientBlue}{RGB}{70,130,180}
+\definecolor{ServerOrange}{RGB}{220,120,50}
+\definecolor{KGCTeal}{RGB}{50,150,130}
+\definecolor{CommentBlue}{RGB}{0,80,160}
+\definecolor{HighlightBG}{RGB}{250,248,245}
+\definecolor{ArrowGray}{RGB}{100,100,105}
+\definecolor{FigBg}{RGB}{252,251,248}
+\definecolor{DarkText}{RGB}{40,40,45}
+\definecolor{ResidualRose}{RGB}{180,90,110}
+\definecolor{MaskGreen}{RGB}{60,140,80}
+\definecolor{CiphertextPurple}{RGB}{120,80,150}
+\definecolor{PrefetchGold}{RGB}{190,150,60}
+
+%==============================================================================
+% Custom Algorithm Comment Style
+%==============================================================================
+\newcommand{\cmtfont}{\footnotesize\color{CommentBlue}}
+\newcommand{\cmtmarker}{$\triangleright$~}
+\SetCommentSty{cmtfont}
+\SetKwComment{tcp}{\cmtmarker}{}
+\SetKwComment{tcc}{\cmtmarker}{}
+\SetKwInput{KwInput}{Input}
+\SetKwInput{KwOutput}{Output}
+\SetKwInput{KwParam}{Parameter}
+\DontPrintSemicolon
+
+%==============================================================================
+% Custom Section Header
+%==============================================================================
+\newcommand{\algsec}[1]{\textcolor{CommentBlue}{\textbf{// #1}}\;}
+
+%==============================================================================
+% Document
+%==============================================================================
+\begin{document}
+
+\begin{table}[t]
+\centering
+\caption{\textsc{Summary of Key Notations}}
+\label{tab:notations}
+\footnotesize
+\setlength{\tabcolsep}{1pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\columnwidth}{@{}|>{\raggedright\arraybackslash}p{0.22\columnwidth}|>{\raggedright\arraybackslash}X|@{}}
+\hline
+\multicolumn{1}{|c|}{\textbf{Notation}} & \multicolumn{1}{c|}{\textbf{Description}} \\
+\hline
+\multicolumn{2}{|c|}{\textit{System Parameters}} \\
+\hline
+$\lambda, n, \Delta$ & Security parameter, RLWE dimension, scaling factor \\
+$\mathbb{Z}_q, \mathcal{R}_q, \mathcal{R}_p$ & Integer, ciphertext, and plaintext rings \\
+$\varphi, M$ & Ring isomorphism; prime bounding modulus \\
+$\chi_s, \chi_e$ & Secret-key and error distributions \\
+\hline
+\multicolumn{2}{|c|}{\textit{Clients and Rounds}} \\
+\hline
+$\mathcal{C}, N, K$ & All clients, total count, selected count \\
+$T, t, \mathcal{E}$ & Total rounds, current round, local epochs \\
+$\tau, g_i$ & Round index; rounds client $i$ missed ($g_i=t-t_{\mathrm{last},i}$) \\
+$\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}$ & Active and inactive client sets \\
+$t_{\mathrm{last},i}$ & Client $i$'s last active round \\
+\hline
+\multicolumn{2}{|c|}{\textit{Models and Ciphertext States}} \\
+\hline
+$\mathbf{W}^{(t)}, \mathbf{w}_i^{(t)}$ & Global model; local model \\
+$G^{(t)}, G_j^{(t)}$ & Global/pack-level complete model ciphertexts \\
+$C^{(t)}, C_j^{(t)}$ & Global/pack-level aggregated update ciphertexts \\
+$\mathbf{\Delta}^{(t)}$ & KGC compensatory perturbation \\
+\hline
+\multicolumn{2}{|c|}{\textit{Sparse Consensus and Voting}} \\
+\hline
+$\mathcal{T}_i^{(t)}, \mathcal{K}^{(t)}$ & Local Top-$k$ indices; consensus mask (also the selected index set) \\
+$\mathbf{v}_i^{(t)}, v_{i,j}^{(t)}$ & Vote bitmap; binary voting element \\
+$s_j^{(t)}, \theta, \lambda_{\theta}$ & Global score; selection ratio; truncation threshold \\
+\hline
+\multicolumn{2}{|c|}{\textit{Gradients and Residuals}} \\
+\hline
+$\mathbf{g}_{i}^{(t)}, \tilde{\mathbf{g}}_i^{(t)}, \mathbf{r}_i^{(t)}$ & Raw gradient; compensated gradient; pack residual \\
+$\mathrm{pt}_{i,j}^{(t)}, e_{i,j}^{(t)}$ & Encoded gradient polynomial; noise polynomial \\
+$\tilde{p}$ & Plaintext-modulus noise polynomial \\
+$\gamma_{d}, \gamma_{s}$ & Per-round and cross-round decay factors \\
+$\zeta$ & Local gradient pack-level sparsification ratio \\
+\hline
+\multicolumn{2}{|c|}{\textit{Cryptographic Primitives}} \\
+\hline
+$S, s_i$ & Global decryption key; local encryption key \\
+$\mathbf{y}_{i,j}^{(t)}, \mathbf{z}_i^{(t)}, \hat{\mathbf{v}}_i^{(t)}$ & Pairwise vector; perturbation; obfuscated vote \\
+$\mathsf{ct}_{i, j}^{(t)}, \mathsf{ct}_{k, j}^{(t)}$ & Local upload and compensatory ciphertexts \\
+\hline
+\multicolumn{2}{|c|}{\textit{Prefetching Mechanism}} \\
+\hline
+$R$ & Prefetch-window length ($t^*=t+R$) \\
+$t^*$ & Target round at end of prefetch window ($t^*=t+R$) \\
+$\mathcal{P}^{(t^*)}, P_i^{(t^*)}$ & Presampled client set for target $t^*$; prefetch start round \\
+$\mathcal{P}^{(t)}$ & Current prefetch client set at round $t$ \\
+$\mathcal{Q}$ & Queue of latest $R$ aggregated update ciphertexts \\
+$\mathcal{L}_{i,j}$ & Prefetch accumulator for client $i$, pack $j$ \\
+$T_{i,j}$ & Missed rounds of client $i$ with pack $j$ \\
+$\mathbf{m}_{\mathrm{pre}}, C_{\mathrm{pre},j}$ & Prefetched plaintexts and pack-level ciphertexts \\
+$A_{\mathrm{pre},j}$ & Accumulated public-polynomial drift $\sum_{\tau\in T_{i,j}} a^{(\tau)}$ \\
+$\rho, \beta$ & EMA decay and over-commitment factors \\
+$\hat{d}^{(t)}, d^{(t)}$ & EMA estimate and measured round duration \\
+\hline
+\end{tabularx}
+\end{table}
+\section{Efficient Ciphertext Prefetching}
+\label{sec:ecp}
+
+%------------------------------------------------------------------------------
+\subsection{ECP: Efficient Ciphertext Prefetching Protocol}
+\label{sec:cipherfetch}
+%------------------------------------------------------------------------------
+
+\subsubsection{Sparse Ciphertext Prefetching}
+\label{sssec:sparse-prefetch}
+%------------------------------------------------------------------------------
+
+The \textsc{ECP} module synchronizes a stale client before it rejoins by prefetching sparse pack-level aggregated update ciphertexts during its idle rounds.
+Its core idea is \emph{pack-level sparse prefetching driven by the global consensus mask}~$\mathcal{K}^{(\tau)}$: instead of downloading the full global ciphertext~$G^{(t)}$ or a separate KGC compensatory payload, the client fetches only the selected consensus packs~$\{C_j^{(\tau)}\}_{j\in\mathcal{K}^{(\tau)}}$, accumulates them homomorphically, and decrypts once at rejoining.
+The complete ciphertext~$G^{(t)}$ is a server-side authoritative state used for evaluation and server-side state maintenance; the ECP download path never transmits~$G^{(t)}$ to clients.
+Following the MK-CKKS key-generation model, the global decryption key~$S$ is distributed to clients, who are assumed to protect~$S$ and not to collude to expose it.
+Algorithm~\ref{alg:download} formalizes the download module.
+
+\textbf{Prepare Phase.}
+At round~$t$, the server selects active clients~$\mathcal{S}^{(t)}$, inactive clients~$\bar{\mathcal{S}}^{(t)}$, and a prefetch set~$\mathcal{P}^{(t^*)}$ for target round~$t^*=t+R$, where $R$ is the prefetch horizon.
+Each client $i\in\mathcal{P}^{(t^*)}$ starts prefetching at round $P_i^{(t^*)}\in\{t,\dots,t^*-1\}$ based on its bandwidth and availability.
+The server maintains a sliding queue~$\mathcal{Q}$ of length~$R$, which stores the most recent $R$ aggregated update ciphertexts $C^{(\tau)}=\{C_j^{(\tau)}\}_{j\in\mathcal{K}^{(\tau)}}$.
+Here $R$ is the lookback length of~$\mathcal{Q}$ and bounds both the server's historical storage and the maximum recoverable absence length.
+Because KGC compensatory ciphertexts are already embedded in $C^{(\tau)}$ by \textsc{ESP-Agg}, no separate compensatory payload is stored.
+The server also advances the global model ciphertext as $G^{(t+1)}=G^{(t)}-\eta C^{(t)}$.
+
+\textbf{Prefetch Phase.}
+At round~$t$, each client $c_i \in \mathcal{P}^{(t)}$ invokes \textsc{ECP-Download} to scan~$\mathcal{Q}$.
+It downloads pack-level ciphertext~$C_j^{(\tau)}$ only when (i) it missed round~$\tau$ ($t_{\mathrm{last},i}<\tau$), (ii) the update has been aggregated ($\tau\le t$), and (iii) the pack is in the consensus mask ($j\in\mathcal{K}^{(\tau)}$).
+Downloaded ciphertexts are stored in local accumulator~$\mathcal{L}_{i,j}$, keyed by~$\tau$ to avoid duplicates.
+Non-consensus packs carry no update and are never transmitted.
+Undownloaded packs remain in~$\mathcal{Q}$ for subsequent idle rounds.
+
+\textbf{Train Phase.}
+At round~$t$, each selected client $c_i \in \mathcal{S}^{(t)}$ absent for more than one round invokes \textsc{ECP-Sync} to merge cached ciphertexts and synchronize its local model as $\mathbf{w}_i\leftarrow\mathbf{w}_i-\eta\mathbf{m}_{\mathrm{pre}}$.
+
+ECP is favorable when $g_i\cdot|\mathcal{K}^{(\tau)}|\ll J$, because it replaces a full $J$-pack download with at most $g_i\cdot|\mathcal{K}^{(\tau)}|$ sparse-pack downloads.
+If $g_i>R$ or $g_i\cdot|\mathcal{K}^{(\tau)}|\ge J$, the server falls back to sending the full synchronized ciphertext~$G^{(t^*)}$.
+
+To handle heterogeneity and dropouts, \textsc{ECPFL} adopts FedFetch's Overcommitment and EMA scheduling~\cite{yan2025fedfetch}: the server estimates round duration $\hat{d}^{(t)}=\rho d^{(t-1)}+(1-\rho)\hat{d}^{(t-1)}$ and scales the prefetch pool to $|\mathcal{P}^{(t^*)}|=\lceil\beta K\rceil$.
+Unlike FedFetch, which prefetches plaintext model deltas, ECP prefetches aggregated ciphertexts and performs homomorphic accumulation followed by one-step decryption, because CKKS ciphertexts cannot be split or inspected without decryption.
+
+\begin{algorithm}[t]
+\caption{\textsc{ECP} Download Module}
+\label{alg:download}
+\small
+\KwParam{Prefetch horizon $R$}
+
+\SetKwProg{Fn}{Function}{}{}
+
+\Fn{\textsc{ECP-Queue}{$(t, C^{(t)}, \mathcal{K}^{(t)}, \mathcal{Q})$}}{
+    $\mathcal{Q}.\mathsf{enqueue}\bigl((t, \mathcal{K}^{(t)}, C^{(t)})\bigr)$\;
+    \While{$\mathcal{Q}.\mathsf{front}().\tau < t - R + 1$}{
+        $\mathcal{Q}.\mathsf{dequeue}()$\;
+    }
+}
+
+\Fn{\textsc{ECP-Download}{$(\mathcal{Q}, \{\mathcal{L}_{i,j}\}, t_{\mathrm{last},i}, t)$}}{
+    \ForEach{$(\tau, \mathcal{K}^{(\tau)}, C^{(\tau)}) \in \mathcal{Q}$}{
+        \If{$t_{\mathrm{last},i} < \tau \le t$}{
+            \ForEach{$j \in \mathcal{K}^{(\tau)}$}{
+                \If{$\tau \notin \{\tau' \mid (\tau', \cdot) \in \mathcal{L}_{i,j}\}$}{
+                    $\mathcal{L}_{i,j} \leftarrow \mathcal{L}_{i,j} \cup \bigl\{(\tau, C_j^{(\tau)})\bigr\}$\;
+                }
+            }
+        }
+    }
+}
+
+\Fn{\textsc{ECP-Sync}{$(\{\mathcal{L}_{i,j}\}, S, \mathbf{w}_i, B, \eta)$}}{
+    $\mathbf{m}_{\mathrm{pre}} \leftarrow \mathbf{0}$\;
+    \ForEach{$j \in \{k \mid \mathcal{L}_{i,k} \neq \emptyset\}$}{
+        $T_{i,j} \leftarrow \{\tau \mid (\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}\}$\;
+        $A_{\mathrm{pre},j} \leftarrow \sum_{\tau \in T_{i,j}} \mathsf{PRPG}(B, \tau)$\;
+        $C_{\mathrm{pre},j} \leftarrow \sum_{\tau \in T_{i,j}} C_j^{(\tau)}$\;
+        $\mathbf{m}_{\mathrm{pre},j} \leftarrow \mathsf{HE.Dec}(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})$\;
+        Update the $j$-th pack of $\mathbf{m}_{\mathrm{pre}}$ with $\mathbf{m}_{\mathrm{pre},j}$\;
+    }
+    $\{\mathcal{L}_{i,j}\} \leftarrow \emptyset$\;
+    \Return $\mathbf{w}_i - \eta \mathbf{m}_{\mathrm{pre}}$
+}
+\end{algorithm}
+
+%------------------------------------------------------------------------------
+\subsubsection{Client One-Step Decryption}
+\label{sssec:prefetch-decrypt}
+%------------------------------------------------------------------------------
+
+\textsc{ECPFL} avoids per-round decryptions by accumulating missed updates into a single composite ciphertext homomorphically.
+Each aggregated pack ciphertext has the form
+\begin{equation}
+C_j^{(\tau)} = \Bigl[\, a^{(\tau)} S + \tilde{p} E_j^{(\tau)} + \mathbf{m}_j^{(\tau)} \Bigr]_{q},
+\label{eq:pack-ciphertext}
+\end{equation}
+where $a^{(\tau)} = \mathsf{PRPG}(B, \tau)$ is the public polynomial, $S = \sum_{i \in \mathcal{C}} s_i$ is the global secret key, and KGC compensatory ciphertexts are already aggregated into $C_j^{(\tau)}$ by \textsc{ESP-Agg}.
+Algebraic alignment across rounds is thus preserved, and the client can independently add ciphertexts in its local accumulator~$\mathcal{L}_{i,j}$.
+
+For client $i$ and any selected pack $j$, let $T_{i,j} = \{\tau \mid (\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}\}$ denote the missed rounds during which pack $j$ was globally selected.
+The client computes its local composite ciphertext
+\begin{equation}
+\begin{aligned}
+    C_{\mathrm{pre},j} &= \sum_{\tau \in T_{i,j}} C_{j}^{(\tau)} \\
+    &= \biggl[\, \sum_{\tau \in T_{i,j}} \Bigl( a^{(\tau)} S + \tilde{p} E_j^{(\tau)} + \mathbf{m}_j^{(\tau)} \Bigr) \biggr]_{q} \\
+    &= \Bigl[\, A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathbf{m}_{\mathrm{pre}, j} \Bigr]_{q},
+    \label{eq:prefetch-accumulation}
+\end{aligned}
+\end{equation}
+where $A_{\mathrm{pre},j} = \sum_{\tau \in T_{i,j}} a^{(\tau)}$ is the accumulated public-polynomial drift, $E_{\mathrm{pre},j} = \sum_{\tau \in T_{i,j}} E_j^{(\tau)}$ is the composite bounded noise, and $\mathbf{m}_{\mathrm{pre}, j}$ is the exact plaintext sum.
+Notably, $C_{\mathrm{pre},j}$ occupies the same asymptotic space as a single-round ciphertext, regardless of $|T_{i,j}|$.
+
+Unlike interactive distributed decryption protocols that require multi-round share exchanges, \textsc{ECPFL} needs only one decryption per pack.
+Following the MK-CKKS primitive, the client extracts the plaintext directly from $C_{\mathrm{pre},j}$ using the global decryption key~$S$:
+\begin{equation}
+\begin{aligned}
+ \mathbf{m}_{\mathrm{pre},j}
+& \leftarrow \mathsf{HE.Dec}(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})\\
+&= \Bigl[\bigl[ C_{\mathrm{pre},j} - A_{\mathrm{pre},j} S \bigr]_{q}\Bigr]_{p} \\
+&=\Bigl[\bigl[\, A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathbf{m}_{\mathrm{pre},j} \bigr]_{q} - \bigl[ A_{\mathrm{pre},j} S\bigr]_q\Bigr]_p,
+\end{aligned}
+\label{eq:one-shot-dec}
+\end{equation}
+where the subtraction of $A_{\mathrm{pre},j} S$ neutralizes the dynamically accumulated public-key component.
+The client assembles $\{\mathbf{m}_{\mathrm{pre},j}\}$ into the full model update $\mathbf{m}_{\mathrm{pre}}$ and applies it via $\mathbf{w}_i \leftarrow \mathbf{w}_i - \eta \mathbf{m}_{\mathrm{pre}}$.
+Because ciphertexts are merged homomorphically before decryption, the client performs only one decryption per selected pack, amortizing cryptographic overhead across the entire prefetch horizon.
+
+\begin{algorithm}[t]
+\caption{\textsc{ECPFL} Main Procedure}
+\label{alg:main}
+\small
+\SetAlgoVlined
+\KwParam{$T, \mathcal{E}, \eta, R, \rho, \beta, k, M > N$}
+\KwInput{Local datasets $\{\mathcal{D}_i\}_{i=1}^{N}$, initial global model $\mathbf{w}^{(0)}$}
+\KwOutput{Final global model synchronized across clients}
+
+\algsec{Initialization}
+\textbf{KGC} generates $\{s_i\}, S=\sum_i s_i, B, \{sd_{i,j}\}_{i<j}$\;
+\textbf{KGC} sends $(s_i, S), \{sd_{i,j}\}_{j\ne i}$ to $c_i$ and $B$ to all clients\;
+\textbf{Server} initializes $\hat{d}\leftarrow d_0$, $G^{(0)}$ from $\mathbf{w}^{(0)}$\;
+\ForEach{$c_i \in \mathcal{C}$}{
+    $\mathbf{w}_i \leftarrow \mathbf{w}^{(0)}$, $\mathbf{r}_i \leftarrow \mathbf{0}$, $t_{\mathrm{last},i} \leftarrow 0$, $\mathcal{L}_{i,j} \leftarrow \emptyset$ for all $j$\;
+}
+
+\For{$t = 1, 2, \ldots, T$}{
+    \algsec{Server-Side Execution}
+    Let target prefetch round $t^* = t + R$\;
+    Select active, inactive, and target-round prefetch sets $\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \mathcal{P}^{(t^*)}$\;
+    Assign each $c_i \in \mathcal{P}^{(t^*)}$ a prefetch start round $P_i^{(t^*)} \in \{t, \dots, t^*-1\}$\;
+    Derive current prefetch set $\mathcal{P}^{(t)} = \{c_i \mid \exists\, t' > t : c_i \in \mathcal{P}^{(t')},\, P_i^{(t')} \le t < t'\}$\;
+    Broadcast $\mathcal{S}^{(t)}, \mathcal{P}^{(t)}$ to all clients\;
+    Receive compensatory perturbation $\mathbf{\Delta}^{(t)}$ from KGC\;
+    Receive obfuscated votes $\{\hat{\mathbf{v}}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}$ from active clients\;
+    $\mathcal{K}^{(t)} \leftarrow \textsc{ESP-Consensus}(\{\hat{\mathbf{v}}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}, \mathbf{\Delta}^{(t)})$\;
+    Broadcast consensus set $\mathcal{K}^{(t)}$ to active clients\;
+    Receive compensatory ciphertexts $\{\mathsf{ct}_{k,j}^{(t)}\}$ from KGC\;
+    Receive sparse ciphertexts $\{\mathsf{ct}_{i,j}^{(t)}\}$ from active clients\;
+    $\{C_j^{(t)}\} \leftarrow \textsc{ESP-Agg}(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \{\mathsf{ct}_{k,j}^{(t)}\}, \mathcal{K}^{(t)})$\;
+    $G^{(t+1)} \leftarrow G^{(t)} - \eta C^{(t)}$\;
+    $\textsc{ECP-Queue}(t, C^{(t)}, \mathcal{K}^{(t)}, \mathcal{Q})$\;
+
+    \algsec{Client-Side Execution}
+    \ForPar{each client $c_i \in \mathcal{C}$}{
+        \uIf{$c_i \in \mathcal{S}^{(t)}$}{
+            $g_i \leftarrow t - t_{\mathrm{last},i}$\;
+            \uIf{$g_i > R$}{Download and decrypt $G^{(t)}$; clear $\{\mathcal{L}_{i,j}\}$\;}
+            \uElseIf{$g_i > 1$}{$\mathbf{w}_i \leftarrow \textsc{ECP-Sync}(\{\mathcal{L}_{i,j}\}, S, \mathbf{w}_i, B, \eta)$\;}
+            $\mathbf{w}_{i, \mathrm{start}} \leftarrow \mathbf{w}_i$; $\mathbf{w}_i \leftarrow \mathsf{SGD}(\mathcal{D}_i, \mathbf{w}_i, \eta, \mathcal{E})$\;
+            $\mathbf{g}_i^{(t)} \leftarrow (\mathbf{w}_{i, \mathrm{start}} - \mathbf{w}_i)/\eta$\;
+            $(\hat{\mathbf{v}}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)}) \leftarrow \textsc{ESP-Vote}(\mathbf{g}_i^{(t)}, \mathbf{r}_i, k, t)$\;
+            send $\hat{\mathbf{v}}_i^{(t)}$; receive $\mathcal{K}^{(t)}$\;
+            $\{\mathsf{ct}_{i,j}^{(t)}\} \leftarrow \textsc{ESP-Enc}(\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, g_i, s_i, \mathsf{PRPG}(B, t))$\;
+            Upload $\{\mathsf{ct}_{i,j}^{(t)}\}$; $t_{\mathrm{last},i} \leftarrow t$\;
+        }
+        \uElseIf{$c_i \in \mathcal{P}^{(t)}$}{$\textsc{ECP-Download}(\mathcal{Q}, \{\mathcal{L}_{i,j}\}, t_{\mathrm{last},i}, t)$\;}
+    }
+    $d^{(t)} \leftarrow$ measured wall-clock duration of round $t$\;
+}
+\end{algorithm}
+
+\begin{algorithm}[t]
+\caption{\textsc{ESP} Upstream Module}
+\label{alg:upload}
+\small
+\KwParam{$J, k, M, \Delta, \gamma_d, \gamma_s$}
+
+\SetKwProg{Fn}{Function}{}{}
+\Fn{\textsc{ESP-Vote}{$(\mathbf{g}_i^{(t)}, \mathbf{r}_i, k, t)$}}{
+    $\tilde{\mathbf{g}}_i^{(t)} \leftarrow \mathbf{g}_i^{(t)} + \mathbf{r}_i$\;
+    $\mathcal{T}_i \leftarrow \argmax_{|\mathcal{T}|=k} \sum_{j \in \mathcal{T}} \|\tilde{\mathbf{g}}_{i,j}^{(t)}\|_2^2$\;
+    $\mathbf{v}_i^{(t)} \in \{0,1\}^J$ with $v_{i,j}^{(t)}=1$ if $j \in \mathcal{T}_i$\;
+    $\mathbf{z}_i^{(t)} \leftarrow [\sum_{j>i}\mathsf{PRG}(sd_{i,j},t) - \sum_{j<i}\mathsf{PRG}(sd_{j,i},t)]_M$\;
+    $\hat{\mathbf{v}}_i^{(t)} \leftarrow [\mathbf{v}_i^{(t)} + \mathbf{z}_i^{(t)}]_M$\;
+    \Return $(\hat{\mathbf{v}}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)})$
+}
+
+\Fn{\textsc{ESP-Consensus}{$(\{\hat{\mathbf{v}}_i^{(t)}\}, \mathbf{\Delta}^{(t)})$}}{
+    $\bar{\mathbf{v}}^{(t)} \leftarrow [\sum_{i \in \mathcal{S}^{(t)}} \hat{\mathbf{v}}_i^{(t)} + \mathbf{\Delta}^{(t)}]_M$\;
+    $\mathcal{K}^{(t)} \leftarrow$ Top-$k$ indices of $\bar{\mathbf{v}}^{(t)}$\;
+    \Return $\mathcal{K}^{(t)}$
+}
+
+\Fn{\textsc{ESP-Enc}{$(\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, g_i, s_i, a^{(t)})$}}{
+    \ForEach{$j \in \mathcal{K}^{(t)}$}{
+        $\mathsf{pt}_{i,j}^{(t)} \leftarrow \mathsf{CKKS.Encode}(\tilde{\mathbf{g}}_{i,j}^{(t)}, \Delta)$\;
+        $\mathsf{ct}_{i,j}^{(t)} \leftarrow [a^{(t)} s_i + \tilde{p} e_{i,j}^{(t)} + \mathsf{pt}_{i,j}^{(t)}]_q$\;
+    }
+    $\mathbf{k}^{(t)} \leftarrow$ binary mask vector for $\mathcal{K}^{(t)}$\;
+    $\mathbf{r}_i \leftarrow \gamma_d \gamma_s^{g_i-1} [\tilde{\mathbf{g}}_i^{(t)} \odot (\mathbf{1}-\mathbf{k}^{(t)})]$\;
+    \Return $\{\mathsf{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$
+}
+
+\Fn{\textsc{ESP-Agg}{$(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \{\mathsf{ct}_{k,j}^{(t)}\}, \mathcal{K}^{(t)})$}}{
+    \ForEach{$j \in \mathcal{K}^{(t)}$}{
+        $C_j^{(t)} \leftarrow \frac{1}{|\mathcal{S}^{(t)}|}\bigl[\sum_{i \in \mathcal{S}^{(t)}} \mathsf{ct}_{i,j}^{(t)} + \sum_{k \in \bar{\mathcal{S}}^{(t)}} \mathsf{ct}_{k,j}^{(t)}\bigr]_q$\;
+    }
+    \Return $\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}$
+}
+\end{algorithm}
+
+\end{document}

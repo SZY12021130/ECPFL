@@ -1,0 +1,299 @@
+[
+  {
+    "key": "conf/ccs/LiJL24",
+    "title": "CAPSID: A Private Session ID System for Small UAVs.",
+    "venue": "CCS",
+    "year": 2024,
+    "authors": [
+      "Yueshen Li"
+    ],
+    "doi": "10.1145/3658644.3690324",
+    "pages": "1791-1805"
+  },
+  {
+    "key": "conf/ccs/Ren0MZYD24",
+    "title": "PIC-BI: Practical and Intelligent Combinatorial Batch Identification for UAV assisted IoT Networks.",
+    "venue": "CCS",
+    "year": 2024,
+    "authors": [
+      "Zhe Ren"
+    ],
+    "doi": "10.1145/3658644.3670303",
+    "pages": "3645-3658"
+  },
+  {
+    "key": "conf/mobicom/0001M0HJ024",
+    "title": "UAV-Assisted Integrated Sensing and Communication for Emergency Rescue Activities Based on Transfer Deep Reinforcement Learning.",
+    "venue": "MobiCom",
+    "year": 2024,
+    "authors": [
+      "Yaxi Liu"
+    ],
+    "doi": "10.1145/3636534.3698220",
+    "pages": "2142-2147"
+  },
+  {
+    "key": "conf/mobicom/XuJT00DY24",
+    "title": "Secure Beamforming and Obstacle Avoidance Trajectory Design for UAV-Assisted ISAC.",
+    "venue": "MobiCom",
+    "year": 2024,
+    "authors": [
+      "Xiaolong Xu"
+    ],
+    "doi": "10.1145/3636534.3698229",
+    "pages": "2197-2202"
+  },
+  {
+    "key": "conf/mobicom/XuZRJZC24",
+    "title": "Scalable Multi-Agent Reinforcement Learning for Effective UAV Scheduling in Multi-Hop Emergency Networks.",
+    "venue": "MobiCom",
+    "year": 2024,
+    "authors": [
+      "Yanggang Xu"
+    ],
+    "doi": "10.1145/3636534.3694730",
+    "pages": "2028-2033"
+  },
+  {
+    "key": "conf/mobicom/ZhaoWMW24",
+    "title": "Few-shot Learning and Data Augmentation for Cross-Domain UAV Fingerprinting.",
+    "venue": "MobiCom",
+    "year": 2024,
+    "authors": [
+      "Tianya Zhao"
+    ],
+    "doi": "10.1145/3636534.3698248",
+    "pages": "2389-2394"
+  },
+  {
+    "key": "conf/mobicom/0001HLDWZ0LC25",
+    "title": "Auto-UIT: Automating UAV Inspection Trajectory by Recognizing Pylon Structure from 3D Point Cloud.",
+    "venue": "MobiCom",
+    "year": 2025,
+    "authors": [
+      "Feng Lyu"
+    ],
+    "doi": "10.1145/3680207.3765244",
+    "pages": "758-772"
+  },
+  {
+    "key": "conf/mobicom/ChenZWC25",
+    "title": "Poster: A Unified Framework for Simultaneous Video Analytics and Streaming on UAVs.",
+    "venue": "MobiCom",
+    "year": 2025,
+    "authors": [
+      "Jinhao Chen"
+    ],
+    "doi": "10.1145/3680207.3765698",
+    "pages": "1395-1397"
+  },
+  {
+    "key": "conf/mobicom/He0LWDZDLC25",
+    "title": "Demo: UAV Trajectory Generation from Sparse and Noisy 3D Point Clouds.",
+    "venue": "MobiCom",
+    "year": 2025,
+    "authors": [
+      "Lijuan He"
+    ],
+    "doi": "10.1145/3680207.3765582",
+    "pages": "1178-1180"
+  },
+  {
+    "key": "conf/mobicom/WuLYFW025",
+    "title": "Demo: AeroRelief: UAV-based Emergency Rescue for Time-Critical Missions.",
+    "venue": "MobiCom",
+    "year": 2025,
+    "authors": [
+      "Chun Ming Wu"
+    ],
+    "doi": "10.1145/3680207.3765585",
+    "pages": "1186-1188"
+  },
+  {
+    "key": "conf/mobisys/Benito-CalvinoB25",
+    "title": "Poster: Joint RF-Gas Sensing for Victim Localization using UAV Networks.",
+    "venue": "MobiSys",
+    "year": 2025,
+    "authors": [
+      "Guillermo Benito-Calvino"
+    ],
+    "doi": "10.1145/3711875.3734566",
+    "pages": "607-608"
+  },
+  {
+    "key": "conf/mobisys/CauweWH25",
+    "title": "GazeboNS3: A Digital Twin System for UAV Swarms.",
+    "venue": "MobiSys",
+    "year": 2025,
+    "authors": [
+      "Dorian Cauwe"
+    ],
+    "doi": "10.1145/3711875.3737659",
+    "pages": "699-704"
+  },
+  {
+    "key": "conf/mobisys/KimJSKWF025",
+    "title": "Continuous Marine Monitoring via Autonomous UAV Handoff.",
+    "venue": "MobiSys",
+    "year": 2025,
+    "authors": [
+      "Heegyeong Kim"
+    ],
+    "doi": "10.1145/3711875.3737661",
+    "pages": "711-716"
+  },
+  {
+    "key": "conf/infocom/ChangKKCW24",
+    "title": "Near-Optimal UAV Deployment for Delay-Bounded Data Collection in IoT Networks.",
+    "venue": "INFOCOM",
+    "year": 2024,
+    "authors": [
+      "Shu-Wei Chang"
+    ],
+    "doi": "10.1109/INFOCOM52122.2024.10621135",
+    "pages": "111-120"
+  },
+  {
+    "key": "conf/infocom/HeSSW00N24",
+    "title": "An Online Joint Optimization Approach for QoE Maximization in UAV-Enabled Mobile Edge Computing.",
+    "venue": "INFOCOM",
+    "year": 2024,
+    "authors": [
+      "Long He"
+    ],
+    "doi": "10.1109/INFOCOM52122.2024.10621306",
+    "pages": "101-110"
+  },
+  {
+    "key": "conf/infocom/MatsonS24",
+    "title": "Online Radio Environment Map Creation via UAV Vision for Aerial Networks.",
+    "venue": "INFOCOM",
+    "year": 2024,
+    "authors": [
+      "N. Cameron Matson"
+    ],
+    "doi": "10.1109/INFOCOM52122.2024.10621219",
+    "pages": "81-90"
+  },
+  {
+    "key": "conf/infocom/Sun0HM0024",
+    "title": "A Two Time-Scale Joint Optimization Approach for UAV-assisted MEC.",
+    "venue": "INFOCOM",
+    "year": 2024,
+    "authors": [
+      "Zemin Sun"
+    ],
+    "doi": "10.1109/INFOCOM52122.2024.10621095",
+    "pages": "91-100"
+  },
+  {
+    "key": "conf/infocom/LiLRG25",
+    "title": "Anchor: A Novel Modeling Methodology for Cooperative UAV-MEC Based on Stochastic Geometry.",
+    "venue": "INFOCOM",
+    "year": 2025,
+    "authors": [
+      "Yan Li"
+    ],
+    "doi": "10.1109/INFOCOM55648.2025.11044603",
+    "pages": "1-10"
+  },
+  {
+    "key": "conf/infocom/ZhouLQ25",
+    "title": "HaDT: Hardening Digital Twins for UAVs-Based Industrial Logistics Distribution Systems.",
+    "venue": "INFOCOM",
+    "year": 2025,
+    "authors": [
+      "Longyu Zhou"
+    ],
+    "doi": "10.1109/INFOCOM55648.2025.11044738",
+    "pages": "1-8"
+  },
+  {
+    "key": "conf/sensys/JamesKS0M24",
+    "title": "Poster Cooperative UAV Sensor Fusion for Precision Localization and Navigation in Load Transport.",
+    "venue": "SenSys",
+    "year": 2024,
+    "authors": [
+      "Alice James"
+    ],
+    "doi": "10.1145/3666025.3699425",
+    "pages": "895-896"
+  },
+  {
+    "key": "conf/sensys/LeeKKLK24",
+    "title": "LTA: Control-Driven UAV Testing and Bug Localization with Flight Record Decomposition.",
+    "venue": "SenSys",
+    "year": 2024,
+    "authors": [
+      "Changyul Lee"
+    ],
+    "doi": "10.1145/3666025.3699350",
+    "pages": "450-463"
+  },
+  {
+    "key": "conf/sensys/ParkCCL24",
+    "title": "Poster: Vehicle-Edge Server Collaborative Task Offloading for UAVs: A Game Theoretic Approach.",
+    "venue": "SenSys",
+    "year": 2024,
+    "authors": [
+      "Jihyun Park"
+    ],
+    "doi": "10.1145/3666025.3699405",
+    "pages": "855-856"
+  },
+  {
+    "key": "conf/sensys/ZhangBY25",
+    "title": "Poster Abstract: Real-Time Active Identification and Tracking of UAVs Using Millimeter-Wave Radar.",
+    "venue": "SenSys",
+    "year": 2025,
+    "authors": [
+      "Liming Zhang"
+    ],
+    "doi": "10.1145/3715014.3724061",
+    "pages": "668-669"
+  },
+  {
+    "key": "conf/ipsn/HsiaXRC24",
+    "title": "Demo Abstract: CARL: Collaborative Altitude-Adaptive Reinforcement Learning for Active Search with UAV Swarms.",
+    "venue": "IPSN",
+    "year": 2024,
+    "authors": [
+      "Chen-Chun Hsia"
+    ],
+    "doi": "10.1109/IPSN61024.2024.00025",
+    "pages": "249-250"
+  },
+  {
+    "key": "conf/ipsn/XiaoLCC0C24",
+    "title": "Poster Abstract: Sprinkler-UAV Cooperative Active Scheduling System.",
+    "venue": "IPSN",
+    "year": 2024,
+    "authors": [
+      "Zijian Xiao"
+    ],
+    "doi": "10.1109/IPSN61024.2024.00040",
+    "pages": "279-280"
+  },
+  {
+    "key": "conf/ipsn/XuJZC24",
+    "title": "Poster Abstract: Emergency Networking Using UAVs: A Reinforcement Learning Approach with Large Language Model.",
+    "venue": "IPSN",
+    "year": 2024,
+    "authors": [
+      "Yanggang Xu"
+    ],
+    "doi": "10.1109/IPSN61024.2024.00041",
+    "pages": "281-282"
+  },
+  {
+    "key": "conf/ipsn/ZhuoLWC24",
+    "title": "Poster Abstract: Adaptive Chirps Domain Window Order of MM-Wave Radar for UAV Motion Capture.",
+    "venue": "IPSN",
+    "year": 2024,
+    "authors": [
+      "Yan Zhuo"
+    ],
+    "doi": "10.1109/IPSN61024.2024.00046",
+    "pages": "291-292"
+  }
+]

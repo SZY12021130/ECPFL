@@ -1,0 +1,22 @@
+This project is based on prior work originally licensed under the
+Creative Commons Attribution-NonCommercial 3.0 Unported License (CC BY-NC 3.0).
+
+Original code:
+Copyright (c) by CryptoLab inc.
+
+This modified version:
+Copyright (c) 2022 Jaihui Wu, Pengcheng Lab.
+
+Licensed under the Creative Commons Attribution-NonCommercial 3.0 Unported License.
+You may not use this work for commercial purposes.
+
+Modifications made by Jiahui Wu include, but are not limited to:
+- rewritten new encryption and decryption modules, 
+- added multi-key support 
+
+This software is provided for academic and non-commercial research use only.
+You must retain the above copyright notice and this license in any redistributions
+or derived works.
+
+To view a copy of this license, visit:
+http://creativecommons.org/licenses/by-nc/3.0/

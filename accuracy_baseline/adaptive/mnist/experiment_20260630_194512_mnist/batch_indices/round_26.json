@@ -1,0 +1,313 @@
+{
+  "round": 26,
+  "mode": "topk",
+  "clients": [
+    {
+      "client_id": 49,
+      "selected_indices": [
+        1,
+        2,
+        5,
+        8,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 27,
+      "selected_indices": [
+        0,
+        1,
+        3,
+        5,
+        6,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 48,
+      "selected_indices": [
+        0,
+        2,
+        5,
+        7,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 33,
+      "selected_indices": [
+        0,
+        1,
+        4,
+        8,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 39,
+      "selected_indices": [
+        0,
+        2,
+        5,
+        6,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 15,
+      "selected_indices": [
+        0,
+        2,
+        4,
+        5,
+        7,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 24,
+      "selected_indices": [
+        0,
+        2,
+        4,
+        5,
+        7,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 38,
+      "selected_indices": [
+        0,
+        3,
+        5,
+        6,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 21,
+      "selected_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 10,
+      "selected_indices": [
+        0,
+        2,
+        3,
+        5,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 32,
+      "selected_indices": [
+        0,
+        2,
+        3,
+        5,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 47,
+      "selected_indices": [
+        0,
+        2,
+        4,
+        6,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 0,
+      "selected_indices": [
+        2,
+        5,
+        7,
+        8,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 14,
+      "selected_indices": [
+        0,
+        2,
+        5,
+        7,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 11,
+      "selected_indices": [
+        0,
+        3,
+        5,
+        6,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 46,
+      "selected_indices": [
+        1,
+        2,
+        5,
+        6,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 8,
+      "selected_indices": [
+        0,
+        1,
+        2,
+        4,
+        5,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 7,
+      "selected_indices": [
+        0,
+        1,
+        3,
+        5,
+        8,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 29,
+      "selected_indices": [
+        0,
+        2,
+        3,
+        4,
+        5,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 9,
+      "selected_indices": [
+        1,
+        2,
+        3,
+        5,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 41,
+      "selected_indices": [
+        1,
+        5,
+        6,
+        8,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 19,
+      "selected_indices": [
+        2,
+        4,
+        7,
+        8,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 30,
+      "selected_indices": [
+        0,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 26,
+      "selected_indices": [
+        0,
+        2,
+        3,
+        7,
+        9,
+        10
+      ],
+      "selected_count": 6
+    },
+    {
+      "client_id": 22,
+      "selected_indices": [
+        0,
+        1,
+        2,
+        5,
+        8,
+        10
+      ],
+      "selected_count": 6
+    }
+  ],
+  "global": {
+    "active_indices": [
+      5,
+      10
+    ],
+    "active_count": 2
+  }
+}

@@ -1,0 +1,167 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{cite}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+\DeclareMathOperator{\HE}{HE.Dec}
+\DeclareMathOperator{\PRPG}{PRPG}
+\DeclareMathOperator{\argmax}{arg\,max}
+
+\begin{document}
+
+\title{Workflow Comparison: FedFetch versus ECP}
+\author{\IEEEauthorblockN{Anonymous Authors}}
+\maketitle
+
+\begin{abstract}
+This note contrasts two downstream prefetching strategies for federated learning: FedFetch, which prefetches plaintext compressed model updates, and ECP, which prefetches sparse CKKS ciphertexts aggregated under a global consensus mask.
+We present each workflow with its native notation and highlight where they differ in communication content, client-side computation, and privacy guarantees.
+\end{abstract}
+
+\section{Notation}
+
+We deliberately keep the two symbol systems separate so that each workflow is described in its own native notation.
+
+\textbf{FedFetch symbols} (following Yan \emph{et al.}~\cite{yan2025fedfetch}):
+\begin{itemize}
+    \item $w^{(t)}$: global model at the beginning of round~$t$;
+    \item $\hat{w}_i^{(t)}$: local model of client~$i$ at round~$t$;
+    \item $K^t$: set of clients selected for round~$t$;
+    \item $C_{dl}(\cdot)$: downstream compressor (masking, quantization, or low-rank);
+    \item $\Phi_{t_1,t_2}=\sum_{\tau=t_1}^{t_2} C_{dl}\bigl(\Delta^{(\tau)}\bigr)$: accumulated compressed server updates from round~$t_1$ to round~$t_2$, where $\Delta^{(\tau)}=w^{(\tau+1)}-w^{(\tau)}$ is the global update at round~$\tau$;
+    \item $R$: prefetch horizon---clients presampled $R$ rounds in advance;
+    \item $P_i$: prefetch start round assigned to client~$i$.
+\end{itemize}
+
+\textbf{ECP symbols}:
+\begin{itemize}
+    \item $G^{(t)}$: server-side global model ciphertext at the beginning of round~$t$;
+    \item $\mathbf{w}_i^{(t)}$: plaintext local model of client~$i$ at round~$t$;
+    \item $\mathcal{S}^{(t)}$: active client set at round~$t$;
+    \item $\mathcal{K}^{(\tau)}$: global consensus mask at round~$\tau$;
+    \item $C_j^{(\tau)}$: aggregated CKKS ciphertext for pack~$j$ at round~$\tau$;
+    \item $\mathcal{Q}$: server-side sliding queue of length~$R$ for aggregated update ciphertexts;
+    \item $R$: prefetch horizon, with target training round $t^*=t+R$;
+    \item $\mathcal{P}^{(t^*)}, P_i^{(t^*)}$: presampled client set for target~$t^*$ and prefetch start round;
+    \item $\mathcal{P}^{(t)}$: current prefetch client set at round~$t$;
+    \item $g_i=t-t_{\mathrm{last},i}$: number of rounds client~$i$ has missed.
+\end{itemize}
+
+\section{FedFetch Workflow}
+
+FedFetch adds two phases before the standard Train phase: Prepare and Prefetch.
+During Prepare, the server presamples the clients that will train in round~$t^*=t+R$ and assigns each client a prefetch start round~$P_i\in\{t,\dots,t^*-1\}$.
+During Prefetch, client~$i$ greedily downloads compressed server updates whenever it is idle.
+
+When client~$i$ finally enters its Train phase at round~$t^*$, its local model is synchronized by adding the base model at~$P_i$ and all compressed updates from $P_i$ to $t^*-1$:
+\begin{equation}
+    \hat{w}_i^{(t^*)}
+    = w^{(P_i)} + \Phi_{P_i,\,t^*-1}
+    = w^{(P_i)} + \sum_{\tau=P_i}^{t^*-1} C_{dl}\bigl(\Delta^{(\tau)}\bigr).
+    \label{eq:fedfetch-sync}
+\end{equation}
+After synchronization, the client runs local training and uploads its compressed update:
+\begin{equation}
+    \hat{\delta}_i^{(t^*)} = C_{dl}\Bigl(\mathrm{LocalTrain}\bigl(\hat{w}_i^{(t^*)}\bigr) - \hat{w}_i^{(t^*)}\Bigr).
+\end{equation}
+Because FedFetch operates on plaintext-compressed updates, accumulation is a simple vector addition and no decryption is required at the client.
+The price is that the server sends model-update content in the clear (although compressed), and the communicated volume is dominated by the base model~$w^{(P_i)}$ plus the accumulated update~$\Phi_{P_i,t^*-1}$.
+
+\section{ECP Workflow}
+
+ECP also separates the workflow into Prepare, Prefetch, and Train phases, but the prefetched objects are not plaintext updates.
+Instead, ECP prefetches sparse pack-level aggregated CKKS ciphertexts produced by the upstream ESP protocol.
+
+\subsection{Prepare Phase}
+At round~$t$, the server selects active clients~$\mathcal{S}^{(t)}$, inactive clients~$\bar{\mathcal{S}}^{(t)}$, and a target-round prefetch set~$\mathcal{P}^{(t^*)}$ for $t^*=t+R$.
+Each client $c_i\in\mathcal{P}^{(t^*)}$ is assigned a prefetch start round $P_i^{(t^*)}\in\{t,\dots,t^*-1\}$.
+The server derives the current prefetch set $\mathcal{P}^{(t)}=\{c_i \mid \exists\, t' > t : c_i \in \mathcal{P}^{(t')},\, P_i^{(t')} \le t < t'\}$ and broadcasts $\mathcal{S}^{(t)},\mathcal{P}^{(t)}$ to all clients.
+After ESP aggregation, the server obtains the sparse update ciphertext
+\begin{equation}
+    C^{(t)} = \bigl\{C_j^{(t)}\bigr\}_{j\in\mathcal{K}^{(t)}},
+\end{equation}
+where each pack ciphertext has the form
+\begin{equation}
+    C_j^{(t)} = \Bigl[\, a^{(t)} S + \tilde{p} E_j^{(t)} + \mathbf{m}_j^{(t)} \Bigr]_q,
+    \label{eq:ecp-pack}
+\end{equation}
+with $a^{(t)}=\PRPG(B,t)$ the public polynomial, $S=\sum_{i\in\mathcal{C}} s_i$ the global decryption key, and KGC compensatory ciphertexts already embedded in~$C_j^{(t)}$ by ESP-Agg.
+The server then advances the authoritative global ciphertext
+\begin{equation}
+    G^{(t+1)} = G^{(t)} - \eta C^{(t)},
+\end{equation}
+and enqueues $(t,\mathcal{K}^{(t)},C^{(t)})$ into a sliding queue~$\mathcal{Q}$ of length~$R$, evicting entries older than $t-R+1$.
+The complete ciphertext~$G^{(t)}$ is never sent to clients; only the sparse queue entries are eligible for prefetch.
+
+\subsection{Prefetch Phase}
+At round~$t$, each client $c_i \in \mathcal{P}^{(t)}$ scans~$\mathcal{Q}$ and downloads only those pack ciphertexts it has missed:
+\begin{equation}
+    \mathcal{L}_{i,j} \leftarrow \mathcal{L}_{i,j} \cup \bigl\{(\tau, C_j^{(\tau)}) \mid \tau\in(P_i^{(t^*)},t],\; j\in\mathcal{K}^{(\tau)},\; (\tau,\cdot)\notin\mathcal{L}_{i,j}\bigr\}.
+\end{equation}
+Non-consensus packs ($j\notin\mathcal{K}^{(\tau)}$) carry no update and are never transmitted.
+
+\subsection{Train Phase}
+At round~$t$, each selected client $c_i \in \mathcal{S}^{(t)}$ invokes \textsc{ECP-Sync} to merge the cached ciphertexts and recover the plaintext update.
+For each selected pack~$j$, define the set of missed consensus rounds
+\begin{equation}
+    T_{i,j} = \bigl\{\tau \mid (\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}\bigr\}.
+\end{equation}
+The client homomorphically accumulates
+\begin{equation}
+    C_{\mathrm{pre},j}
+    = \sum_{\tau\in T_{i,j}} C_j^{(\tau)}
+    = \Bigl[\, A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathbf{m}_{\mathrm{pre},j} \Bigr]_q,
+    \label{eq:ecp-composite}
+\end{equation}
+where $A_{\mathrm{pre},j}=\sum_{\tau\in T_{i,j}} a^{(\tau)}$ and $E_{\mathrm{pre},j}=\sum_{\tau\in T_{i,j}} E_j^{(\tau)}$.
+A single MK-CKKS decryption per pack then yields
+\begin{equation}
+    \mathbf{m}_{\mathrm{pre},j}
+    = \HE(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})
+    = \Bigl[\bigl[ C_{\mathrm{pre},j} - A_{\mathrm{pre},j} S \bigr]_q\Bigr]_p.
+    \label{eq:ecp-decrypt}
+\end{equation}
+The client assembles the pack updates into $\mathbf{m}_{\mathrm{pre}}$ and synchronizes
+\begin{equation}
+    \mathbf{w}_i^{(t^*)} = \mathbf{w}_i^{(t_{\mathrm{last},i})} - \eta \mathbf{m}_{\mathrm{pre}}.
+    \label{eq:ecp-sync}
+\end{equation}
+
+\section{Key Differences}
+
+\begin{table}[h]
+\centering
+\caption{FedFetch versus ECP}
+\label{tab:comparison}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Aspect & FedFetch & ECP \\
+\midrule
+Prefetched object & Plaintext compressed update & Sparse CKKS ciphertext \\
+Server-to-client privacy & None (compressed plaintext) & HE-protected \\
+Client accumulation & Vector addition & Homomorphic addition \\
+Client synchronization & Direct model update & Decrypt-then-update \\
+Storage at server & Recent global models & Queue~$\mathcal{Q}$ of length~$R$ \\
+Sparse granularity & Downstream compressor & Global consensus mask~$\mathcal{K}^{(\tau)}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The fundamental distinction is the \\\emph{domain of prefetching}.
+FedFetch prefetches in the plaintext-compressed domain: the client downloads $w^{(P_i)}$ and $\Phi_{P_i,t^*-1}$, adds them, and trains.
+ECP prefetches in the encrypted domain: the client downloads only consensus-selected pack ciphertexts, merges them homomorphically, decrypts once per pack, and then trains.
+Consequently, FedFetch minimizes server-side computation but exposes compressed updates to the client (and potentially to eavesdroppers), whereas ECP preserves confidentiality at the cost of one decryption per consensus pack and a sparse ciphertext prefetching protocol.
+
+\bibliographystyle{IEEEtran}
+\begin{thebibliography}{1}
+\bibitem{yan2025fedfetch}
+Q.~Yan, A.~Liu, S.~He, M.~Lecuyer, and I.~Beschastnikh, ``FedFetch: Faster federated learning with adaptive downstream prefetching,'' in \emph{IEEE INFOCOM 2025---IEEE Conference on Computer Communications}, 2025.
+\end{thebibliography}
+
+\end{document}

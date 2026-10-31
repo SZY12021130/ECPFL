@@ -1,0 +1,509 @@
+vsize = 101770; 
+logQ = 478;
+logq0 = 16;
+number split = 1
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1023.64 ms
+------------------
+client_total_enc_time = 1023.64/5 = 204.728 ms
+
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 34.203 ms
+total_add_time = 34.203 ms
+
+number split = 1
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 231.682 ms
+------------------
+total_dec_time = 231.682 ms
+**************************************************************************************************
+vsize = 1250000; 
+logQ = 478;
+logq0 = 16;
+number split = 4
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1265.09 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1177.54 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1166.7 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 996.63 ms
+------------------
+client_total_enc_time = (1265.09+1177.54+1166.7+996.63)/5 = 921.192ms
+
+number split = 4
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 35.829 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 38.611 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 35.597 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 35.685 ms
+------------------
+total_add_time = 35.829 + 38.611 + 35.597 + 35.685 = 145.722 ms
+
+number split = 4
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 222.081 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 238.724 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 233.46 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 214.797 ms
+------------------
+total_dec_time = 909.062 ms
+*****************************************************************************************************************
+
+vsize = 4020000; 
+logQ = 478;
+logq0 = 16;
+number split = 12
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1296.66 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1164.89 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1315.31 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1242.62 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1357.72 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1247.12 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1205.64 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1180.18 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1193.49 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1209.34 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1195.61 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 881.813 ms
+------------------
+client_total_enc_time = 2898.072ms
+
+number split = 12
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 38.408 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 35.049 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 37.371 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 37.253 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 41.058 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 40.716 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 35.846 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 37.127 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 40.811 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 36.029 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 39.081 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 37.15 ms
+------------------
+total_add_time = 455.899 ms
+
+
+number split = 12
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 203.918 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 217.298 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 256.592 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 266.826 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 243.268 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 207.282 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 229.447 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 227.417 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 216.641 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 236.834 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 236.677 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 264.548 ms
+------------------
+total_dec_time = 2806.748 ms
+
+
+*****************************************************************************************************************
+
+
+
+vsize = 4020000; 
+logQ = 256; 1024; 2048; 3072
+split_num = 50; 10; 5; 3
+
+Computational time:
+encryption = XX; 2937.464ms; 3113.627ms; 2761.142ms
+cipher Add = XX; 549.11ms; 408.443ms; 300.913ms
+decryptoin = XX; 2897.469ms; 3700.692ms; 3629.38ms
+
+communication traffic: 
+plain 32, cipher 256, cipher 1024, cipher 2048, cipher 3072
+122.68MB, 200MB, 160MB, 160MB, 144MB
+
+
+!!! END Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ make
+rm -rf TestMKHE3
+Building target: TestMKHE3
+Invoking: GCC C++ Linker
+g++ mkRun.cpp -o TestMKHE3 -L/usr/local/lib ../lib/libMKHE.a -lntl -lgmp -lm -std=c++11 -O2 -I/../src -pthread
+Finished building target: TestMKHE3
+ 
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ ./TestMKHE3
+!!! START Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+number split = 10
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1447.68 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 57.421 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 316.217 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1419.79 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 57.793 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 315.906 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1567.51 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 57.987 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 283.198 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1589.46 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 51.268 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 252.385 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1362.26 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 52.286 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 254.614 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1339.84 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 53.922 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 253.769 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1334.22 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 53.479 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 255.951 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1382.31 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 54.215 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 256.607 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1770.3 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 52.772 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 375.507 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 1473.75 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 57.968 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 333.315 ms
+------------------
+!!! END Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ make
+rm -rf TestMKHE3
+Building target: TestMKHE3
+Invoking: GCC C++ Linker
+g++ mkRun.cpp -o TestMKHE3 -L/usr/local/lib ../lib/libMKHE.a -lntl -lgmp -lm -std=c++11 -O2 -I/../src -pthread
+Finished building target: TestMKHE3
+ 
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ ./TestMKHE3
+!!! START Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+number split = 5
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 3037.2 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 81.572 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 668.735 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 2989.05 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 80.918 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 774.2 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 3070.84 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 80.24 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 697.889 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 3225.4 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 79.792 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 817.821 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 3245.87 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 85.921 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 742.047 ms
+------------------
+!!! END Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ make
+rm -rf TestMKHE3
+Building target: TestMKHE3
+Invoking: GCC C++ Linker
+g++ mkRun.cpp -o TestMKHE3 -L/usr/local/lib ../lib/libMKHE.a -lntl -lgmp -lm -std=c++11 -O2 -I/../src -pthread
+Finished building target: TestMKHE3
+ 
+(base) wjh@wjh-ThinkPad-L14-Gen-1:~/HE_encryption/SecFL/MKHE/MKHE-V3/run$ ./TestMKHE3
+!!! START Aggregating Arraries with Encoding, Packing, and Encrypting!!!
+number split = 3
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 4714.35 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 97.298 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 1196.45 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 4616.03 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 98.766 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 1210.02 ms
+------------------
+------------------
+Start Multikey five clients' complexes encoding, packing, and encrypting
+Multikey five clients' complexes encoding, packing, and encrypting time = 4475.33 ms
+------------------
+------------------
+Start Homomorphic Addition
+Homomorphic Addition time = 104.849 ms
+------------------
+------------------
+Start Multikey five clients' complexes decrypting, unpacking, and decoding
+Multikey five clients' complexes decrypting, unpacking, and decoding time = 1222.91 ms
+------------------
+!!! END Aggregating Arraries with Encoding, Packing, and Encrypting!!!

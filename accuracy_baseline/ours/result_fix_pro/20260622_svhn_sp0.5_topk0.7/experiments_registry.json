@@ -1,0 +1,46 @@
+[
+  {
+    "timestamp": "20260702_232617",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result\\experiment_20260702_232617_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 95.2020590043024,
+      "final_test_loss": 0.18270936873810095,
+      "total_time_sec": 923.173006378731,
+      "total_communication_mb": 32435.726068496704,
+      "avg_round_time_sec": 18.46346012757462,
+      "avg_upload_kb": 652911.269609375,
+      "avg_download_kb": 11372.4002734375,
+      "avg_expansion_ratio": 14.244223961480284,
+      "avg_encryption_time_sec": 0.4877211883544922,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.614444732666016,
+      "total_ciphertext_blocks": 100000,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 6.014003753662109e-05,
+      "avg_fetch_time_sec": 0.07604726088449026,
+      "avg_apply_time_sec": 0.15546668453216553,
+      "total_prefetch_download_kb": 43387428.19824219,
+      "total_fetch_download_kb": 568620.013671875
+    }
+  }
+]

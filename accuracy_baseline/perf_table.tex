@@ -1,0 +1,59 @@
+% DEPRECATED: outdated draft. Use accuracy_baseline/analysis/perf_evaluation.tex instead.
+\begin{table}[t]
+\centering
+\caption{End-to-End Performance Breakdown Across Baseline Algorithms and Datasets}
+\label{tab:perf_evaluation}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{ll c c c}
+\toprule
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Algorithm}} & \textbf{Counts} & \textbf{Comm. Vol. (MB)} & \textbf{Latency (s)} \\
+\cmidrule(lr){3-3} \cmidrule(lr){4-4} \cmidrule(lr){5-5}
+& & \scriptsize $N_{\mathrm{up}} \,/\, N_{\mathrm{agg}}$ & \scriptsize Up $\,/\,$ Down & \scriptsize Up $\,/\,$ Down $\,/\,$ \textbf{TT} \\
+\midrule
+
+% ---------------- MNIST ----------------
+\multirow{5}{*}{\textbf{MNIST}}
+& FedAvg+CKKS & $275 \,/\, 275$ & $87.7 \,/\, 62.2$ & $7.4 \,/\, 2.7 \,/\, 18.7$ \\
+& FedPHE      & $50 \,/\, 50$   & $15.9 \,/\, 63.0$ & $1.3 \,/\, 2.7 \,/\, 4.6$ \\
+& ESAFL       & $275 \,/\, 275$ & $87.7 \,/\, 62.2$ & $7.4 \,/\, 2.7 \,/\, 35.3$ \\
+& MASER       & $-- \,/\, --$   & $-- \,/\, --$     & $-- \,/\, -- \,/\, --$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL (Ours)} & $\mathbf{50} \,/\, \mathbf{1}$ & $\mathbf{15.9} \,/\, \mathbf{0.3}$ & $\mathbf{1.3} \,/\, \mathbf{0.0} \,/\, \mathbf{2.4}$ \\
+\midrule
+
+% ---------------- FMNIST ----------------
+\multirow{5}{*}{\textbf{FMNIST}}
+& FedAvg+CKKS & $250 \,/\, 250$ & $79.7 \,/\, 56.6$ & $6.4 \,/\, 2.3 \,/\, 25.3$ \\
+& FedPHE      & $25 \,/\, 25$   & $8.0 \,/\, 72.9$  & $0.6 \,/\, 2.9 \,/\, 4.9$ \\
+& ESAFL       & $250 \,/\, 250$ & $79.7 \,/\, 56.6$ & $6.4 \,/\, 2.3 \,/\, 48.1$ \\
+& MASER       & $-- \,/\, --$   & $-- \,/\, --$     & $-- \,/\, -- \,/\, --$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL (Ours)} & $\mathbf{75} \,/\, \mathbf{1}$ & $\mathbf{23.9} \,/\, \mathbf{0.4}$ & $\mathbf{1.9} \,/\, \mathbf{0.0} \,/\, \mathbf{3.3}$ \\
+\midrule
+
+% ---------------- CIFAR-10 ----------------
+\multirow{5}{*}{\textbf{CIFAR-10}}
+& FedAvg+CKKS & $1675 \,/\, 1675$ & $534.0 \,/\, 379.1$ & $36.4 \,/\, 12.9 \,/\, 94.9$ \\
+& FedPHE      & $850 \,/\, 850$   & $271.0 \,/\, 379.4$ & $13.1 \,/\, 9.1 \,/\, 31.7$ \\
+& ESAFL       & $1675 \,/\, 1675$ & $534.0 \,/\, 379.1$ & $36.4 \,/\, 12.9 \,/\, 179.7$ \\
+& MASER       & $-- \,/\, --$     & $-- \,/\, --$       & $-- \,/\, -- \,/\, --$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL (Ours)} & $\mathbf{1175} \,/\, \mathbf{1}$ & $\mathbf{374.6} \,/\, \mathbf{7.7}$ & $\mathbf{25.5} \,/\, \mathbf{0.3} \,/\, \mathbf{29.0}$ \\
+\midrule
+
+% ---------------- SVHN ----------------
+\multirow{5}{*}{\textbf{SVHN}}
+& FedAvg+CKKS & $1175 \,/\, 1175$ & $374.6 \,/\, 266.0$ & $26.6 \,/\, 9.5 \,/\, 59.0$ \\
+& FedPHE      & $1450 \,/\, 1450$ & $462.3 \,/\, 651.3$ & $32.9 \,/\, 23.2 \,/\, 64.4$ \\
+& ESAFL       & $2875 \,/\, 2875$ & $916.6 \,/\, 650.7$ & $65.2 \,/\, 23.1 \,/\, 393.8$ \\
+& MASER       & $-- \,/\, --$     & $-- \,/\, --$       & $-- \,/\, -- \,/\, --$ \\
+& \textbf{ECPFL (Ours)} & $-- \,/\, --$ & $-- \,/\, --$ & $-- \,/\, -- \,/\, --$ \\
+
+\bottomrule
+\multicolumn{5}{l}{\scriptsize \textit{Note:} $N_{\mathrm{up}}$ denotes upload ciphertext batches per round; $N_{\mathrm{agg}}$ denotes aggregation operations per round.} \\
+\multicolumn{5}{l}{\scriptsize MASER results pending; Ours SVHN pending. Latency estimated from per-client bandwidth (UL $\approx$4\,Mbps, DL $\approx$8\,Mbps).} \\
+\multicolumn{5}{l}{\scriptsize ESAFL uses 25 clients (100\% sampling); FedAvg+CKKS, FedPHE, Ours use 50 clients (50\% sampling). All run 50 rounds, 3 local epochs, Non-IID.} \\
+\multicolumn{5}{l}{\scriptsize FedAvg+CKKS SVHN uses CNN; ESAFL SVHN uses ResNet32. FedPHE CIFAR-10/SVHN and Ours all use top-k gradient sparsification.}
+\end{tabular}
+}
+\end{table}

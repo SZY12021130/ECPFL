@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "20260616_013739",
+    "output_dir": "accuracy_baseline/fedavg+ckks/result_fix_pro\\experiment_20260616_013739_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 98.86,
+      "final_test_loss": 0.03386149471304292,
+      "total_time_sec": 818.2523539066315,
+      "total_communication_mb": 7495.738832473755,
+      "avg_round_time_sec": 16.36504707813263,
+      "avg_upload_kb": 89774.2928125,
+      "avg_download_kb": 63738.4384765625,
+      "avg_expansion_ratio": 20.692584486561923,
+      "avg_encryption_time_sec": 0.03638332405090332,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.795253753662,
+      "total_ciphertext_blocks": 13750,
+      "prefetch_enabled": false
+    }
+  }
+]

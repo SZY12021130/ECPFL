@@ -1,0 +1,46 @@
+[
+  {
+    "timestamp": "20260709_141513",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\mnist_threshold_pct_0.1_sp0.1\\experiment_20260709_141513_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 98.67,
+      "final_test_loss": 0.03923600277551249,
+      "total_time_sec": 375.52220547638706,
+      "total_communication_mb": 2219.2675170898438,
+      "avg_round_time_sec": 7.510444109527741,
+      "avg_upload_kb": 44724.3386328125,
+      "avg_download_kb": 726.2601171875,
+      "avg_expansion_ratio": 10.308765758789898,
+      "avg_encryption_time_sec": 0.035527570152282716,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.65793228149414,
+      "total_ciphertext_blocks": 6850,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 1.8855667114257812e-05,
+      "avg_fetch_time_sec": 0.03031933686677525,
+      "avg_apply_time_sec": 0.010042685508728028,
+      "total_prefetch_download_kb": 2985004.0009765625,
+      "total_fetch_download_kb": 36313.005859375
+    }
+  }
+]

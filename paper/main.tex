@@ -1,0 +1,171 @@
+\documentclass[a4paper,12pt]{article}
+\usepackage[UTF8,fontset=fandol]{ctex}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+% 使用 algorithm2e 包，符合 SCI 顶刊标准
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\SetAlgoLined
+\newcommand{\CommentStyle}[1]{\footnotesize\sffamily\textcolor{blue}{#1}}
+\SetCommentSty{CommentStyle}
+\SetKwComment{tcp}{}{}
+\SetKwInput{KwParam}{Parameters}
+\SetKw{Return}{return}
+
+\title{\textbf{Optimized Algorithms for ECPFL}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\noindent\textbf{Notation.} 
+$\mathcal{C}_i$ denotes the $i$-th client, $\mathcal{S}^{(t)}$ the active set in round $t$, 
+$\bar{\mathcal{S}}^{(t)}$ the idle set, $\mathbf{w}_i$ the local model, $\mathbf{r}_i$ the residual vector, 
+$\mathcal{K}^{(t)}$ the consensus pack set, and $\mathcal{Q}_j$ the server-side update queue for pack $j$.
+
+% ========================================================================
+\begin{algorithm}[t]
+\caption{\textsc{ECPFL} Main Procedure}
+\label{alg:main}
+\small
+\KwIn{Local datasets $\{\mathcal{D}_i\}_{i=1}^{N}$, initial global model $\mathbf{w}^{(0)}$}
+\KwOut{Final global model synchronized across clients}
+\KwParam{Total rounds $T$, local epochs $E$, learning rate $\eta$, prefetch window $R$, sparsity $k$}
+
+\tcp*[l]{Initialization}
+\textbf{KGC} generates client keys $\{s_i\}_{i=1}^N$, global decryption key $S = \sum_{i} s_i$, and PRPG seed $B$\;
+Distribute $(s_i, S)$ to each client $\mathcal{C}_i$, and distribute seed $B$ to Server and all clients\;
+\ForEach{client $\mathcal{C}_i \in \mathcal{C}$}{\label{line:init}
+    $\mathbf{w}_i \leftarrow \mathbf{w}^{(0)}$, \quad $\mathbf{r}_i \leftarrow \mathbf{0}$, \quad $t_{\text{last},i} \leftarrow 0$\;
+}
+
+\For{$t = 1, 2, \ldots, T$}{\label{line:round}
+    \tcp*[l]{Server: Client Selection}
+    Select active set $\mathcal{S}^{(t)}$ and idle set $\bar{\mathcal{S}}^{(t)}$\;\label{line:select}
+    
+    \BlankLine
+    \tcp*[l]{Active Clients: Local Training and Voting}
+    \ForEach(\tcp*[f]{executed in parallel}){client $\mathcal{C}_i \in \mathcal{S}^{(t)}$}{\label{line:train_start}
+        \If(\tcp*[f]{prefetch model if previously idle}){$t - t_{\text{last},i} > 1$}{\label{line:prefetch}
+            Retrieve accumulated queues $\{\mathcal{Q}_j\}_{j=1}^{J}$ from Server\;
+            $\mathbf{w}_i \leftarrow \textsc{ECP-Sync}\bigl(\{\mathcal{Q}_j\}, S, \mathbf{w}_i, \eta\bigr)$\tcp*[r]{Alg.~\ref{alg:download}}
+        }
+        $\mathbf{w}_{i,\text{start}} \leftarrow \mathbf{w}_i$\;\label{line:start}
+        $\mathbf{w}_i \leftarrow \mathsf{SGD}(\mathcal{D}_i, \mathbf{w}_i, \eta, E)$\;\label{line:sgd}
+        $\mathbf{g}_i^{(t)} \leftarrow \frac{1}{\eta}\bigl(\mathbf{w}_{i,\text{start}} - \mathbf{w}_i\bigr)$\;\label{line:grad}
+        $(\mathbf{m}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)}) \leftarrow \textsc{ESP-Vote}\bigl(\mathbf{g}_i^{(t)}, \mathbf{r}_i, k\bigr)$\tcp*[r]{Alg.~\ref{alg:upload}}\label{line:vote}
+        Submit masked vote $\mathbf{m}_i^{(t)}$ to the secure-aggregation primitive\;\label{line:send_mask}
+    }\label{line:train_end}
+    
+    \BlankLine
+    \tcp*[l]{Server: Secure Vote Aggregation and Consensus}
+    Collect masked votes $\{\mathbf{m}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}$\;\label{line:recv_mask}
+    $\mathcal{K}^{(t)} \leftarrow \textsc{ESP-Consensus}\bigl(\{\mathbf{m}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}\bigr)$\tcp*[r]{server learns only aggregate votes}\label{line:consensus}
+    Broadcast consensus set $\mathcal{K}^{(t)}$ to all active clients\;\label{line:broadcast}
+    
+    \BlankLine
+    \tcp*[l]{Active Clients: Sparse Encryption and Upload}
+    \ForEach(\tcp*[f]{executed in parallel}){client $\mathcal{C}_i \in \mathcal{S}^{(t)}$}{\label{line:enc_start}
+        $gap_i \leftarrow t - t_{\text{last},i}$\;\label{line:gap}
+        $(\{\mathsf{ct}_{i,j}^{(t)}\}, \mathbf{r}_i) \leftarrow \textsc{ESP-Enc}\bigl(\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, \mathbf{r}_i, gap_i, s_i\bigr)$\tcp*[r]{Alg.~\ref{alg:upload}}\label{line:enc}
+        Upload sparse ciphertexts $\{\mathsf{ct}_{i,j}^{(t)}\}$ to Server\;\label{line:upload}
+        Update local active round $t_{\text{last},i} \leftarrow t$\;\label{line:update_tlast}
+    }\label{line:enc_end}
+    
+    \BlankLine
+    \tcp*[l]{Server: Secure Aggregation and Queue Update}
+    Receive sparse ciphertexts $\{\mathsf{ct}_{i,j}^{(t)}\}_{i \in \mathcal{S}^{(t)}}$\;\label{line:recv_ct}
+    $\{C_j^{(t)}\} \leftarrow \textsc{ESP-Agg}\bigl(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \mathcal{K}^{(t)}\bigr)$\tcp*[r]{Alg.~\ref{alg:upload}}\label{line:agg}
+    $\{\mathcal{Q}_j\} \leftarrow \textsc{ECP-QueueUpdate}\bigl(\{C_j^{(t)}\}, \mathcal{K}^{(t)}\bigr)$\tcp*[r]{Alg.~\ref{alg:download}}\label{line:queue}
+}
+\Return globally synchronized model\;
+\end{algorithm}
+
+% ========================================================================
+\begin{algorithm}[t]
+\caption{\textsc{ESP} Upstream Module}
+\label{alg:upload}
+\small
+\KwParam{Total packs $J$, sparsity $k$, scale $\Delta$, decay factors $\gamma_{d}, \gamma_{s}$}
+
+\SetKwProg{Fn}{Function}{:}{}
+
+\Fn{\textsc{ESP-Vote}($\mathbf{g}_i^{(t)}, \mathbf{r}_i, k$)}{\label{fn:vote}
+    $\tilde{\mathbf{g}}_i^{(t)} \leftarrow \mathbf{g}_i^{(t)} + \mathbf{r}_i$\;\label{line:residual_add}
+    $\mathcal{T}_i \leftarrow \text{Top-}k\text{ indices of } \bigl\{ \|\tilde{\mathbf{g}}_{i,j}^{(t)}\|_2^2 \bigr\}_{j=1}^{J}$\;\label{line:topk}
+    Construct raw vote bitmap $\mathbf{v}_i^{(t)} \in \{0,1\}^{J}$ with $v_{i,j}^{(t)} = \mathbf{1}[j \in \mathcal{T}_i]$\;\label{line:bitmap}
+    $\mathbf{m}_i^{(t)} \leftarrow \textsc{SecAgg.Mask}\bigl(\mathbf{v}_i^{(t)}\bigr)$\tcp*[r]{mask vote before sending to server}\label{line:vote_mask}
+    \Return $(\mathbf{m}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)})$\;\label{line:vote_return}
+}
+
+\BlankLine
+\Fn{\textsc{ESP-Consensus}($\{\mathbf{m}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}$)}{\label{fn:consensus}
+    $\bar{\mathbf{v}}^{(t)} \leftarrow \textsc{SecAgg.Aggregate}\bigl(\{\mathbf{m}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}\bigr)$\tcp*[r]{only the sum of votes is revealed}\label{line:agg_votes}
+    $\mathcal{K}^{(t)} \leftarrow \text{Top-}k\text{ indices of } \bar{\mathbf{v}}^{(t)}$\;\label{line:consensus_topk}
+    \Return $\mathcal{K}^{(t)}$\;\label{line:consensus_return}
+}
+
+\BlankLine
+\Fn{\textsc{ESP-Enc}($\tilde{\mathbf{g}}_i^{(t)}, \mathcal{K}^{(t)}, \mathbf{r}_i, gap_i, s_i$)}{\label{fn:enc}
+    Derive global selection mask $\mathbf{U}^{(t)}$ where $U_{j}^{(t)} = \mathbf{1}[j \in \mathcal{K}^{(t)}]$\;\label{line:mask}
+    \ForEach{$j \in \mathcal{K}^{(t)}$}{\label{line:enc_loop}
+        $\mathsf{pt}_{i,j}^{(t)} \leftarrow \mathsf{CKKS.Encode}\bigl(\tilde{\mathbf{g}}_{i,j}^{(t)}, \Delta\bigr)$\;\label{line:encode}
+        $\mathsf{ct}_{i,j}^{(t)} \leftarrow \bigl[ a^{(t)} \cdot s_i + \tilde{p} \cdot e_{i,j}^{(t)} + \mathsf{pt}_{i,j}^{(t)} \bigr]_{q}$\tcp*[r]{client-specific HE encryption}\label{line:he_enc}
+    }
+    $\mathbf{r}_i \leftarrow \gamma_{d} \, \gamma_{s}^{(gap_i-1)} \Bigl[ \tilde{\mathbf{g}}_i^{(t)} \odot \bigl(\mathbf{1} - \mathbf{U}^{(t)}\bigr) \Bigr]$\tcp*[r]{residual decay for unselected packs}\label{line:new_residual}
+    \Return $\bigl(\{\mathsf{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}, \mathbf{r}_i\bigr)$\;\label{line:enc_return}
+}
+
+\BlankLine
+\Fn{\textsc{ESP-Agg}($\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \{\mathsf{ct}_{i,j}^{(t)}\}, \mathcal{K}^{(t)}$)}{\label{fn:agg}
+    \ForEach{$j \in \mathcal{K}^{(t)}$}{\label{line:agg_loop}
+        \textbf{KGC} locally generates null-compensatory ciphertexts $\{\mathsf{ct}_{k,j}^{(t)}\}$ for $k \in \bar{\mathcal{S}}^{(t)}$\tcp*[r]{privacy-preserving padding}\label{line:null}
+        $C_j^{(t)} \leftarrow \sum_{i \in \mathcal{S}^{(t)}} \mathsf{ct}_{i,j}^{(t)} + \sum_{k \in \bar{\mathcal{S}}^{(t)}} \mathsf{ct}_{k,j}^{(t)}$\tcp*[r]{homomorphic aggregation}\label{line:sum}
+    }
+    \Return aggregated ciphertexts $\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}$\;\label{line:agg_return}
+}
+\end{algorithm}
+
+% ========================================================================
+\begin{algorithm}[t]
+\caption{\textsc{ECP} Download Module}
+\label{alg:download}
+\small
+\KwParam{Prefetch window $R$, learning rate $\eta$}
+
+\SetKwProg{Fn}{Function}{:}{}
+
+\Fn{\textsc{ECP-QueueUpdate}($\{C_j^{(t)}\}, \mathcal{K}^{(t)}$)}{\label{fn:queue}
+    \ForEach{pack $j \in \{1, \dots, J\}$}{\label{line:queue_loop}
+        \eIf{$j \in \mathcal{K}^{(t)}$}{\label{line:queue_if}
+            Append $C_j^{(t)}$ to server queue $\mathcal{Q}_j$\;\label{line:queue_append}
+        }{\label{line:queue_else}
+            Append zero-ciphertext $[0]_{q}$ to queue $\mathcal{Q}_j$\;\label{line:queue_zero}
+        }
+        \If{$|\mathcal{Q}_j| > R$}{\label{line:queue_sliding}
+            Dequeue the stalest ciphertext from $\mathcal{Q}_j$\tcp*[r]{sliding window}\label{line:dequeue}
+        }
+    }
+    \Return updated queues $\{\mathcal{Q}_j\}_{j=1}^{J}$\;\label{line:queue_return}
+}
+
+\BlankLine
+\Fn{\textsc{ECP-Sync}($\{\mathcal{Q}_j\}, S, \mathbf{w}_i, \eta$)}{\label{fn:sync}
+    \ForEach{pack $j \in \{1, \dots, J\}$}{\label{line:sync_loop}
+        $C_{\mathrm{pre},j} \leftarrow \sum_{C \in \mathcal{Q}_j} C$\tcp*[r]{accumulate historical ciphertexts}\label{line:accumulate}
+        $\mathbf{m}_{\mathrm{sum},j} \leftarrow \mathsf{CKKS.Dec}(S, C_{\mathrm{pre},j})$\;\label{line:decrypt}
+    }
+    Reconstruct full global update vector $\mathbf{m}_{\mathrm{sum}}$ from decoded packs $\{\mathbf{m}_{\mathrm{sum},j}\}_{j=1}^{J}$\;\label{line:reconstruct}
+    $\mathbf{w}_i \leftarrow \mathbf{w}_i - \eta \cdot \mathbf{m}_{\mathrm{sum}}$\tcp*[r]{synchronize local model}\label{line:sync_update}
+    \Return synchronized local model $\mathbf{w}_i$\;\label{line:sync_return}
+}
+\end{algorithm}
+
+\end{document}

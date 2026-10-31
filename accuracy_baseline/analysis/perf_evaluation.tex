@@ -1,0 +1,88 @@
+\noindent\textbf{Abstract.}
+Cross-device federated learning suffers from severe bidirectional communication overhead when homomorphically encrypted model updates are exchanged over bandwidth-constrained edge networks.
+To address this challenge, we propose ECPFL, a secure CKKS-based framework that co-designs efficient sparse packing with ciphertext prefetching.
+ECPFL harmonizes pack-level sparsification with CKKS SIMD slot alignment through distributed voting and shifts the dominant downstream traffic into asynchronous client idle periods via residual ciphertext prefetching.
+Comprehensive evaluations across MNIST, Fashion-MNIST, CIFAR-10, and SVHN show that ECPFL preserves baseline model accuracy while reducing downstream communication overhead by 35 to 292 times and attaining end-to-end training speedups of up to 4.5 times in communication-dominated regimes.
+
+\noindent\textbf{Contributions.}
+This work makes three contributions.
+First, we propose ECPFL, the first secure cross-device FL framework that combines ciphertext prefetching with encrypted sparse packing to simultaneously reduce upstream and downstream communication.
+Second, we design a distributed voting-based sparse packing protocol that guarantees SIMD slot alignment across heterogeneous clients without trusted hardware.
+Third, we conduct extensive experiments demonstrating that ECPFL reduces per-round downstream communication by 97.2\% to 99.7\% and achieves end-to-end training speedups of up to 4.5 times compared with state-of-the-art secure FL baselines.
+
+\begin{table}[t]
+\centering
+\caption{End-to-End Performance Breakdown Across Baseline Algorithms and Datasets}
+\label{tab:perf_evaluation}
+\scriptsize
+\setlength{\tabcolsep}{0.8pt}
+\begin{tabular}{@{}llccc@{}}
+\toprule
+\textbf{Dataset} & \textbf{Algorithm} & \textbf{Batches} & \textbf{Comm.} & \textbf{Time} \\
+& & \scriptsize $N_{\mathrm{up}}/N_{\mathrm{agg}}$ & \scriptsize UV/DV & \scriptsize UT/DT/TT \\
+\midrule
+
+MNIST & FedAvg+CKKS & $275/11$ & $87.7/87.7$ & $269.1/182.6/315.0$ \\
+& FedPHE      & $50/2$   & $15.9/62.7$ & $48.9/130.5/201.5$ \\
+& ESAFL       & $150/6$ & $47.8/47.8$ & $146.8/99.6/240.0$ \\
+& MASER       & $175/7$ & $110.6/59.5$ & $339.5/124.0/466.7$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL} & $\mathbf{50}/\mathbf{2}$ & $\mathbf{15.9}/\mathbf{0.3}$ & $\mathbf{78.6}/\mathbf{2.3}/\mathbf{129.9}$ \\
+\midrule
+
+FMNIST & FedAvg+CKKS & $250/10$ & $79.7/79.7$ & $244.6/166.0/285.4$ \\
+& FedPHE      & $25/1$   & $8.0/72.9$  & $24.5/151.8/179.4$ \\
+& ESAFL       & $125/5$ & $39.9/39.9$ & $122.3/83.0/244.4$ \\
+& MASER       & $150/6$ & $95.3/51.5$ & $292.5/107.2/427.8$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL} & $\mathbf{75}/\mathbf{3}$ & $\mathbf{23.9}/\mathbf{0.4}$ & $\mathbf{52.7}/\mathbf{0.8}/\mathbf{95.8}$ \\
+\midrule
+
+CIFAR-10 & FedAvg+CKKS & $1675/67$ & $534.0/534.0$ & $1638.7/1111.9/1756.3$ \\
+& FedPHE      & $850/34$   & $271.0/379.2$ & $831.6/789.6/1221.5$ \\
+& ESAFL       & $850/34$   & $271.0/271.0$ & $831.6/564.3/1402.6$ \\
+& MASER       & $850/34$   & $541.3/296.8$ & $1661.2/618.0/1927.9$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL} & $\mathbf{1175}/\mathbf{47}$ & $\mathbf{374.6}/\mathbf{7.7}$ & $\mathbf{1355.7}/\mathbf{35.5}/\mathbf{1441.4}$ \\
+\midrule
+
+SVHN & FedAvg+CKKS & $2875/115$ & $916.6/650.7$ & $2522.7/1137.7/3141.6$ \\
+& FedPHE      & $1450/58$ & $462.3/651.3$ & $1418.6/1356.3/2445.1$ \\
+& ESAFL       & $1450/58$ & $462.3/462.3$ & $1418.6/962.6/2363.5$ \\
+& MASER       & $1475/59$ & $939.8/514.7$ & $2884.1/1071.7/3308.4$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL} & $\mathbf{2000}/\mathbf{80}$ & $\mathbf{637.6}/\mathbf{11.1}$ & $\mathbf{771.9}/\mathbf{20.3}/\mathbf{923.2}$ \\
+
+\bottomrule
+\multicolumn{5}{@{}l@{}}{\scriptsize \textit{Note:} Batches and communication volumes are per-round averages over 50 rounds; time values are 50-round totals.} \\
+\multicolumn{5}{@{}l@{}}{\scriptsize $N_{\mathrm{up}}$ counts upload ciphertext batches and $N_{\mathrm{agg}}$ counts unique aggregation batches per round.} \\
+\multicolumn{5}{@{}l@{}}{\scriptsize For baselines, $N_{\mathrm{agg}}$ is derived from Total Aggregated CTs divided by 2 because the metric is logged twice per round.} \\
+\multicolumn{5}{@{}l@{}}{\scriptsize For baselines, UT and DT are the CT Upload Time and CT Download Time from each report.} \\
+\multicolumn{5}{@{}l@{}}{\scriptsize For ECPFL-RK, UT and DT are the CT Upload Time and CT Download Time reported by each experiment; TT is the Total Simulated Time.} \\
+\multicolumn{5}{@{}l@{}}{\scriptsize TT is Total Simulated Time for all methods, defined as the 50-round sum of per-round slowest-client wall-clock time.} \\
+\end{tabular}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.95\textwidth]{../figures/faceted_log_vibrant_red_blue.pdf}
+\caption{\raggedright Comparison of upstream and downstream communication traffic across different frameworks.}
+\label{communication_bar}
+\end{figure*}
+
+\subsection{Overhead and Efficiency Evaluation}
+\label{sec:overhead-efficiency}
+
+\subsubsection{Communication overhead}
+Table~\ref{tab:perf_evaluation} and Figure~\ref{communication_bar} jointly demonstrate that ECPFL markedly alleviates the downstream communication bottleneck while maintaining upstream traffic comparable to the most efficient baselines.
+Notably, ECPFL reduces the synchronous downstream volume from 87.7~MB to 0.3~MB on MNIST, from 79.7~MB to 0.4~MB on Fashion-MNIST, from 534.0~MB to 7.7~MB on CIFAR-10, and from 650.7~MB to 11.1~MB on SVHN, thereby achieving 292, 199, 69, and 59 fold reductions relative to FedAvg+CKKS.
+Furthermore, ECPFL consistently lowers downstream traffic by 35 to 292 times across all secure baselines because CipherFetch shifts the dominant server-to-client payload into asynchronous background prefetching, and consequently selected clients fetch only the residual ciphertext blocks identified by the sparse update mask.
+As a result, the number of aggregated ciphertext batches falls to merely 2, 3, 47, and 80 on the four datasets, which is substantially smaller than the full-model aggregation counts of competing schemes and effectively confines the client download to the residual volume.
+
+\subsubsection{End-to-End Training Time}
+Regarding end-to-end training latency, the UT, DT, and TT values in Table~\ref{tab:perf_evaluation} are all 50-round totals measured at the slowest client, where UT and DT denote upload and download wall-clock time and TT denotes the sum of per-round slowest-client wall-clock time and therefore encompasses local training, encryption, aggregation, and communication.
+ECPFL completes the 50 rounds on MNIST, Fashion-MNIST, CIFAR-10, and SVHN in 129.9~s, 95.8~s, 1441.4~s, and 923.2~s, respectively, whereas FedAvg+CKKS requires 315.0, 285.4, 1756.3, and 3141.6~seconds, yielding speedups of 2.4, 3.0, 1.2, and 3.4 times.
+On Fashion-MNIST, ECPFL-RK also outperforms FedPHE, ESAFL, and MASER by 1.9, 2.5, and 4.5 times, respectively.
+On CIFAR-10, ECPFL-RK remains faster than FedAvg+CKKS and MASER, though FedPHE and ESAFL are marginally quicker because their coarser sparse masks incur less per-round encryption and prefetch-management overhead.
+In all cases, CipherFetch keeps the synchronous downstream waiting time far below all competitors.
+Therefore, CipherFetch successfully removes the downstream bottleneck in communication-dominated scenarios while keeping overall latency within the same order of magnitude on smaller models.

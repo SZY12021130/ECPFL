@@ -1,0 +1,119 @@
+# ============================================================================
+# CKKS-Fed / ESAFL 联邦学习实验配置文件
+# 配置：50客户端，50轮，alpha=1（轻度Non-IID），每轮随机选25个客户端
+# 打包方式：ESAFL比特级打包（无稀疏化）
+# ============================================================================
+
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 25
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 1.0
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: false
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 1
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    # ESAFL 比特级打包策略
+    strategy: "esafl"
+    # 消息量化比特（logq0）- 使用较小值避免打包值过大
+    logq0: 8
+    # 打包批次大小（slots2）- 使用较小值避免溢出
+    # pad = ceil(log2(50)) + 1 = 7
+    # shift_bits = logq0 + pad = 15
+    # 最大打包值 ≈ 2^(slots2 * shift_bits) = 2^(4*15) = 2^60
+    # 需要小于 global_scale * coeff_modulus ≈ 2^40 * 2^200
+    slots2: 4
+    # 量化比特（与logq0一致）
+    quant_bits: 8
+  # 取消稀疏化，使用完整梯度
+  sparsification:
+    strategy: null
+    sparsity_rate: 0.0
+    batch_size: 4096
+    seed: 42
+    scoring_method: "l2_norm"
+    use_warmup_skip_sparse: false
+    warmup_rounds: 0
+    local_completion:
+      enabled: false
+  ptopk:
+    enable: false
+    client_residual:
+      enabled: false
+      stale_gamma: 0.5
+      decay_gamma: 0.3
+      clip_tau: 0.0
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+blinding_mask:
+  enabled: false
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+global_mask_vote:
+  mode: "none"
+  threshold_pct: 0.5
+  topk_count_k: 20
+  topk_pct: 0.1
+
+# ESAFL 配置 - 启用密文delta路径
+esafl:
+  enabled: true
+  mode: "SIMULATION"
+  prpg_seed: 42
+
+tee:
+  enabled: false
+
+
+# ============================================================================
+# 带宽模拟配置 (bandwidth)
+# ============================================================================
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: "lognormal"
+  filter_low_bandwidth: true
+
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+output:
+  results_dir: "accuracy_baseline/esafl/result_fix"
+  model_dir: "./models"
+  save_interval: 5

@@ -1,0 +1,90 @@
+[
+  {
+    "timestamp": "20260701_110419",
+    "output_dir": "./accuracy_baseline/adaptive/svhn\\experiment_20260701_110419_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 95.22510755992624,
+      "final_test_loss": 0.1832547876503346,
+      "total_time_sec": 1501.2435023450628,
+      "total_communication_mb": 32436.228094100952,
+      "avg_round_time_sec": 30.024870046901256,
+      "avg_upload_kb": 652911.8832226562,
+      "avg_download_kb": 11382.06814453125,
+      "avg_expansion_ratio": 14.244237348360569,
+      "avg_encryption_time_sec": 0.33097409210205075,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.6428165435791,
+      "total_ciphertext_blocks": 100000,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 4.823627471923828e-05,
+      "avg_fetch_time_sec": 0.0760971096939196,
+      "avg_apply_time_sec": 0.13297160243988038,
+      "total_prefetch_download_kb": 43456538.55957031,
+      "total_fetch_download_kb": 569103.4072265625
+    }
+  },
+  {
+    "timestamp": "20260701_151333",
+    "output_dir": "./accuracy_baseline/adaptive/svhn\\experiment_20260701_151333_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": true,
+        "strategy": "cosine"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 93.55024585125999,
+      "final_test_loss": 0.23159790259650942,
+      "total_time_sec": 968.2703210200416,
+      "total_communication_mb": 14581.250829696655,
+      "avg_round_time_sec": 19.36540642040083,
+      "avg_upload_kb": 290381.483359375,
+      "avg_download_kb": 8242.5336328125,
+      "avg_expansion_ratio": 6.335101070797026,
+      "avg_encryption_time_sec": 0.17416109428405763,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.615922927856445,
+      "total_ciphertext_blocks": 44475,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.919807434082031e-05,
+      "avg_fetch_time_sec": 0.05464939342499657,
+      "avg_apply_time_sec": 0.07891550483703613,
+      "total_prefetch_download_kb": 19134723.036132812,
+      "total_fetch_download_kb": 412126.681640625
+    }
+  }
+]

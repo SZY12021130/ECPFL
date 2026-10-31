@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\caption{Ablation Study of the ESP Module Components (SVHN, LS = 0.5, RK = 0.7)}
+\label{tab:esp_ablation_svhn}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{ccccc ccc}
+\toprule
+\multicolumn{5}{c}{\textbf{\textit{ESP Components}}} & \multicolumn{3}{c}{\textbf{\textit{Performance Metrics}}} \\
+\cmidrule(lr){1-5} \cmidrule(lr){6-8}
+\textbf{LS} & \textbf{RF} & \textbf{PRD} & \textbf{CRD} & \textbf{RK} & \textbf{AC (\%)} & \textbf{UV (MB)} & \textbf{TT (H)} \\
+\midrule
+$\times$ & $\times$ & $\times$ & $\times$ & $\times$ & 95.13 & 26699.8 & 0.88 \\
+$\checkmark$ & $\times$ & $\times$ & $\times$ & $\times$ & 95.07 & 24420.5 & 0.87 \\
+$\checkmark$ & $\checkmark$ & $\times$ & $\times$ & $\times$ & 95.01 & 24563.9 & 0.89 \\
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & $\times$ & 94.89 & 24922.5 & 0.88 \\
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\times$ & 94.91 & 24404.3 & 0.88 \\
+\rowcolor{gray!15}
+$\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ & \textbf{94.90} & \textbf{18729.7} & \textbf{0.88} \\
+\bottomrule
+\end{tabular}
+\end{table}

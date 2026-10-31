@@ -1,0 +1,386 @@
+% CipherFetch: Scheme Algorithms in LaTeX (algorithm2e style)
+% Usage: \usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+
+% =============================================================================
+% Algorithm 1: TEE-Based Aggregation with Global Residual
+% =============================================================================
+\begin{algorithm}[t]
+\caption{TEE-Based Aggregation with Global Residual}
+\label{alg:tee-aggregation}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{%
+    Old global ciphertext $\mathsf{CT}_t^{\mathsf{global}}$,
+    Client uploads $\{\mathsf{CT}_{i,t}^{\mathsf{up}}\}_{i=1}^{m}$,
+    Client weights $\{\alpha_i\}_{i=1}^{m}$,
+    Downlink sparsity rate $\rho_d$,
+    Global residual $\mathbf{R}_t$ (TEE internal state)
+}
+\Output{%
+    Sparse new global ciphertext $\mathsf{CT}_{t+1}^{\mathsf{global}}$,
+    Updated mask $\mathbf{m}$,
+    Updated residual $\mathbf{R}_{t+1}$
+}
+
+\BlankLine
+\tcp{Step 1: Decrypt inside TEE}
+$\{\mathbf{W}_t^{(k)}\}_{k=0}^{K-1} \gets \textsf{Decrypt}_{\textsf{TEE}}(\mathsf{CT}_t^{\mathsf{global}})$\;
+$K \gets \text{number of batches}$\;
+
+\BlankLine
+\tcp{Step 2: Decrypt client uploads}
+\For{$i \gets 1$ \KwTo $m$}{
+    $\{\mathbf{u}_{i,k}\}_{k=0}^{K-1} \gets \textsf{Decrypt}_{\textsf{TEE}}(\mathsf{CT}_{i,t}^{\mathsf{up}})$\;
+}
+
+\BlankLine
+\tcp{Step 3: Per-batch weighted aggregation}
+\For{$k \gets 0$ \KwTo $K-1$}{
+    $\textsf{vals} \gets \{\mathbf{u}_{i,k} \mid \mathbf{u}_{i,k} \neq \mathbf{0}\}$\;
+    \eIf{$\textsf{vals}$ is empty}{
+        $\bar{\boldsymbol{\delta}}_{t,k} \gets \mathbf{0}$\;
+    }{
+        $\bar{\boldsymbol{\delta}}_{t,k} \gets \sum_{i} \alpha_i \cdot \mathbf{u}_{i,k}$\;
+    }
+}
+
+\BlankLine
+\tcp{Step 4: Add global residual}
+\For{$k \gets 0$ \KwTo $K-1$}{
+    $\tilde{\boldsymbol{\delta}}_{t,k} \gets \bar{\boldsymbol{\delta}}_{t,k} + \mathbf{R}_{t,k}$\;
+}
+
+\BlankLine
+\tcp{Step 5: Top-K secondary compression}
+$\mathcal{S}_t^{\textsf{down}} \gets \textsf{TopK}_{\rho_d}\big(\{\|\tilde{\boldsymbol{\delta}}_{t,k}\|_1\}_{k=0}^{K-1}\big)$\;
+
+\BlankLine
+\tcp{Step 6: Update global residual}
+\For{$k \gets 0$ \KwTo $K-1$}{
+    \eIf{$k \in \mathcal{S}_t^{\textsf{down}}$}{
+        $\mathbf{R}_{t+1,k} \gets \mathbf{0}$\;
+    }{
+        $\mathbf{R}_{t+1,k} \gets \tilde{\boldsymbol{\delta}}_{t,k}$\;
+    }
+}
+
+\BlankLine
+\tcp{Step 7: Update global model}
+\For{$k \gets 0$ \KwTo $K-1$}{
+    \eIf{$k \in \mathcal{S}_t^{\textsf{down}}$}{
+        $\mathbf{W}_{t+1}^{(k)} \gets \mathbf{W}_t^{(k)} + \tilde{\boldsymbol{\delta}}_{t,k}$\;
+    }{
+        $\mathbf{W}_{t+1}^{(k)} \gets \mathbf{W}_t^{(k)}$\;
+    }
+}
+
+\BlankLine
+\tcp{Step 8: Encrypt only selected batches}
+$\mathsf{CT}_{t+1}^{\mathsf{global}} \gets \{\textsf{Enc}(\mathbf{W}_{t+1}^{(k)}) \mid k \in \mathcal{S}_t^{\textsf{down}}\}$\;
+$\mathbf{m} \gets [\mathbb{1}[k \in \mathcal{S}_t^{\textsf{down}}]]_{k=0}^{K-1}$\;
+
+\Return $\mathsf{CT}_{t+1}^{\mathsf{global}},\, \mathbf{m},\, \mathbf{R}_{t+1}$\;
+\end{algorithm}
+
+
+% =============================================================================
+% Algorithm 2: Sparse Encrypted Update Merging
+% =============================================================================
+\begin{algorithm}[t]
+\caption{Sparse Encrypted Update Merging}
+\label{alg:merge-sparse}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{%
+    Sparse updates $\textsf{enc}_1 = (\mathbf{cts}_1, \mathbf{m}_1)$,
+    $\textsf{enc}_2 = (\mathbf{cts}_2, \mathbf{m}_2)$,
+    Optional evaluator $\mathcal{E}$
+}
+\Output{Merged sparse update $\textsf{enc}_{\textsf{merged}}$}
+
+$K \gets |\mathbf{m}_1|$\;
+$\textsf{merged\_mask} \gets [0]^K$\;
+$\textsf{merged\_cts} \gets \textsf{empty\_list}()$\;
+$\textsf{idx}_1 \gets 0$\; $\textsf{idx}_2 \gets 0$\;
+
+\For{$i \gets 0$ \KwTo $K-1$}{
+    $\textsf{has}_1 \gets (\mathbf{m}_1[i] = 1)$\;
+    $\textsf{has}_2 \gets (\mathbf{m}_2[i] = 1)$\;
+    
+    \uIf{$\textsf{has}_1 \,\land\, \textsf{has}_2$}{
+        \tcp{Both present: homomorphic addition}
+        \eIf{$\mathcal{E} \neq \textsf{null}$}{
+            $\textsf{ct}_{\textsf{sum}} \gets \mathcal{E}.\textsf{Add}(\mathbf{cts}_1[\textsf{idx}_1],\, \mathbf{cts}_2[\textsf{idx}_2])$\;
+        }{
+            $\textsf{ct}_{\textsf{sum}} \gets \mathbf{cts}_1[\textsf{idx}_1] \oplus \mathbf{cts}_2[\textsf{idx}_2]$\;
+        }
+        $\textsf{merged\_cts}.\textsf{append}(\textsf{ct}_{\textsf{sum}})$\;
+        $\textsf{merged\_mask}[i] \gets 1$\;
+        $\textsf{idx}_1 \gets \textsf{idx}_1 + 1$\; $\textsf{idx}_2 \gets \textsf{idx}_2 + 1$\;
+    }
+    \uElseIf{$\textsf{has}_1$}{
+        \tcp{Only enc\_1: direct reference (no +0 noise)}
+        $\textsf{merged\_cts}.\textsf{append}(\mathbf{cts}_1[\textsf{idx}_1])$\;
+        $\textsf{merged\_mask}[i] \gets 1$\;
+        $\textsf{idx}_1 \gets \textsf{idx}_1 + 1$\;
+    }
+    \uElseIf{$\textsf{has}_2$}{
+        \tcp{Only enc\_2: direct reference (no +0 noise)}
+        $\textsf{merged\_cts}.\textsf{append}(\mathbf{cts}_2[\textsf{idx}_2])$\;
+        $\textsf{merged\_mask}[i] \gets 1$\;
+        $\textsf{idx}_2 \gets \textsf{idx}_2 + 1$\;
+    }
+}
+
+$\textsf{enc}_{\textsf{merged}} \gets \{\textsf{\_\_sparse\_\_}: \textsf{true},\; \textsf{ciphertexts}: \textsf{merged\_cts},\; \textsf{mask}: \textsf{merged\_mask},\; \dots\}$\;
+
+\Return $\textsf{enc}_{\textsf{merged}}$\;
+\end{algorithm}
+
+
+% =============================================================================
+% Algorithm 3: Client-Side Prefetch Accumulation
+% =============================================================================
+\begin{algorithm}[t]
+\caption{Client-Side Prefetch Accumulation}
+\label{alg:client-prefetch}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{%
+    Local prefetch state $\mathbf{P}_t^c$ (may be $\textsf{null}$),
+    Server push $\boldsymbol{\delta}_t$ (sparse ciphertext),
+    Round $t$, selection flag $\textsf{is\_selected}$,
+    CKKS manager $\textsf{ckks\_mgr}$
+}
+\Output{%
+    Updated prefetch state $\mathbf{P}_{t+1}^c$ or uploaded ciphertext $\mathsf{CT}_{\textsf{up}}$
+}
+
+\tcp{Branch A: Idle client accumulates prefetch delta}
+\If{$\neg\textsf{is\_selected} \,\land\, \boldsymbol{\delta}_t \neq \textsf{null}$}{
+    \eIf{$\mathbf{P}_t^c = \textsf{null}$}{
+        $\mathbf{P}_{t+1}^c \gets \textsf{Deserialize}(\boldsymbol{\delta}_t)$\;
+    }{
+        $\mathbf{P}_{t+1}^c \gets \textsf{MergeSparseUpdates}(\mathbf{P}_t^c,\, \boldsymbol{\delta}_t,\, \mathcal{E}=\textsf{null})$\;
+    }
+    $\textsf{num\_prefetched} \gets \textsf{num\_prefetched} + 1$\;
+    $\textsf{received\_rounds}.\textsf{append}(t)$\;
+    \Return $\mathbf{P}_{t+1}^c$\;
+}
+
+\BlankLine
+\tcp{Branch B: Selected client fetches, applies, trains, uploads}
+\If{$\textsf{is\_selected}$}{
+    $\textsf{fetch\_info} \gets \textsf{Server}.\textsf{GetRemainingDeltas}(c,\, t)$\;
+    \ForEach{$\textsf{delta\_dict} \in \textsf{fetch\_info}.\textsf{deltas}$}{
+        $\boldsymbol{\delta}_{\textsf{rem}} \gets \textsf{Deserialize}(\textsf{delta\_dict})$\;
+        \eIf{$\mathbf{P}_t^c = \textsf{null}$}{
+            $\mathbf{P}_t^c \gets \boldsymbol{\delta}_{\textsf{rem}}$\;
+        }{
+            $\mathbf{P}_t^c \gets \textsf{MergeSparseUpdates}(\mathbf{P}_t^c,\, \boldsymbol{\delta}_{\textsf{rem}},\, \mathcal{E}=\textsf{null})$\;
+        }
+    }
+    
+    \BlankLine
+    \tcp{Apply accumulated state (single decryption)}
+    \If{$\mathbf{P}_t^c \neq \textsf{null}$}{
+        $\boldsymbol{\Delta}_{\textsf{plain}} \gets \textsf{ckks\_mgr}.\textsf{Decrypt}(\mathbf{P}_t^c)$\;\tcp*{ONE decryption}
+        $\mathbf{W}_{\textsf{base}} \gets \mathbf{W}_{\textsf{base}} + \boldsymbol{\Delta}_{\textsf{plain}}$\;
+        $\mathbf{P}_t^c \gets \textsf{null}$\;
+        $\textsf{num\_prefetched} \gets 0$\; $\textsf{received\_rounds} \gets []$\;
+    }
+    
+    \BlankLine
+    \tcp{Local training}
+    $\boldsymbol{\Delta}_{\textsf{local}} \gets \textsf{LocalTrain}(\mathbf{W}_{\textsf{base}},\, \textsf{num\_epochs})$\;
+    $\mathsf{CT}_{\textsf{up}} \gets \textsf{ckks\_mgr}.\textsf{SparseEncrypt}(\boldsymbol{\Delta}_{\textsf{local}})$\;
+    \Return $\mathsf{CT}_{\textsf{up}}$\;
+}
+\end{algorithm}
+
+
+% =============================================================================
+% Algorithm 4: Sticky Sampling with T-Percentile Scheduling
+% =============================================================================
+\begin{algorithm}[t]
+\caption{Sticky Sampling with T-Percentile Scheduling}
+\label{alg:sticky-scheduler}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{%
+    Candidate clients $\mathcal{C}$ (pre-sampled pool),
+    Current round $t_{\textsf{cur}}$, target round $t_{\textsf{target}} = t_{\textsf{cur}} + W$,
+    Last sync rounds $\{\textsf{last\_sync}_i\}$,
+    EMA round duration $\bar{T}_{\textsf{round}}$,
+    Slack coefficient $\beta$, overcommitment $\gamma$,
+    Prefetch window $W$
+}
+\Output{%
+    Prefetch schedule $\{\textsf{start\_round}_i\}_{i \in \mathcal{C}}$,
+    Earliest start round $r_{\min}$
+}
+
+$t_{\textsf{target}} \gets t_{\textsf{cur}} + W$\;
+$\textsf{prefetch\_schedule} \gets \{i \mapsto t_{\textsf{cur}} \mid i \in \mathcal{C}\}$\;
+$r_{\min} \gets t_{\textsf{cur}}$\;
+$\mathcal{C}_{\textsf{finish}} \gets \mathcal{C}$\;
+$T_{\textsf{pct}} \gets +\infty$\;
+
+\For{$r \gets t_{\textsf{cur}}$ \KwTo $t_{\textsf{cur}} + W$}{
+    \tcp{Estimate fetch time if starting from $r$}
+    $\textsf{fetch\_times} \gets \{\, i \mapsto \textsf{EstimateFetchTime}(i, r, r_{\min}, \textsf{last\_sync}_i, t_{\textsf{cur}}) \mid i \in \mathcal{C}_{\textsf{finish}} \,\}$\;
+    
+    \If{$T_{\textsf{pct}} = +\infty$}{
+        $\textsf{pct} \gets 100 \times \frac{1 + \beta \cdot (\gamma - 1)}{\gamma}$\;
+        $T_{\textsf{pct}} \gets \textsf{Percentile}(\textsf{fetch\_times},\, \textsf{pct})$\;
+        $\mathcal{C}_{\textsf{finish}} \gets \{i \in \mathcal{C}_{\textsf{finish}} \mid \textsf{fetch\_times}[i] < T_{\textsf{pct}}\}$\;
+    }
+    
+    $\mathcal{C}_{\textsf{finish}} \gets \{i \in \mathcal{C}_{\textsf{finish}} \mid \textsf{fetch\_times}[i] \leq T_{\textsf{pct}}\}$\;
+    
+    \If{$|\mathcal{C}_{\textsf{finish}}| = |\mathcal{C}|$}{
+        $r_{\min} \gets \min(r,\, t_{\textsf{target}})$\;
+        $T_{\textsf{pct}} \gets \textsf{Percentile}(\textsf{fetch\_times},\, \textsf{pct})$\;
+    }
+    
+    \ForEach{$i \in \mathcal{C}_{\textsf{finish}}$}{
+        $\textsf{prefetch\_schedule}[i] \gets r$\;
+    }
+    
+    \If{$\mathcal{C}_{\textsf{finish}} = \emptyset$}{
+        \Break\;
+    }
+}
+
+\tcp{Rollback failed clients to earliest start}
+\ForEach{$i \in \mathcal{C} \setminus \mathcal{C}_{\textsf{finish}}$}{
+    $\textsf{prefetch\_schedule}[i] \gets r_{\min}$\;
+}
+
+\Return $\textsf{prefetch\_schedule},\, r_{\min}$\;
+
+\BlankLine
+\SetKwFunction{FEst}{EstimateFetchTime}
+\SetKwProg{Fn}{Function}{:}{}
+\Fn{\FEst{$i$, $\textsf{start}$, $r_{\min}$, $\textsf{last\_sync}$, $t_{\textsf{cur}}$}}{
+    $\textsf{dl\_bw} \gets \mathcal{B}.\textsf{GetDLBandwidth}(i)$\;\tcp*{bits/s}
+    \lIf{$\textsf{dl\_bw} \leq 0$}{\Return $+\infty$}
+    
+    $\textsf{round\_dl} \gets \bar{T}_{\textsf{round}} \times \textsf{dl\_bw}$\;
+    $\textsf{update\_size} \gets \textsf{SizeEvaluator}.\textsf{Estimate}(\textsf{last\_sync},\, \textsf{start})$\;
+    $t_{\textsf{target}} \gets t_{\textsf{cur}} + W$\;
+    $\ell \gets \textsf{start}$\;
+    
+    \For{$j \gets \textsf{start}$ \KwTo $t_{\textsf{target}} - 1$}{
+        $\textsf{budget} \gets \bar{T}_{\textsf{round}}$\;
+        $\textsf{budget} \gets \max(0,\; \textsf{budget} - \textsf{update\_size} / \textsf{dl\_bw})$\;
+        
+        \eIf{$\textsf{budget} > 0$}{
+            $\textsf{next\_delta} \gets \textsf{SizeEvaluator}.\textsf{Estimate}(\ell,\, j)$\;
+            $\textsf{update\_size} \gets \max(0,\; \textsf{next\_delta} - \textsf{budget} \times \textsf{dl\_bw})$\;
+            $\ell \gets j + 1$\;
+        }{
+            $\textsf{update\_size} \gets \textsf{update\_size} - \textsf{round\_dl}$\;
+        }
+    }
+    
+    $\textsf{final\_delta} \gets \textsf{SizeEvaluator}.\textsf{Estimate}(\ell,\, t_{\textsf{target}} - 1)$\;
+    $\textsf{remaining} \gets \textsf{update\_size} + \textsf{final\_delta}$\;
+    \Return $\textsf{remaining} / \textsf{dl\_bw}$\;
+}
+\end{algorithm}
+
+
+% =============================================================================
+% Algorithm 5: Complete CipherFetch FL Round
+% =============================================================================
+\begin{algorithm}[t]
+\caption{Complete CipherFetch FL Round}
+\label{alg:full-round}
+\SetKwInOut{Input}{Input}
+\SetKwInOut{Output}{Output}
+
+\Input{%
+    Round $t$,
+    Global ciphertext $\mathsf{CT}_t^{\mathsf{global}}$,
+    Client set $\{c_i\}_{i=1}^{C}$, sampling rate $q$, sticky scores $\{\textsf{score}_i\}$,
+    TEE processor $\mathcal{T}$, prefetch scheduler $\mathcal{S}$, bandwidth simulator $\mathcal{B}$
+}
+\Output{%
+    Updated global $\mathsf{CT}_{t+1}^{\mathsf{global}}$,
+    Residual $\mathbf{R}_{t+1}$,
+    Virtual clock increment
+}
+
+\BlankLine
+\tcp{Phase 1: Client Selection}
+$m \gets \lceil C \times q \rceil$\;
+$n_{\textsf{pool}} \gets \lceil m \times \gamma \rceil$\;
+$\mathcal{C}_{\textsf{sel}} \gets \textsf{StickySelect}(\{c_i\},\, m,\, n_{\textsf{pool}},\, \{\textsf{score}_i\})$\;
+
+\BlankLine
+\tcp{Phase 2: Fetch' + Apply (selected clients)}
+\ForEach{$c_i \in \mathcal{C}_{\textsf{sel}}$}{
+    $c_i.\textsf{FetchRemainingDeltas}()$\;
+    $c_i.\textsf{ApplyPrefetchedState}()$\;\tcp*{single decryption}
+    $\mathbf{W}_i \gets c_i.\textsf{GetModel}()$\;
+}
+
+\BlankLine
+\tcp{Phase 3: Local Training}
+$\textsf{updates} \gets []$\;
+\ForEach{$c_i \in \mathcal{C}_{\textsf{sel}}$}{
+    $\boldsymbol{\Delta}_i \gets c_i.\textsf{LocalTrain}(\mathbf{W}_i,\, \textsf{num\_epochs})$\;
+    $\mathsf{CT}_i^{\textsf{up}} \gets c_i.\textsf{SparseEncrypt}(\boldsymbol{\Delta}_i)$\;
+    $\textsf{updates}.\textsf{append}(\mathsf{CT}_i^{\textsf{up}})$\;
+}
+
+\BlankLine
+\tcp{Phase 4: TEE Aggregation}
+$\mathsf{CT}_{\textsf{tee}},\, \mathbf{m},\, \mathbf{R}_{t+1} \gets \mathcal{T}.\textsf{Aggregate}(\mathsf{CT}_t^{\mathsf{global}},\, \textsf{updates},\, \{\alpha_i\},\, \rho_d,\, \mathbf{R}_t)$\;
+
+\BlankLine
+\tcp{Phase 5: Host computes sparse delta}
+$\boldsymbol{\delta}_t^{\textsf{sparse}} \gets \textsf{HomomorphicSubtract}(\mathsf{CT}_{\textsf{tee}},\, \mathsf{CT}_t^{\mathsf{global}},\, \mathbf{m})$\;
+$\textsf{StoreDeltaToHistory}(t,\, \boldsymbol{\delta}_t^{\textsf{sparse}})$\;
+
+\BlankLine
+\tcp{Phase 6: Merge TEE result to global state}
+$\mathsf{CT}_{t+1}^{\mathsf{global}} \gets \textsf{MergeToGlobal}(\mathsf{CT}_t^{\mathsf{global}},\, \mathsf{CT}_{\textsf{tee}},\, \mathbf{m})$\;
+
+\BlankLine
+\tcp{Phase 7: Prefetch Scheduling and Broadcast}
+$\mathcal{C}_{\textsf{future}} \gets \textsf{StickyPreSample}(\{c_i\},\, m,\, n_{\textsf{pool}},\, t + W)$\;
+$\{\textsf{start}_i\},\, r_{\min} \gets \mathcal{S}.\textsf{SchedulePrefetch}(\mathcal{C}_{\textsf{future}},\, t,\, \{\textsf{last\_sync}_i\},\, \bar{T}_{\textsf{round}},\, \beta,\, \gamma,\, W)$\;
+
+\ForEach{$c_j \in \{i \in \mathcal{C}_{\textsf{future}} \mid \textsf{start}_i = t\}$}{
+    \If{$\textsf{BandwidthCheck}(c_j,\, \boldsymbol{\delta}_t^{\textsf{sparse}})$}{
+        $c_j.\textsf{ReceivePrefetchDelta}(\boldsymbol{\delta}_t^{\textsf{sparse}},\, t)$\;
+    }
+}
+
+\BlankLine
+\tcp{Phase 8: Update sticky scores}
+\ForEach{$c_i \in \{c_i\}$}{
+    \uIf{$c_i \in \mathcal{C}_{\textsf{future}} \setminus \mathcal{C}_{\textsf{sel}}$}{
+        $\textsf{score}_i \gets \textsf{score}_i + 1$\;
+    }
+    \ElseIf{$c_i \in \mathcal{C}_{\textsf{sel}}$}{
+        $\textsf{score}_i \gets \textsf{score}_i \times \beta_{\textsf{decay}}$\;
+    }
+}
+
+\BlankLine
+\tcp{Phase 9: Virtual clock update}
+$\textsf{upload\_times} \gets \{\mathcal{B}.\textsf{EstimateUploadTime}(c_i,\, \mathsf{CT}_i^{\textsf{up}}) \mid c_i \in \mathcal{C}_{\textsf{sel}}\}$\;
+$\textsf{train\_times} \gets \{c_i.\textsf{train\_time} \mid c_i \in \mathcal{C}_{\textsf{sel}}\}$\;
+$\textsf{fetch\_times} \gets \{c_i.\textsf{fetch\_time} \mid c_i \in \mathcal{C}_{\textsf{sel}}\}$\;
+$\textsf{round\_dur} \gets \max_i \{\textsf{fetch\_times}[i] + \textsf{train\_times}[i] + \textsf{upload\_times}[i]\}$\;
+$\textsf{vclock} \gets \textsf{vclock} + \textsf{round\_dur}$\;
+
+\Return $\mathsf{CT}_{t+1}^{\mathsf{global}},\, \mathbf{R}_{t+1},\, \textsf{vclock}$\;
+\end{algorithm}

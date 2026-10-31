@@ -1,0 +1,28 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{multirow}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\title{End-to-End Training Time Analysis}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+% Provide a label for the cross-reference from the subsection. The real
+% Table~\ref{tab:comm-comparison} is defined in the main paper.
+\refstepcounter{table}\label{tab:comm-comparison}
+
+\input{end_to_end_time}
+
+\end{document}

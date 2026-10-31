@@ -1,0 +1,74 @@
+# 3S-EAD (Split-Secret Single-Key with Edge-Assisted Decryption) 架构配置
+# ==================================================================
+# 使用方式:
+#   1. 运行 KGC 生成密钥: python -c "from ckks_fed.split_key_crypto import SplitKeyKGC; ..."
+#   2. 启动 EdgeNode: python -m ckks_fed.edge_node
+#   3. 启动 Server: python -m ckks_fed.server_ead
+#   4. 启动 Client: python -m ckks_fed.client_ead
+
+experiment:
+  name: "cifar10_resnet18_3sead"
+  seed: 42
+  device: "cuda"
+  num_rounds: 100
+  num_clients: 30
+  fraction: 0.4
+  batch_size: 64
+  learning_rate: 0.01
+
+# CKKS 加密参数
+ckks:
+  enable: true
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776  # 2^40
+  slot_count: 4096
+  
+  # 稀疏化配置
+  sparsification:
+    strategy: "topk"
+    sparsity_rate: 0.5
+    batch_size: 4096
+    seed: 42
+  
+  # PTopk 配置
+  ptopk:
+    enable: true
+    server_mode: "momentum"
+    sync_interval: 5
+    momentum_beta: 0.9
+
+# 3S-EAD 拆分密钥架构配置
+split_key:
+  enable: true
+  mode: "simulation"  # simulation | native (TODO)
+  key_dir: "keys/e3sad"
+  
+  # Edge Node 配置
+  edge:
+    host: "127.0.0.1"
+    port: 5001
+    enabled: true
+  
+  # 协同解密超时
+  collaborative_decrypt_timeout: 30
+
+# 密文预取配置
+prefetch:
+  enable_prefetch: true
+  use_sticky_sampling: true
+  max_prefetch_round: 5
+  delta_size_threshold_mb: 10.0
+
+# 模型配置
+model:
+  name: "resnet18"
+  num_classes: 10
+
+# 数据集配置
+dataset:
+  name: "cifar10"
+  data_dir: "data"
+  num_shards: 30
+  iid: false
+  shard_balance: 0.5

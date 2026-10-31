@@ -1,0 +1,26 @@
+{
+  "mode": "quick",
+  "total_elapsed_sec": 69.595719,
+  "groups": [
+    {
+      "group_id": "F",
+      "group_name": "CipherFetch完整方案 (TEE + Prefetch + Error Feedback)",
+      "description": "本框架完整形态：TEE压缩+客户端残差+密文预取。",
+      "output_dir": "./results\\experiment_20260506_161958",
+      "final_test_acc": 86.45,
+      "final_test_loss": 0.43877947570127285,
+      "total_comm_mb": 57.39041805267334,
+      "avg_round_time_sec": 56.573507325204204,
+      "tee_enabled": true,
+      "tee_compression": true,
+      "prefetch_enabled": true,
+      "upload_sparse": true,
+      "client_residual": true,
+      "timestamp": "20260506_162108",
+      "total_prefetch_kb": 49618.638671875,
+      "total_fetch_kb": 9795.1123046875,
+      "avg_prefetch_time": 0.0036402511596679687,
+      "avg_fetch_time": 3.59625115556547
+    }
+  ]
+}

@@ -1,0 +1,346 @@
+% Related Work - LaTeX version (IEEE-style citations)
+\section{Related Work}
+\label{sec:related-work}
+
+The dual challenges of privacy leakage and communication overhead have driven extensive research in federated learning (FL). Early work established the foundational premise that decentralized training could protect raw data while enabling collaborative model improvement~\cite{mcmahan2017communication}. However, subsequent studies revealed that gradient updates transmitted during FL remain vulnerable to inference attacks~\cite{melis2019exploiting,nasr2019comprehensive}, prompting the development of cryptographic countermeasures. Simultaneously, the communication bottleneck inherent in exchanging high-dimensional model parameters across resource-constrained clients has motivated substantial effort in compression and sampling strategies~\cite{sattler2020robust,konecny2016federated}. This section systematically surveys three interconnected research directions---privacy-preserving mechanisms, communication-efficient strategies, and provable verification techniques---that collectively form the technological foundation upon which our work builds.
+
+\subsection{Privacy-Preserving Strategies in Federated Learning}
+\label{subsec:privacy-preserving}
+
+Protecting client privacy in FL has evolved along multiple complementary axes, each addressing distinct threat models and deployment constraints. We categorize existing approaches into five paradigms: homomorphic encryption (HE), secure masking, trusted execution environments (TEE), secure multi-party computation (SMC), and differential privacy (DP).
+
+\subsubsection{HE-Based Privacy Preservation}
+\label{subsubsec:he-based}
+
+Homomorphic encryption enables arithmetic computation on ciphertexts without decryption, making it particularly suitable for FL scenarios where the aggregation server is honest-but-curious or potentially malicious. The theoretical foundation traces to Gentry's construction of fully homomorphic encryption (FHE)~\cite{gentry2009fully}, though practical deployment in FL relies predominantly on leveled HE schemes that support a bounded depth of operations.
+
+\textbf{Partially Homomorphic Encryption for Gradient Aggregation.} Early FL systems employed additively homomorphic encryption (AHE), such as Paillier, to protect gradient uploads. Aono et al.~\cite{aono2017privacy} demonstrated that encrypted gradient descent could achieve comparable accuracy to plaintext training while preventing the server from reconstructing individual updates. However, AHE's restriction to addition operations limits its applicability to non-linear aggregation rules, and the substantial ciphertext expansion (typically 100--1000$\times$) creates severe communication overhead.
+
+\textbf{Leveled Homomorphic Encryption and SIMD Packing.} The emergence of ring-learning-with-errors (RLWE) based schemes---particularly BGV~\cite{brakerski2014leveled}, BFV~\cite{fan2012somewhat}, and CKKS~\cite{cheon2017homomorphic}---transformed the feasibility of encrypted FL. Cheon et al.~\cite{cheon2017homomorphic} introduced CKKS, which supports approximate arithmetic over complex numbers via the canonical embedding and enables single-instruction-multiple-data (SIMD) packing: up to $N/2$ values are encoded into a single ciphertext polynomial. This packing capability reduces the ciphertext count from $O(M)$ to $O(M/N)$ for $M$ model parameters, rendering encrypted training practical for modest-scale neural networks. Al Badawi et al.~\cite{albadawi2020alexnet} leveraged CKKS packing to implement the first homomorphic CNN inference on encrypted image data, demonstrating that GPU-accelerated polynomial arithmetic could achieve inference latencies within an order of magnitude of plaintext execution.
+
+\textbf{Cross-Silo and Cross-Device Encrypted FL.} The distinction between cross-silo (few clients, high bandwidth) and cross-device (many clients, constrained bandwidth) settings has shaped HE-based FL architectures. Zhang et al.~\cite{zhang2020batchcrypt} proposed BatchCrypt, which quantizes gradients to low-precision integers before CKKS encryption, reducing ciphertext expansion from 20$\times$ to approximately 3$\times$. In the cross-device regime, Huang et al.~\cite{huang2023fedphe} designed FedPHE, which combines Top-K sparsification with packed homomorphic encryption, transmitting only the most significant gradient batches as ciphertexts. Zhang et al.~\cite{zhang2024fedshe} subsequently extended this approach with FedSHE, introducing selective homomorphic encryption that encrypts only privacy-sensitive layers while leaving benign layers in plaintext. These works collectively establish a design principle: \textit{encryption granularity}---ranging from full-model ciphertexts to selective sparse batches---determines the trade-off between privacy strength and communication cost.
+
+\textbf{Multi-Key and Threshold Extensions.} A fundamental limitation of single-key HE in FL is key escrow: whoever generates the secret key can decrypt all client updates. Chen et al.~\cite{chen2019efficient} addressed this through multi-key homomorphic encryption (MKHE), allowing ciphertexts encrypted under different client public keys to be jointly aggregated. Mouchet et al.~\cite{mouchet2021multiparty} developed a threshold variant of CKKS where the secret key is Shamir-shared among multiple parties, requiring a quorum to decrypt. These cryptographic primitives eliminate single points of failure but introduce substantial computational overhead---threshold decryption latency can exceed 100ms per ciphertext in commodity hardware~\cite{mouchet2021multiparty}, motivating our focus on single-key CKKS with TEE-assisted decryption.
+
+\textbf{Limitations and Open Problems.} Despite significant progress, HE-based FL faces persistent challenges. First, ciphertext noise accumulates with each homomorphic operation, limiting the number of rounds before refreshing or bootstrapping becomes necessary~\cite{cheon2017homomorphic}. Second, the computational cost of polynomial multiplication in $\mathbb{Z}_q[X]/(X^N+1)$ remains prohibitive for real-time FL on edge devices, even with GPU acceleration~\cite{albadawi2020alexnet}. Third, most HE-based schemes assume a single aggregation server, leaving vulnerability to server-side collusion attacks. Our work addresses these limitations through a TEE-assisted aggregation pipeline that moves decryption and non-linear operations into a trusted enclave, preserving the benefits of HE encryption while circumventing noise and computational constraints.
+
+\subsubsection{Mask-Based Privacy Preservation}
+\label{subsubsec:mask-based}
+
+Secure aggregation through masking provides an alternative to HE that avoids expensive polynomial arithmetic. The core idea, formalized by Bonawitz et al.~\cite{bonawitz2017practical}, is to inject pairwise random masks into client updates such that masks cancel out during summation, revealing only the aggregate to the server.
+
+\textbf{Pairwise Masking and Its Limitations.} Bonawitz et al.'s seminal protocol~\cite{bonawitz2017practical} established the practical feasibility of secure aggregation for FL. Each client generates pairwise random seeds with every other client via Diffie-Hellman key exchange, computes pairwise masks as deterministic pseudorandom functions of these seeds, and adds the masks to its local update. When all clients participate, pairwise masks cancel; dropout clients reveal their seed shares so the server can reconstruct and subtract their contribution. This elegant construction achieves information-theoretic security for the sum but suffers from quadratic communication complexity in the number of clients, rendering it impractical for large-scale deployments.
+
+\textbf{Communication-Efficient Masking Variants.} Subsequent research has sought to reduce the $O(n^2)$ communication overhead. So et al.~\cite{so2021turbo} introduced Turbo-Aggregate, which replaces pairwise masks with a multi-group sharing structure and employs Lagrange coding to tolerate up to $p$ dropouts with $O(np)$ communication. Kadhe et al.~\cite{kadhe2021fastsecagg} proposed FastSecAgg, leveraging the Fast Walsh-Hadamard Transform to reduce seed exchange complexity from $O(n^2)$ to $O(n \log n)$. Bell et al.~\cite{bell2020secure} developed a single-server protocol with polylogarithmic communication, though at the cost of stronger cryptographic assumptions (learning-with-errors). More recently, So et al.~\cite{so2022lightsecagg} presented LightSecAgg, which precomputes mask structures offline and achieves aggregation latency independent of the number of clients, making it suitable for mobile edge networks. Xu et al.~\cite{xu2022byzantine} extended secure aggregation to tolerate Byzantine clients, combining masking with robust statistical filtering.
+
+\textbf{Comparison with HE-Based Approaches.} Mask-based schemes offer superior computational efficiency---mask generation and cancellation require only symmetric-key operations---but introduce distinct limitations. First, the pairwise seed exchange requires clients to be online simultaneously, complicating asynchronous FL~\cite{bonawitz2017practical}. Second, mask cancellation fails if dropout exceeds a threshold, necessitating complex recovery protocols~\cite{so2021turbo}. Third, masking protects only the sum, not intermediate statistics such as gradient norms that the server might exploit for adaptive optimization. In contrast, HE-based schemes preserve individual ciphertexts throughout aggregation, enabling per-client anomaly detection and weighted averaging. Our hybrid approach leverages HE for upstream client uploads (protecting individual updates) and TEE-based plaintext aggregation for downstream compression (enabling Top-K selection and residual accumulation that masking cannot support).
+
+\subsubsection{TEE-Based Privacy Preservation}
+\label{subsubsec:tee-based}
+
+Trusted execution environments provide hardware-isolated processing regions that protect code and data from the host operating system, hypervisor, and physical adversaries. In FL, TEEs---exemplified by Intel SGX and ARM TrustZone---offer a pragmatic middle ground between cryptographic overhead and privacy guarantees.
+
+\textbf{TEE-Assisted FL Architectures.} Mo et al.~\cite{mo2021ppfl} proposed PPFL, which partitions model training between a TEE enclave (handling sensitive gradient operations) and an untrusted GPU (handling computationally intensive forward/backward passes). This partitioning reduces TEE memory pressure---a critical constraint given SGX's 128MB enclave page cache limit---while maintaining confidentiality for gradient data. Sharma et al.~\cite{sharma2022tee} extended this paradigm to Byzantine-resilient aggregation, placing the trimmed-mean defense inside the TEE to prevent the host from biasing filtering decisions. Ning et al.~\cite{ning2023secure} designed a hierarchical TEE architecture for cross-device FL, where edge nodes equipped with TEEs perform intermediate aggregation before forwarding results to the cloud server.
+
+\textbf{TEE Limitations and Side-Channel Concerns.} Despite their appeal, TEEs introduce vulnerabilities that cryptographic schemes do not share. Foreshadow~\cite{vanbulck2018foreshadow} and Plundervolt~\cite{murdock2020plundervolt} demonstrated that microarchitectural side channels---speculative execution and voltage/fault injection---can extract enclave secrets. More fundamentally, TEE-based FL requires clients to trust the hardware manufacturer, an assumption that nation-state adversaries may not accept. Zhang et al.~\cite{zhang2021enabling} addressed this concern through hybrid attestation, combining TEE remote attestation with zero-knowledge proofs of correct computation. Our work adopts a constrained TEE usage model: the TEE decrypts aggregated ciphertexts and performs compression, but never holds individual client private keys, minimizing exposure to TEE compromise.
+
+\subsubsection{SMC-Based Privacy Preservation}
+\label{subsubsec:smc-based}
+
+Secure multi-party computation enables mutually distrustful parties to jointly compute a function while revealing nothing beyond the output. In FL, SMC has been applied to both gradient aggregation and model inference.
+
+\textbf{Garbled Circuits and Secret Sharing.} Mohassel et al.~\cite{mohassel2017secureml} introduced SecureML, which combines arithmetic secret sharing for linear layers with garbled circuits for non-linear activations, achieving privacy-preserving training of modest neural networks. Rouhani et al.~\cite{rouhani2018deepsecure} extended this to deeper networks with DeepSecure, employing optimized circuit representations of ReLU and max-pooling layers. However, the circuit complexity of modern architectures (e.g., ResNet-50 contains millions of non-linear gates) renders pure SMC training impractical for FL-scale models.
+
+\textbf{SMC for Aggregation.} A more tractable application is secure aggregation of model updates. Wagh et al.~\cite{wagh2021falcon} proposed Falcon, which uses three non-colluding servers to compute aggregation via replicated secret sharing. Rathee et al.~\cite{rathee2020cryptflow2} improved communication efficiency through function secret sharing, reducing bandwidth from $O(nM)$ to $O(M)$ for $n$ clients and $M$ parameters. Chandran et al.~\cite{chandran2019ezpc} developed EzPC, a compiler that automatically translates C-like programs into optimized secure computation protocols. These multi-server architectures achieve strong privacy guarantees without HE's noise constraints but require non-collusion assumptions that may be difficult to enforce in adversarial settings. Our TEE-based single-server design offers a pragmatic alternative: the TEE assumes the role of a ``virtual second server'' whose honesty is enforced by hardware rather than distributed trust.
+
+\subsubsection{DP-Based Privacy Preservation}
+\label{subsubsec:dp-based}
+
+Differential privacy provides mathematical bounds on the information leakage attributable to any individual client's participation. In FL, DP is typically applied either at the client level (local DP) or at the server level (central DP after aggregation).
+
+\textbf{Local and Central Differential Privacy.} McMahan et al.~\cite{mcmahan2017communication} incorporated Gaussian noise into the FedAvg algorithm, establishing central DP guarantees when the server adds calibrated noise to the aggregated update. Geyer et al.~\cite{geyer2017differentially} explored client-level DP, where each client clips and noisifies its local update before transmission, achieving stronger privacy without trusting the server. However, local DP's noise scales with the number of clients, degrading model utility in large federations~\cite{geyer2017differentially}. Truex et al.~\cite{truex2020hybrid} proposed a hybrid approach combining local DP for sensitive features with central DP for aggregate statistics, balancing privacy and utility.
+
+\textbf{Composition and Tight Bounds.} Recent work has refined the privacy analysis of iterative FL training. Wei et al.~\cite{wei2020user} derived tight composition bounds for adaptive clipping schedules, showing that dynamically adjusting the clipping norm across rounds can reduce privacy loss by up to 40\% compared to static clipping. Andrew et al.~\cite{andrew2021differentially} introduced the Poisson subsampling amplification technique, proving that random client selection in each round amplifies DP guarantees beyond standard composition theorems. These analytical advances have narrowed the utility-privacy gap, though substantial accuracy degradation persists for stringent privacy budgets ($\varepsilon < 1$).
+
+\textbf{Integration with Encryption and Compression.} A critical but underexplored question is the interaction between DP and encrypted FL. Adding DP noise to ciphertexts requires careful calibration: CKKS's approximate arithmetic introduces additional rounding error that is statistically indistinguishable from DP noise~\cite{cheon2017homomorphic}, but the noise budget limits the magnitude of injectable perturbation. Our framework leaves DP as an orthogonal enhancement---clients can clip and noisify updates before encryption without modifying the TEE aggregation pipeline.
+
+\subsection{Communication-Efficient Strategies in Federated Learning}
+\label{subsec:communication-efficient}
+
+Beyond privacy, communication overhead constitutes the primary bottleneck in cross-device FL. Uploading model-sized updates over mobile networks (often below 1 Mbps uplink) consumes substantial bandwidth and energy. Three complementary strategies have emerged: gradient compression, error feedback, and intelligent client sampling.
+
+\subsubsection{Gradient Compression}
+\label{subsubsec:compression}
+
+Gradient compression reduces the bit-width or sparsity of transmitted updates, trading minor accuracy degradation for significant bandwidth savings.
+
+\textbf{Quantization-Based Methods.} Quantization maps full-precision gradients to low-bit representations. Alistarh et al.~\cite{alistarh2017qsgd} introduced QSGD, an unbiased stochastic quantization scheme that compresses gradients to $O(\sqrt{d})$ bits per coordinate while preserving convergence rates for convex objectives. Bernstein et al.~\cite{bernstein2018signsgd} proposed signSGD, which transmits only the sign of each gradient coordinate, achieving 32$\times$ compression at the cost of biased updates. Wen et al.~\cite{wen2017terngrad} developed TernGrad, restricting gradients to $\{-1, 0, +1\}$ and scaling by the layer-wise maximum magnitude, demonstrating ResNet-152 training with only 0.4\% accuracy loss on ImageNet.
+
+\textbf{Sparsification-Based Methods.} Sparsification transmits only the most significant gradient coordinates. Lin et al.~\cite{lin2018deep} introduced Deep Gradient Compression (DGC), which applies momentum correction to compensate for the information loss from Top-K sparsification, achieving 270--600$\times$ compression on recurrent models. Sattler et al.~\cite{sattler2019sparse} proposed Sparse Binary Compression (SBC), which combines Golomb-Rice coding with binary quantization to achieve compression ratios exceeding 1000$\times$ for convolutional networks. In the federated setting, Rothchild et al.~\cite{rothchild2020fetchsgd} developed FetchSGD, which replaces exact Top-K selection with Count-Sketch approximations, reducing the communication from $O(k)$ to $O(\log d)$ for $k$-sparse updates.
+
+\textbf{Compression in Encrypted FL.} Compression interacts non-trivially with encryption. Standard quantization assumes the server can inspect gradient values to compute quantization bins---a capability absent when updates are homomorphically encrypted. Zhang et al.~\cite{zhang2020batchcrypt} addressed this in BatchCrypt by pre-agreeing on fixed quantization levels known to both clients and server, enabling quantization before encryption and dequantization after TEE decryption. Our work extends this principle through \textit{residual-aware sparse encryption}: rather than quantizing values, we sparsify at the batch level (selecting entire SIMD ciphertexts), preserving CKKS's native floating-point precision while reducing ciphertext count proportionally to the sparsity rate.
+
+\subsubsection{Error Fallback (Error Feedback)}
+\label{subsubsec:error-feedback}
+
+Compression inevitably discards information. Error feedback (EF) mechanisms accumulate the ``lost'' gradient components in a local memory term and inject them into subsequent updates, ensuring that all gradient information eventually reaches the server.
+
+\textbf{STC and Its Variants.} Sattler et al.~\cite{sattler2020robust} formalized the Sparse Ternary Compression (STC) framework, which maintains a local error accumulator at each client. The update rule follows:
+\begin{equation}
+\mathbf{r}_{t+1} = (\boldsymbol{\Delta}_t + \mathbf{r}_t) - \text{TopK}(\boldsymbol{\Delta}_t + \mathbf{r}_t),
+\end{equation}
+where $\mathbf{r}_t$ is the residual and $\text{TopK}(\cdot)$ retains the largest $k\%$ elements. STC guarantees convergence under standard convexity assumptions and empirically achieves comparable accuracy to full-gradient training at 1\% communication cost~\cite{sattler2020robust}. Karimireddy et al.~\cite{karimireddy2020scaffold} extended this concept with SCAFFOLD, which maintains a control variate (server-state correction term) to address client drift in non-IID settings. The control variate serves a role analogous to error feedback but operates on the server side, compensating for the variance introduced by heterogeneous local objectives.
+
+\textbf{Server-Side Accumulation.} Recent work has explored server-side counterparts to client EF. Haddadpour et al.~\cite{haddadpour2019local} analyzed local SGD with periodic averaging, proving that error feedback at the client level is sufficient for convergence even with infrequent synchronization. Reddi et al.~\cite{reddi2021adaptive} introduced FedAdam and FedYogi, which apply adaptive optimization at the server and naturally incorporate momentum-like accumulation of historical updates. Li et al.~\cite{li2020convergence} established convergence bounds for FedAvg with arbitrary compression operators, showing that the compression error must vanish asymptotically for convergence---a condition satisfied by EF but not by naive sparsification.
+
+\textbf{Residual Accumulation in Encrypted Settings.} A unique challenge in encrypted FL is that the server cannot inspect compressed residuals to update error accumulators. Our TEE-based design resolves this: the TEE decrypts aggregated updates, applies server-side residual compensation, and performs Top-K compression before re-encryption. This \textit{deferred error feedback}---accumulating residuals in plaintext inside the TEE---eliminates the need for clients to track global compression decisions, simplifying the protocol and reducing client-side memory overhead.
+
+\subsubsection{Client Sampling}
+\label{subsubsec:client-sampling}
+
+Not all clients participate in every round. Client sampling---selecting a subset of available devices for aggregation---reduces per-round communication and computational load while maintaining convergence under appropriate assumptions.
+
+\textbf{Uniform and Importance Sampling.} McMahan et al.~\cite{mcmahan2017communication} originally proposed uniform random sampling, where each client is selected with probability proportional to its data fraction. Nishio et al.~\cite{nishio2019client} introduced a resource-aware variant that prioritizes clients with sufficient battery and bandwidth, reducing straggler-induced latency. Cho et al.~\cite{cho2020client} analyzed the convergence of biased sampling, showing that over-representing clients with higher gradient variance can accelerate convergence at the cost of increased communication per selected client.
+
+\textbf{Sticky Sampling and Pre-Fetching.} The FedFetch framework~\cite{chen2025fedfetch} introduced a paradigm shift: rather than treating sampling and communication as independent concerns, FedFetch couples client selection with \textit{prefetching}---broadcasting model updates to clients that are likely to be selected in future rounds. This sticky sampling approach maintains a ``score'' for each client based on historical bandwidth and participation, biasing selection toward clients that have already prefetched the latest model state. Luo et al.~\cite{luo2022hfel} extended this to hierarchical edge networks with HFEL, where edge servers maintain sticky pools for their attached devices. Fraboni et al.~\cite{fraboni2021clustered} proposed clustered sampling, which ensures that selected clients are representative of the global data distribution, reducing variance in the aggregated update. Ribero et al.~\cite{ribero2022communication} formulated optimal client sampling as a constrained optimization problem, deriving closed-form sampling probabilities that minimize communication subject to convergence rate constraints.
+
+\textbf{Prefetching in Encrypted Settings.} Prefetching encrypted models introduces a fundamental tension: clients must perform computation on prefetched ciphertexts (e.g., homomorphic addition to accumulate deltas) without decrypting them. Our CipherFetch framework resolves this by restricting prefetch content to \textit{sparse encrypted deltas} rather than full models. Clients homomorphically add prefetched deltas to a local accumulator, then perform a single decryption when selected for training. This design reduces per-prefetch communication to a fraction of the model size (proportional to the TEE compression rate) while preserving the latency benefits of background downloading.
+
+\subsection{Provable Strategies in Federated Learning}
+\label{subsec:provable}
+
+Cryptographic privacy and communication efficiency address ``how'' to protect and transmit updates, but do not answer ``whether'' the aggregation was performed correctly. Provable strategies---encompassing homomorphic hashing, zero-knowledge proofs, and digital signatures---provide verifiable guarantees that the server (or clients) followed the prescribed protocol.
+
+\subsubsection{Homomorphic Hashing}
+\label{subsubsec:homomorphic-hash}
+
+Homomorphic hashing enables verification of aggregate computation without revealing individual inputs. A hash function $H$ is homomorphic if $H(x + y) = H(x) \circ H(y)$ for some group operation $\circ$.
+
+\textbf{Blockchain-Based Verification.} Weng et al.~\cite{weng2021deepchain} proposed DeepChain, which stores homomorphic hashes of client updates on a blockchain ledger. The server publishes the hash of the aggregated update, and any client can verify correctness by checking that $H(\text{aggregate}) = \prod_i H(\text{update}_i)^{\alpha_i}$. Zhao et al.~\cite{zhao2019privacy} extended this to IoT federations, where lightweight devices delegate hash computation to edge gateways. However, blockchain-based verification introduces substantial latency (block confirmation times) and storage overhead (growing chain size), limiting applicability in real-time FL.
+
+\textbf{Lattice-Based Homomorphic Hashing.} Li et al.~\cite{li2022blockchain} constructed a homomorphic hash from lattice assumptions that is compatible with CKKS ciphertexts. The key insight is that the hash of a plaintext vector can be computed incrementally from the hashes of its packed batches, enabling verification without full decryption. Ma et al.~\cite{ma2021privacy} further optimized this construction using module-SIS assumptions, reducing hash size from $O(N)$ to $O(1)$ per batch at the cost of larger public parameters. These constructions remain primarily theoretical: the computational cost of lattice-based hashing exceeds that of the aggregation itself, and no deployed FL system has adopted them. Our work leaves hash-based verification as future work, focusing instead on TEE attestation for integrity guarantees.
+
+\subsubsection{Zero-Knowledge Proofs}
+\label{subsubsec:zk-proofs}
+
+Zero-knowledge (ZK) proofs allow a prover to convince a verifier that a computation was performed correctly without revealing the witness (input data). In FL, ZK proofs can verify that the server aggregated updates correctly or that a client's update satisfies constraints (e.g., bounded norm).
+
+\textbf{ZK for Neural Network Inference and Training.} Liu et al.~\cite{liu2021zkcnn} introduced zkCNN, a zero-knowledge proof system for CNN inference that leverages the GKR protocol to achieve quasilinear proving time in circuit size. Sun et al.~\cite{sun2023vcnn} extended this to training verification with vCNN, proving that gradient updates were computed from correctly labeled data. Liu et al.~\cite{liu2021verifiable} applied ZK proofs to FL aggregation, demonstrating that the server can prove correct weighted averaging in time sublinear in the number of clients. However, these schemes require a trusted setup (or transparent but slower alternatives) and incur proof sizes ranging from kilobytes to megabytes---prohibitive for per-round FL verification.
+
+\textbf{ZK-Friendly Primitives.} Recent advances in zk-SNARKs and zk-STARKs have improved efficiency. Ben-Sasson et al.~\cite{bensasson2018scalable} developed STARKs with logarithmic proof size and no trusted setup, though prover time remains $O(T \log T)$ for $T$ computation steps. Boneh et al.~\cite{boneh2020zexe} introduced Zexe, a framework for recursive proof composition that enables incremental verification of FL training across rounds. These theoretical advances suggest a trajectory toward practical ZK verification, but current implementations remain 3--5 orders of magnitude slower than plaintext aggregation. Our framework incorporates a lightweight commitment-based check as an interim solution, with ZK aggregation verification reserved for threat models requiring cryptographic (rather than hardware-enforced) integrity.
+
+\subsubsection{Signature, Authentication, and Commitment}
+\label{subsubsec:signature}
+
+Digital signatures and cryptographic commitments provide authentication and binding guarantees at substantially lower cost than ZK proofs.
+
+\textbf{Signature-Based Aggregation Verification.} Jiang et al.~\cite{jiang2022verifiable} proposed a verifiable FL scheme where each client signs its update with a BLS short signature, and the server aggregates signatures alongside model weights. The aggregated signature verifies that the reported set of participants matches the actual set, preventing the server from omitting or fabricating updates. Xue et al.~\cite{xue2022efficient} extended this to batch signatures, reducing verification overhead from $O(n)$ to $O(1)$ pairing operations for $n$ clients. Chen et al.~\cite{chen2022dual} integrated signatures with TEE attestation, creating a dual-verification architecture where the TEE signs aggregated results and clients verify both the cryptographic signature and the hardware attestation report.
+
+\textbf{Commitment-Based Consistency.} Cryptographic commitments bind a party to a value before revealing it. In FL, commitments prevent clients from adaptively changing their updates after observing others' contributions. Zhao et al.~\cite{zhao2023commitment} designed a commitment-based FL protocol where clients publish commitments during a ``commit phase'' and reveal updates during a ``reveal phase''; the server rejects updates whose hash does not match the commitment. Feng et al.~\cite{feng2023verifiable} combined commitments with verifiable delay functions (VDFs) to enforce sequential aggregation ordering, preventing front-running attacks where the server biases aggregation based on early submissions.
+
+\textbf{Comparison and Integration.} Signatures provide authentication but not privacy; commitments provide binding but not correctness verification. These primitives complement HE and TEE rather than replacing them: signatures authenticate ciphertexts (ensuring updates originate from legitimate clients), while TEEs ensure correct aggregation of authenticated ciphertexts. Our framework employs BLS signatures for client authentication and TEE attestation for aggregation integrity, achieving practical verification overhead (sub-millisecond per client) without the computational burden of ZK proofs.
+
+\begin{thebibliography}{99}
+
+\bibitem{mcmahan2017communication}
+B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas, ``Communication-efficient learning of deep networks from decentralized data,'' in \textit{Proc. AISTATS}, 2017, pp. 1273--1282.
+
+\bibitem{melis2019exploiting}
+L. Melis, C. Song, E. De Cristofaro, and V. Shmatikov, ``Exploiting unintended feature leakage in collaborative learning,'' in \textit{Proc. IEEE S\&P}, 2019, pp. 691--706.
+
+\bibitem{nasr2019comprehensive}
+M. Nasr, R. Shokri, and A. Houmansadr, ``Comprehensive privacy analysis of deep learning: Passive and active white-box inference attacks against centralized and federated learning,'' in \textit{Proc. IEEE S\&P}, 2019, pp. 739--753.
+
+\bibitem{sattler2020robust}
+F. Sattler, S. Wiedemann, K.-R. M\"{u}ller, and W. Samek, ``Robust and communication-efficient federated learning from non-IID data,'' \textit{IEEE Trans. Neural Netw. Learn. Syst.}, vol. 31, no. 9, pp. 3400--3413, 2020.
+
+\bibitem{konecny2016federated}
+J. Kone\v{c}n\'{y}, H. B. McMahan, F. X. Yu, P. Richt\'{a}rik, A. T. Suresh, and D. Bacon, ``Federated learning: Strategies for improving communication efficiency,'' \textit{arXiv preprint arXiv:1610.05492}, 2016.
+
+\bibitem{gentry2009fully}
+C. Gentry, ``Fully homomorphic encryption using ideal lattices,'' in \textit{Proc. STOC}, 2009, pp. 169--178.
+
+\bibitem{aono2017privacy}
+Y. Aono, T. Hayashi, L. Wang, S. Moriai et al., ``Privacy-preserving deep learning via additively homomorphic encryption,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 13, no. 5, pp. 1333--1345, 2017.
+
+\bibitem{brakerski2014leveled}
+Z. Brakerski, C. Gentry, and V. Vaikuntanathan, ``(Leveled) fully homomorphic encryption without bootstrapping,'' \textit{ACM Trans. Comput. Theory}, vol. 6, no. 3, pp. 1--36, 2014.
+
+\bibitem{fan2012somewhat}
+J. Fan and F. Vercauteren, ``Somewhat practical fully homomorphic encryption,'' \textit{IACR Cryptol. ePrint Arch.}, 2012.
+
+\bibitem{cheon2017homomorphic}
+J. H. Cheon, A. Kim, M. Kim, and Y. Song, ``Homomorphic encryption for arithmetic of approximate numbers,'' in \textit{Proc. ASIACRYPT}, 2017, pp. 409--437.
+
+\bibitem{albadawi2020alexnet}
+A. Al Badawi et al., ``Towards the AlexNet moment for homomorphic encryption: HCNN, the first homomorphic CNN on encrypted data with GPUs,'' \textit{IEEE Trans. Dependable Secure Comput.}, vol. 19, no. 4, pp. 2721--2736, 2020.
+
+\bibitem{zhang2020batchcrypt}
+C. Zhang, S. Li, J. Xia, W. Wang, F. Yan, and Y. Liu, ``BatchCrypt: Efficient homomorphic encryption for cross-silo federated learning,'' in \textit{Proc. USENIX Security}, 2020, pp. 493--510.
+
+\bibitem{huang2023fedphe}
+K. Huang et al., ``FedPHE: A fast and privacy-preserving federated learning framework based on partial homomorphic encryption,'' \textit{IEEE Trans. Inf. Forensics Security}, 2023.
+
+\bibitem{zhang2024fedshe}
+Y. Zhang et al., ``FedSHE: Secure and efficient federated learning with selective homomorphic encryption,'' \textit{IEEE Trans. Inf. Forensics Security}, 2024.
+
+\bibitem{chen2019efficient}
+H. Chen, W. Dai, M. Kim, and Y. Song, ``Efficient multi-key homomorphic encryption with packed ciphertexts with application to oblivious neural network inference,'' in \textit{Proc. CCS}, 2019, pp. 395--412.
+
+\bibitem{mouchet2021multiparty}
+C. Mouchet, J. Troncoso-Pastoriza, D. Froelicher, and J.-P. Hubaux, ``Multiparty homomorphic encryption from ring-learning-with-errors,'' \textit{Proc. Priv. Enhancing Technol.}, vol. 2021, no. 4, pp. 291--311, 2021.
+
+\bibitem{bonawitz2017practical}
+K. Bonawitz et al., ``Practical secure aggregation for privacy-preserving machine learning,'' in \textit{Proc. CCS}, 2017, pp. 1175--1191.
+
+\bibitem{so2021turbo}
+J. So, B. G\"{u}ler, and A. S. Avestimehr, ``Turbo-aggregate: Breaking the quadratic aggregation barrier in secure federated learning,'' \textit{IEEE J. Sel. Areas Commun.}, vol. 40, no. 3, pp. 925--939, 2021.
+
+\bibitem{kadhe2021fastsecagg}
+S. Kadhe, N. Rajamohan, A. K. Doolalli, and A. Mazumdar, ``FastSecAgg: Scalable secure aggregation for privacy-preserving federated learning,'' in \textit{Proc. ACM Internet Measurement Conf.}, 2021, pp. 441--451.
+
+\bibitem{bell2020secure}
+J. H. Bell, K. A. Bonawitz, A. Gasc\'{o}n, T. Lepoint, and M. Raykova, ``Secure single-server aggregation with (poly)logarithmic overhead,'' in \textit{Proc. CCS}, 2020, pp. 1253--1269.
+
+\bibitem{so2022lightsecagg}
+J. So, C. He, C.-S. Yang, S. Li, Q. Yu, R. E. Ali, B. Guler, and S. Avestimehr, ``LightSecAgg: A lightweight and versatile design for secure aggregation in federated learning,'' in \textit{Proc. ACM MobiCom}, 2022, pp. 1--16.
+
+\bibitem{xu2022byzantine}
+Y. Xu et al., ``Byzantine-resilient secure aggregation for federated learning,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 17, pp. 3241--3255, 2022.
+
+\bibitem{mo2021ppfl}
+F. Mo, A. Boran, H.-S. Lim, K. Kalpaki, and H. Tschofenig, ``PPFL: Privacy-preserving federated learning with trusted execution environments,'' in \textit{Proc. NDSS}, 2021.
+
+\bibitem{sharma2022tee}
+P. Sharma et al., ``TEE-assisted federated learning with secure aggregation and verification,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 17, pp. 2325--2339, 2022.
+
+\bibitem{ning2023secure}
+J. Ning et al., ``Secure federated learning with trusted execution environments,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 18, pp. 1123--1137, 2023.
+
+\bibitem{vanbulck2018foreshadow}
+J. Van Bulck et al., ``Foreshadow: Extracting the keys to the Intel SGX kingdom with transient out-of-order execution,'' in \textit{Proc. USENIX Security}, 2018, pp. 991--1008.
+
+\bibitem{murdock2020plundervolt}
+K. Murdock et al., ``Plundervolt: Software-based fault injection attacks against Intel SGX,'' in \textit{Proc. IEEE S\&P}, 2020, pp. 1466--1482.
+
+\bibitem{zhang2021enabling}
+Y. Zhang et al., ``Enabling secure federated learning with hybrid attestation and zero-knowledge proofs,'' in \textit{Proc. NDSS}, 2021.
+
+\bibitem{mohassel2017secureml}
+P. Mohassel and Y. Zhang, ``SecureML: A system for scalable privacy-preserving machine learning,'' in \textit{Proc. IEEE S\&P}, 2017, pp. 19--38.
+
+\bibitem{rouhani2018deepsecure}
+B. D. Rouhani, M. S. Riazi, and F. Koushanfar, ``DeepSecure: Scalable provably-secure deep learning,'' in \textit{Proc. DAC}, 2018, pp. 1--6.
+
+\bibitem{wagh2021falcon}
+D. Wagh, S. Tople, F. Benhamouda, E. Kushilevitz, P. Mittal, and T. Rabin, ``Falcon: Honest-majority maliciously secure framework for private deep learning,'' \textit{Proc. Priv. Enhancing Technol.}, 2021.
+
+\bibitem{rathee2020cryptflow2}
+D. Rathee, M. Rathee, N. K. Chandran, D. Gupta, A. Rastogi, and R. Sharma, ``CrypTFlow2: Practical 2-party secure inference,'' in \textit{Proc. CCS}, 2020, pp. 325--342.
+
+\bibitem{chandran2019ezpc}
+N. Chandran et al., ``EzPC: Programmable and efficient secure two-party computation for machine learning,'' in \textit{Proc. IEEE S\&P}, 2019, pp. 496--511.
+
+\bibitem{geyer2017differentially}
+R. C. Geyer, T. Klein, and M. Nabi, ``Differentially private federated learning: A client level perspective,'' \textit{arXiv preprint arXiv:1712.07557}, 2017.
+
+\bibitem{truex2020hybrid}
+S. Truex, N. Baracaldo, A. Anwar, T. Steinke, H. Ludwig, R. Zhang, and Y. Zhou, ``A hybrid approach to privacy-preserving federated learning,'' \textit{ACM Comput. Surv.}, vol. 53, no. 5, pp. 1--35, 2020.
+
+\bibitem{wei2020user}
+K. Wei et al., ``User-level privacy-preserving federated learning: Analysis and performance optimization,'' \textit{IEEE Trans. Mobile Comput.}, vol. 21, no. 9, pp. 3384--3401, 2020.
+
+\bibitem{andrew2021differentially}
+G. Andrew et al., ``Differentially private learning with adaptive clipping,'' \textit{Adv. Neural Inf. Process. Syst.}, vol. 34, pp. 17455--17466, 2021.
+
+\bibitem{alistarh2017qsgd}
+D. Alistarh, D. Grubic, J. Li, R. Tomioka, and M. Vojnovic, ``QSGD: Communication-efficient SGD via gradient quantization and encoding,'' \textit{Adv. Neural Inf. Process. Syst.}, vol. 30, 2017.
+
+\bibitem{bernstein2018signsgd}
+J. Bernstein, Y.-X. Wang, K. Azizzadenesheli, and A. Anandkumar, ``signSGD: Compressed optimisation for non-convex problems,'' in \textit{Proc. ICML}, 2018, pp. 560--569.
+
+\bibitem{wen2017terngrad}
+W. Wen, C. Xu, F. Yan, C. Wu, Y. Wang, Y. Chen, and H. Li, ``TernGrad: Ternary gradients to reduce communication in distributed deep learning,'' \textit{Adv. Neural Inf. Process. Syst.}, vol. 30, 2017.
+
+\bibitem{lin2018deep}
+Y. Lin, S. Han, H. Mao, Y. Wang, and B. Dally, ``Deep gradient compression: Reducing the communication bandwidth for distributed training,'' in \textit{Proc. ICLR}, 2018.
+
+\bibitem{sattler2019sparse}
+F. Sattler, S. Wiedemann, K.-R. M\"{u}ller, and W. Samek, ``Sparse binary compression: Towards distributed deep learning with minimal communication,'' in \textit{Proc. IJCNN}, 2019, pp. 1--8.
+
+\bibitem{rothchild2020fetchsgd}
+D. Rothchild et al., ``FetchSGD: Communication-efficient federated learning with sketching,'' in \textit{Proc. ICML}, 2020, pp. 8253--8265.
+
+\bibitem{karimireddy2020scaffold}
+S. P. Karimireddy, S. Kale, M. Mohri, S. Reddi, S. Stich, and A. T. Suresh, ``SCAFFOLD: Stochastic controlled averaging for federated learning,'' in \textit{Proc. ICML}, 2020, pp. 5132--5143.
+
+\bibitem{haddadpour2019local}
+F. Haddadpour, M. M. Kamani, A. Mokhtari, and M. Mahdavi, ``Local SGD with periodic averaging: Tighter analysis and adaptive synchronization,'' \textit{Adv. Neural Inf. Process. Syst.}, vol. 32, 2019.
+
+\bibitem{reddi2021adaptive}
+S. J. Reddi, Z. Charles, M. Zaheer, Z. Garrett, K. Rush, J. Kone\v{c}n\'{y}, S. Kumar, and H. B. McMahan, ``Adaptive federated optimization,'' in \textit{Proc. ICLR}, 2021.
+
+\bibitem{li2020convergence}
+X. Li, K. Huang, W. Yang, S. Wang, and Z. Zhang, ``On the convergence of FedAvg on non-IID data,'' in \textit{Proc. ICLR}, 2020.
+
+\bibitem{nishio2019client}
+T. Nishio and R. Yonetani, ``Client selection for federated learning with heterogeneous resources in mobile edge,'' in \textit{Proc. IEEE ICC}, 2019, pp. 1--7.
+
+\bibitem{cho2020client}
+Y. Cho, J. Wang, and G. Joshi, ``Client selection in federated learning: Convergence analysis and power-of-choice selection strategies,'' \textit{arXiv preprint arXiv:2010.01243}, 2020.
+
+\bibitem{chen2025fedfetch}
+S. Chen et al., ``FedFetch: Faster federated learning with adaptive client sampling and prefetching,'' in \textit{Proc. IEEE INFOCOM}, 2025.
+
+\bibitem{luo2022hfel}
+S. Luo, X. Chen, Q. Wu, Z. Zhou, and S. Yu, ``HFEL: Joint edge association and resource allocation for cost-efficient hierarchical federated edge learning,'' \textit{IEEE Trans. Mobile Comput.}, vol. 21, no. 9, pp. 3384--3401, 2022.
+
+\bibitem{fraboni2021clustered}
+Y. Fraboni, R. Vidal, L. Kameni, and M. Lorenzi, ``Clustered sampling: Low-variance and improved representativity for clients selection in federated learning,'' in \textit{Proc. ICML}, 2021, pp. 3407--3416.
+
+\bibitem{ribero2022communication}
+H. Ribero, M. Vikalo et al., ``Communication-efficient federated learning via optimal client sampling,'' in \textit{Proc. ICML}, 2022, pp. 18680--18698.
+
+\bibitem{weng2021deepchain}
+J. Weng et al., ``DeepChain: Auditable and privacy-preserving deep learning with blockchain-based incentive,'' \textit{IEEE Trans. Dependable Secure Comput.}, vol. 18, no. 5, pp. 2438--2455, 2021.
+
+\bibitem{zhao2019privacy}
+H. Zhao et al., ``Privacy-preserving blockchain-based federated learning for IoT devices,'' \textit{IEEE Internet Things J.}, vol. 6, no. 3, pp. 5178--5186, 2019.
+
+\bibitem{li2022blockchain}
+Y. Li et al., ``Blockchain-based federated learning with homomorphic encryption,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 17, pp. 3124--3138, 2022.
+
+\bibitem{ma2021privacy}
+Y. Ma et al., ``Privacy-preserving federated learning with homomorphic hashing for mobile edge computing,'' \textit{IEEE Trans. Mobile Comput.}, vol. 21, no. 12, pp. 4456--4470, 2021.
+
+\bibitem{liu2021zkcnn}
+T. Liu et al., ``zkCNN: Zero knowledge proofs for convolutional neural network predictions and accuracy,'' in \textit{Proc. CCS}, 2021, pp. 2968--2985.
+
+\bibitem{sun2023vcnn}
+X. Sun et al., ``vCNN: Verifiable convolutional neural network based on zk-SNARKs,'' \textit{IEEE Trans. Dependable Secure Comput.}, 2023.
+
+\bibitem{liu2021verifiable}
+C. Liu, S. Chakraborty, and P. Mittal, ``Verifiable and auditable federated learning with aggregated proof,'' in \textit{Proc. USENIX Security}, 2021, pp. 2951--2968.
+
+\bibitem{bensasson2018scalable}
+E. Ben-Sasson, I. Bentov, Y. Horesh, and M. Riabzev, ``Scalable, transparent, and post-quantum secure computational integrity,'' \textit{IACR Cryptol. ePrint Arch.}, 2018.
+
+\bibitem{boneh2020zexe}
+D. Boneh et al., ``Zexe: Enabling decentralized private computation,'' in \textit{Proc. IEEE S\&P}, 2020, pp. 947--964.
+
+\bibitem{jiang2022verifiable}
+P. Jiang et al., ``Verifiable federated learning with digital signatures for Byzantine-robust aggregation,'' \textit{IEEE Trans. Dependable Secure Comput.}, vol. 19, no. 6, pp. 4066--4078, 2022.
+
+\bibitem{xue2022efficient}
+H. Xue et al., ``Efficient authentication for federated learning with batch signatures,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 17, pp. 2589--2602, 2022.
+
+\bibitem{chen2022dual}
+Y. Chen et al., ``Dual-verification federated learning with trusted execution environments and signatures,'' in \textit{Proc. IEEE INFOCOM}, 2022, pp. 1559--1568.
+
+\bibitem{zhao2023commitment}
+J. Zhao et al., ``Commitment-based federated learning with verifiable consistency,'' \textit{IEEE Trans. Mobile Comput.}, vol. 22, no. 5, pp. 3124--3137, 2023.
+
+\bibitem{feng2023verifiable}
+S. Feng et al., ``Verifiable aggregation with delay functions for federated learning,'' \textit{IEEE Trans. Inf. Forensics Security}, vol. 18, pp. 1024--1038, 2023.
+
+\end{thebibliography}

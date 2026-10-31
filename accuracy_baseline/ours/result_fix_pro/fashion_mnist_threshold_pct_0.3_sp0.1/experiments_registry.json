@@ -1,0 +1,46 @@
+[
+  {
+    "timestamp": "20260709_150626",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\result_fix_pro\\fashion_mnist_threshold_pct_0.3_sp0.1\\experiment_20260709_150626_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 74.59,
+      "final_test_loss": 1.0414082073861626,
+      "total_time_sec": 216.37698448089597,
+      "total_communication_mb": 424.0965871810913,
+      "avg_round_time_sec": 4.327539689617919,
+      "avg_upload_kb": 8487.84341796875,
+      "avg_download_kb": 197.6546875,
+      "avg_expansion_ratio": 2.1723448287928018,
+      "avg_encryption_time_sec": 0.0106490966796875,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.64295959472656,
+      "total_ciphertext_blocks": 1300,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 1.025829315185547e-05,
+      "avg_fetch_time_sec": 0.008262185735256172,
+      "avg_apply_time_sec": 0.003976471519470215,
+      "total_prefetch_download_kb": 566561.40234375,
+      "total_fetch_download_kb": 9882.734375
+    }
+  }
+]

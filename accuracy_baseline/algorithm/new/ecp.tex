@@ -1,0 +1,110 @@
+\subsection{ECP: Efficient Ciphertext Prefetching Protocol}
+\label{sec:ecp_protocol}
+
+To synchronize a stale client before it rejoins training, \textsc{ECP} prefetches sparse pack-level aggregated update ciphertexts during the client's idle rounds.
+Instead of downloading the full global model ciphertext $G^{(t)}$ or a separate KGC compensatory payload, the client fetches only the consensus-selected packs $\{C_j^{(\tau)}\}_{j\in\mathcal{K}^{(\tau)}}$, accumulates them homomorphically, and decrypts once at rejoining.
+The complete ciphertext $G^{(t)}$ is a server-side authoritative state used for evaluation and server-side state maintenance; the ECP download path never transmits $G^{(t)}$ to clients.
+
+\subsubsection{Sparse Ciphertext Prefetching}
+\label{sssec:sparse-prefetch}
+
+\textbf{Prepare Phase.}
+At round $t$, the server selects active clients $\mathcal{S}^{(t)}$, inactive clients $\bar{\mathcal{S}}^{(t)}$, and a target-round prefetch set $\mathcal{P}^{(t^*)}$ for $t^*=t+R$, where $R$ is the prefetch horizon.
+Each client $i\in\mathcal{P}^{(t^*)}$ is assigned a prefetch start round $P_i^{(t^*)}\in\{t,\dots,t^*-1\}$ based on its bandwidth and availability.
+The server derives the current prefetch set $\mathcal{P}^{(t)}=\{c_i \mid \exists\, t' > t : c_i \in \mathcal{P}^{(t')},\, P_i^{(t')} \le t < t'\}$ and broadcasts $\mathcal{S}^{(t)},\mathcal{P}^{(t)}$ to all clients.
+The server maintains a sliding queue $\mathcal{Q}$ of length $R$, which stores the most recent $R$ aggregated update ciphertexts $C^{(\tau)}=\{C_j^{(\tau)}\}_{j\in\mathcal{K}^{(\tau)}}$.
+Here $R$ is the lookback length of $\mathcal{Q}$ and bounds both the server's historical storage and the maximum recoverable absence length.
+Because KGC compensatory ciphertexts are already embedded in $C^{(\tau)}$ by \textsc{ESP-Agg}, each queue entry is a single sparse aggregated ciphertext; no separate compensatory payload is stored.
+The server also advances the global model ciphertext homomorphically as $G^{(t+1)}=G^{(t)}-\eta C^{(t)}$.
+
+\textbf{Prefetch Phase.}
+At round~$t$, each client $c_i \in \mathcal{P}^{(t)}$ invokes \textsc{ECP-Download} to scan~$\mathcal{Q}$.
+It downloads pack-level ciphertext~$C_j^{(\tau)}$ only when (i) it missed round~$\tau$ ($t_{\mathrm{last},i}<\tau$), (ii) the update has been aggregated ($\tau\le t$), and (iii) the pack is in the consensus mask ($j\in\mathcal{K}^{(\tau)}$).
+Downloaded ciphertexts are stored in local accumulator~$\mathcal{L}_{i,j}$, keyed by~$\tau$ to avoid duplicates.
+Non-consensus packs carry no update and are never transmitted.
+Undownloaded packs remain in~$\mathcal{Q}$ for subsequent idle rounds.
+
+\textbf{Train Phase.}
+At round~$t$, each selected client $c_i \in \mathcal{S}^{(t)}$ absent for more than one round invokes \textsc{ECP-Sync} to merge cached ciphertexts and synchronize its local model as $\mathbf{w}_i\leftarrow\mathbf{w}_i-\eta\mathbf{m}_{\mathrm{pre}}$.
+
+ECP is favorable when $g_i\cdot|\mathcal{K}^{(\tau)}|\ll J$, because it replaces a full $J$-pack download with at most $g_i\cdot|\mathcal{K}^{(\tau)}|$ sparse-pack downloads.
+If $g_i>R$ or $g_i\cdot|\mathcal{K}^{(\tau)}|\ge J$, the server falls back to sending the full synchronized ciphertext~$G^{(t^*)}$.
+
+To handle heterogeneity and dropouts, \textsc{ECPFL} adopts FedFetch's Overcommitment and EMA scheduling~\cite{yan2025fedfetch}: the server estimates round duration $\hat{d}^{(t)}=\rho d^{(t-1)}+(1-\rho)\hat{d}^{(t-1)}$ and scales the prefetch pool to $|\mathcal{P}^{(t^*)}|=\lceil\beta K\rceil$.
+Unlike FedFetch, which prefetches plaintext model deltas, ECP prefetches aggregated ciphertexts and performs homomorphic accumulation followed by one-step decryption, because CKKS ciphertexts cannot be split or inspected without decryption.
+
+\begin{algorithm}[t]
+\caption{\textsc{ECP} Download Module}
+\label{alg:download}
+\small
+\KwParam{Prefetch horizon $R$}
+
+\SetKwProg{Fn}{Function}{}{}
+
+\Fn{\textsc{ECP-Queue}{$(t, C^{(t)}, \mathcal{K}^{(t)}, \mathcal{Q})$}}{
+    $\mathcal{Q}.\mathsf{enqueue}\bigl((t, \mathcal{K}^{(t)}, C^{(t)})\bigr)$\;
+    \While{$\mathcal{Q}.\mathsf{front}().\tau < t - R + 1$}{
+        $\mathcal{Q}.\mathsf{dequeue}()$\;
+    }
+}
+
+\Fn{\textsc{ECP-Download}{$(\mathcal{Q}, \{\mathcal{L}_{i,j}\}, t_{\mathrm{last},i}, t)$}}{
+    \ForEach{$(\tau, \mathcal{K}^{(\tau)}, C^{(\tau)}) \in \mathcal{Q}$}{
+        \If{$t_{\mathrm{last},i} < \tau \le t$}{
+            \ForEach{$j \in \mathcal{K}^{(\tau)}$}{
+                \If{$\tau \notin \{\tau' \mid (\tau', \cdot) \in \mathcal{L}_{i,j}\}$}{
+                    $\mathcal{L}_{i,j} \leftarrow \mathcal{L}_{i,j} \cup \bigl\{(\tau, C_j^{(\tau)})\bigr\}$\;
+                }
+            }
+        }
+    }
+}
+
+\Fn{\textsc{ECP-Sync}{$(\{\mathcal{L}_{i,j}\}, S, \mathbf{w}_i, B, \eta)$}}{
+    $\mathbf{m}_{\mathrm{pre}} \leftarrow \mathbf{0}$\;
+    \ForEach{$j \in \{k \mid \mathcal{L}_{i,k} \neq \emptyset\}$}{
+        $T_{i,j} \leftarrow \{\tau \mid (\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}\}$\;
+        $A_{\mathrm{pre},j} \leftarrow \sum_{\tau \in T_{i,j}} \mathsf{PRPG}(B, \tau)$\;
+        $C_{\mathrm{pre},j} \leftarrow \sum_{\tau \in T_{i,j}} C_j^{(\tau)}$\;
+        $\mathbf{m}_{\mathrm{pre},j} \leftarrow \mathsf{HE.Dec}(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})$\;
+        Update the $j$-th pack of $\mathbf{m}_{\mathrm{pre}}$ with $\mathbf{m}_{\mathrm{pre},j}$\;
+    }
+    $\{\mathcal{L}_{i,j}\} \leftarrow \emptyset$\;
+    \Return $\mathbf{w}_i - \eta \mathbf{m}_{\mathrm{pre}}$
+}
+\end{algorithm}
+
+\subsubsection{Client One-Step Decryption}
+\label{sssec:prefetch-decrypt}
+
+\textsc{ECPFL} avoids per-round decryptions by accumulating missed updates into a single composite ciphertext homomorphically.
+By Equation~\eqref{eq:spatial-agg}, each active round produces an aggregated ciphertext $C_j^{(\tau)}$ for each selected pack $j \in \mathcal{K}^{(\tau)}$, all encrypted under the same global key structure $S = \sum_{i \in \mathcal{C}} s_i$.
+Because KGC compensatory ciphertexts are already aggregated into $C_j^{(\tau)}$ by \textsc{ESP-Agg}, algebraic alignment across rounds is preserved, and the client can independently add ciphertexts in its local accumulator~$\mathcal{L}_{i,j}$.
+
+For client $i$ and any selected pack~$j$, let $T_{i,j} = \{\tau \mid (\tau, C_j^{(\tau)}) \in \mathcal{L}_{i,j}\}$ denote the missed rounds during which pack~$j$ was globally selected.
+The client computes its local composite ciphertext
+\begin{equation}
+\begin{aligned}
+    C_{\mathrm{pre},j} &= \sum_{\tau \in T_{i,j}} C_{j}^{(\tau)} \\
+    &= \biggl[\, \sum_{\tau \in T_{i,j}} \Bigl( a^{(\tau)} S + \tilde{p} E_j^{(\tau)} + \mathbf{m}_j^{(\tau)} \Bigr) \biggr]_{q} \\
+    &= \Bigl[\, A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathbf{m}_{\mathrm{pre}, j} \Bigr]_{q},
+    \label{eq:prefetch-accumulation}
+\end{aligned}
+\end{equation}
+where $A_{\mathrm{pre},j} = \sum_{\tau \in T_{i,j}} a^{(\tau)}$ is the accumulated public-polynomial drift, $E_{\mathrm{pre},j} = \sum_{\tau \in T_{i,j}} E_j^{(\tau)}$ is the composite bounded noise, and $\mathbf{m}_{\mathrm{pre}, j}$ is the exact plaintext sum.
+Notably, $C_{\mathrm{pre},j}$ occupies the same asymptotic space as a single-round ciphertext, regardless of $|T_{i,j}|$.
+
+Unlike interactive distributed decryption protocols that require multi-round share exchanges, \textsc{ECPFL} needs only one decryption per pack.
+Following the MK-CKKS primitive, the client extracts the plaintext directly from $C_{\mathrm{pre},j}$ using the global decryption key~$S$:
+\begin{equation}
+\begin{aligned}
+ \mathbf{m}_{\mathrm{pre},j}
+& \leftarrow \mathsf{HE.Dec}(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j})\\
+&= \Bigl[\bigl[ C_{\mathrm{pre},j} - A_{\mathrm{pre},j} S \bigr]_{q}\Bigr]_{p} \\
+&=\Bigl[\bigl[\, A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathbf{m}_{\mathrm{pre},j} \bigr]_{q} - \bigl[ A_{\mathrm{pre},j} S\bigr]_q\Bigr]_p,
+\end{aligned}
+\label{eq:one-shot-dec}
+\end{equation}
+where the subtraction of $A_{\mathrm{pre},j} S$ neutralizes the dynamically accumulated public-key component.
+The client assembles $\{\mathbf{m}_{\mathrm{pre},j}\}$ into the full model update $\mathbf{m}_{\mathrm{pre}}$ and applies it via $\mathbf{w}_i \leftarrow \mathbf{w}_i - \eta \mathbf{m}_{\mathrm{pre}}$.
+Because ciphertexts are merged homomorphically before decryption, the client performs only one decryption per selected pack, amortizing cryptographic overhead across the entire prefetch horizon.

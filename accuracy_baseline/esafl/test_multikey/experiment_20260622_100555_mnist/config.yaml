@@ -1,0 +1,124 @@
+# ============================================================================
+# CKKS-Fed / ESAFL 联邦学习实验配置文件
+# 配置：25客户端，5轮（测试轮次），alpha=1（轻度Non-IID），每轮随机选25个客户端
+# 打包方式：ESAFL比特级打包（无稀疏化）
+# 说明：本配置用于与 MASER 五轮验证对齐，输出保存至 test_multikey
+# ============================================================================
+
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 25
+  num_rounds: 5                         # 测试轮次，与 MASER 五轮验证对齐
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 1.0
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: false
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 1
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    # ESAFL 比特级打包策略（四个数据集统一对齐参数）
+    strategy: "esafl"
+    # 消息量化比特（logq0）- 使用 10 位在保证 CKKS 编码不溢出的前提下尽量保留精度
+    # 25 个客户端聚合时，每 packed integer 最大约 25 * (2^10-1) * (1 + 2^15) < 2^29
+    # 配合 global_scale=2^20，CKKS 编码后系数 < 2^29 * 2^20 * sqrt(8192) < 2^56，安全
+    logq0: 10
+    # 打包批次大小（slots2）- 每个 CKKS slot 打包 slots2 个量化值
+    slots2: 2
+    # 量化比特（与 logq0 一致）
+    quant_bits: 10
+    # pad_bits 用于为同态加法聚合预留进位空间。
+    # 当前 ESAFL 实现走的是“明文解密→平均→重加密”聚合路径，不需要同态累加
+    # 打包整数，因此 pad_bits 可设为 0，以降低每个 packed integer 的位宽、
+    # 避免 CKKS 编码（global_scale=2^40）时系数溢出。
+    # 总比特数 = slots2 * (quant_bits + pad_bits) = 2 * (10 + 0) = 20 <= 53
+    pad_bits: 0
+  # 取消稀疏化，使用完整梯度（ESAFL 主打压缩来自打包而非稀疏化）
+  sparsification:
+    strategy: null
+    sparsity_rate: 0.0
+    batch_size: 4096
+    seed: 42
+    scoring_method: "l2_norm"
+    use_warmup_skip_sparse: false
+    warmup_rounds: 0
+    local_completion:
+      enabled: false
+  ptopk:
+    enable: false
+    client_residual:
+      enabled: false
+      stale_gamma: 0.5
+      decay_gamma: 0.3
+      clip_tau: 0.0
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+blinding_mask:
+  enabled: false
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+global_mask_vote:
+  mode: "none"
+  threshold_pct: 0.5
+  topk_count_k: 20
+  topk_pct: 0.1
+
+# ESAFL 配置 - 启用密文delta路径
+esafl:
+  enabled: true
+  mode: "SIMULATION"
+  prpg_seed: 42
+
+tee:
+  enabled: false
+
+# ============================================================================
+# 带宽模拟配置 (bandwidth)
+# ============================================================================
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 10240.0                   # 10 Mbps，确保高于 min_dl_bw_kbps=5120
+  base_ul_bw: 10240.0                   # 10 Mbps，确保高于 min_ul_bw_kbps=5120
+  variance: 0.3
+  distribution: "lognormal"
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+
+output:
+  results_dir: "accuracy_baseline/esafl/test_multikey"
+  model_dir: "./models"
+  save_interval: 5

@@ -1,0 +1,345 @@
+[
+  {
+    "timestamp": "20260616_010810",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_010810_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_010826",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_010826_fashion_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_010842",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_010842_cifar10",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_123539",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_123539_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_123557",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_123557_fashion_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_123615",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_123615_cifar10",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_123635",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_123635_svhn",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20260616_124019",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_124019_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 98.69,
+      "final_test_loss": 0.04179853604885112,
+      "total_time_sec": 878.545658826828,
+      "total_communication_mb": 3930.4168977737427,
+      "avg_round_time_sec": 17.57091317653656,
+      "avg_upload_kb": 16322.41267578125,
+      "avg_download_kb": 64172.525390625,
+      "avg_expansion_ratio": 3.76224521226309,
+      "avg_encryption_time_sec": 0.007934775352478027,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.6269779205322,
+      "total_ciphertext_blocks": 2500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260616_125524",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_125524_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 79.02,
+      "final_test_loss": 0.8466257498522473,
+      "total_time_sec": 920.3706114292145,
+      "total_communication_mb": 4044.451409339905,
+      "avg_round_time_sec": 18.40741222858429,
+      "avg_upload_kb": 8161.49181640625,
+      "avg_download_kb": 74668.873046875,
+      "avg_expansion_ratio": 2.088819700074981,
+      "avg_encryption_time_sec": 0.004948916816711426,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.8270111083984,
+      "total_ciphertext_blocks": 1250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260616_131120",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_131120_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 75.77,
+      "final_test_loss": 0.7214725258623719,
+      "total_time_sec": 2146.444623708725,
+      "total_communication_mb": 32510.130789756775,
+      "avg_round_time_sec": 42.928892474174496,
+      "avg_upload_kb": 277487.40484375,
+      "avg_download_kb": 388320.07373046875,
+      "avg_expansion_ratio": 10.368742840878406,
+      "avg_encryption_time_sec": 0.12194933319091797,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.7593002319336,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20260616_134815",
+    "output_dir": "accuracy_baseline/fedphe/result_fix_pro\\experiment_20260616_134815_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 94.43761524277812,
+      "final_test_loss": 0.20230591869672773,
+      "total_time_sec": 5122.39940237999,
+      "total_communication_mb": 55680.62851142883,
+      "avg_round_time_sec": 102.4479880475998,
+      "avg_upload_kb": 473357.685,
+      "avg_download_kb": 666981.5869140625,
+      "avg_expansion_ratio": 10.326997239704285,
+      "avg_encryption_time_sec": 0.28345212326049807,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.7644023895264,
+      "total_ciphertext_blocks": 72500,
+      "prefetch_enabled": false
+    }
+  }
+]

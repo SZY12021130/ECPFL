@@ -1,0 +1,547 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage{geometry}
+\geometry{left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tocloft}
+\usepackage[numbers,sort&compress]{natbib}
+
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\title{\textbf{面向无人机系统的安全与密码学研究机会：\\2024--2026 CCF-A 文献聚类与可实验贡献点综述}}
+\author{基于 DBLP CCF-A 期刊/会议文献的系统梳理}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本报告系统检索了 DBLP 收录的 2024--2026 年 CCF-A 类期刊与会议中面向无人机（UAV/Drone）安全、隐私与密码学的研究文献。通过主题聚类，提炼出 30 余个可在典型实验环境（如 NVIDIA RTX 3050 + Intel i7 台式机，必要时租用云 GPU）中开展验证的可信贡献点。每个贡献点均给出聚类论文、现状分析、以及具体的实验方向，并特别说明如何结合经典密码学或同态密码学构建可行论文思路。所有参考文献以 BibTeX 格式独立存放。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{引言}
+\label{sec:intro}
+无人机（UAV/Drone）在物流、巡检、应急通信、军事侦察等场景快速普及，但算力受限、通信开放、物理暴露等特点使其面临认证、隐私、可信计算、抗干扰、安全协同等多重威胁。2024--2026 年，CCF-A 类会议与期刊中出现了大量面向无人机安全的专项研究，涵盖经典密码学、公钥密码、格密码、同态加密、零知识证明、安全多方计算、区块链、联邦学习等方向。本报告通过聚类方法，提炼出可在实验环境中快速验证的贡献点，为后续研究提供可直接落地的选题参考。
+
+\section{研究方法与聚类维度}
+\label{sec:method}
+\begin{itemize}[leftmargin=2em]
+\item \textbf{文献源}：DBLP 计算机科学文献库，限定 2024--2026 年。
+\item \textbf{Venue 过滤}：仅保留 CCF-A 类会议（S\&P、CCS、USENIX Security、NDSS、CRYPTO、EUROCRYPT、ASIACRYPT、TCC、PKC、SIGCOMM、NSDI、MobiCom、MobiSys、SenSys、IPSN、INFOCOM、RAID 等）与期刊（TIFS、TDSC、TMC、TON、JSAC、TC、TPDS、Journal of Cryptology 等）。
+\item \textbf{检索词}：围绕 UAV/Drone/Security/Privacy/Cryptography/Homomorphic/Federated/Blockchain/Authentication/Anomaly/Spoofing/Jamming/Swarm/Edge 等构建 50 组关键词。
+\item \textbf{聚类维度}：以“密码原语 + 无人机场景 + 安全目标 + 实验方法”四元组进行人工聚类，提炼研究空白与可实验贡献点。
+\item \textbf{实验环境}：本地 PC（NVIDIA RTX 3050、Intel i7）可完成小模型、小数据集、轻量级协议；复杂训练或大规模联邦学习可租用云服务器补充。
+\end{itemize}
+
+% Contribution sections will be inserted here by the generation pipeline.
+% Auto-generated contributions.tex
+\section{无人机安全研究贡献点聚类分析}
+\label{sec:contributions}
+
+\subsection{轻量级无证书与证书less双向认证协议}
+\label{contrib-auth}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\item Few-shot Learning and Data Augmentation for Cross-Domain UAV Fingerprinting. (MobiCom 2024)
+\end{itemize}
+
+\textbf{现状分析：}小型无人机计算、存储和通信资源极度受限，传统 X.509 公钥基础设施（PKI）在机载飞控上难以部署。2024--2025 年 CCF-A 文献中，面向无人机认证的研究集中在降低证书管理开销、减少握手时延和抵抗中间人攻击三方面。现有工作多将证书less（certificateless）或基于身份（identity-based）的签名/加密引入无人机场景，通过地面站作为密钥生成中心（KGC）分发部分私钥，无人机本地生成另一部分私钥，从而避免证书存储和撤销列表维护。然而，KGC 单点信任、批量认证时的可扩展性以及高速机动导致的会话重同步问题仍未被系统解决。
+
+\textbf{实验方向：}可在本地 PC 使用 Python/Go 实现证书less签名（如基于双线性对或椭圆曲线）和 TinyJAMBU/Ascon 等轻量对称原语，模拟 10--50 架无人机与地面站的认证握手。评估指标包括：单次认证延迟（毫秒级）、计算开销（CPU cycle 或 ARM Cortex-M4 模拟）、通信字节数、KGC 被攻陷时的前向安全性。进一步可引入硬件在环（HITL）使用 Pixhawk 或 Raspberry Pi 验证真实飞行中的认证稳定性。
+
+\textbf{密码学结合点：}经典密码学：椭圆曲线密码（ECC）短签名、BLS 聚合签名、证书less signcryption；同态/高级密码：可结合零知识证明实现匿名认证，或利用身份基加密（IBE）保护会话密钥分发。
+
+\subsection{无人机蜂群的安全组密钥分发与动态成员管理}
+\label{contrib-group-key}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item GazeboNS3: A Digital Twin System for UAV Swarms. (MobiSys 2025)
+\item Demo Abstract: CARL: Collaborative Altitude-Adaptive Reinforcement Learning for Active Search with UAV Swarms. (IPSN 2024)
+\item Poster Abstract: Emergency Networking Using UAVs: A Reinforcement Learning Approach with Large Language Model. (IPSN 2024)
+\end{itemize}
+
+\textbf{现状分析：}蜂群规模从几十架到上千架不等，动态加入/退出频繁，现有组密钥协议（如 GKMP、LKH、OFT）在高度移动拓扑下面临重密钥风暴和通信风暴。2024--2025 年研究尝试将区块链、秘密共享和物理层信道特征引入组密钥更新，但仍存在共识时延高、密钥更新与飞行控制周期不匹配、离队无人机密钥撤销不及时等问题。特别是后量子算法在蜂群中的可行性尚未得到充分实验验证。
+
+\textbf{实验方向：}在本地 NS-3/MATLAB 仿真中构建 50--200 节点蜂群，实现 (t,n)-门限秘密共享 + 格密码/编码密码组密钥更新，测量密钥更新完成时间、控制面开销、节点离队后密钥失效时间。可在 RTX 3050 上运行小规模 Kyber/Dilithium 实现，对比 RSA-2048/ECC-P256 在 ARM 模拟器上的加解密时延。
+
+\textbf{密码学结合点：}经典密码学：Diffie-Hellman 组密钥、LKH/OFT 逻辑密钥树、Shamir 秘密共享；高级密码：基于同态加密的密钥份额聚合、基于格密码的后量子密钥封装（Kyber）和数字签名（Dilithium）。
+
+\subsection{无人机对地通信的物理层安全波束成形与密钥提取}
+\label{contrib-phys-layer}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Secure Beamforming and Obstacle Avoidance Trajectory Design for UAV-Assisted ISAC. (MobiCom 2024)
+\item Poster Abstract: Real-Time Active Identification and Tracking of UAVs Using Millimeter-Wave Radar. (SenSys 2025)
+\item Poster Abstract: Adaptive Chirps Domain Window Order of MM-Wave Radar for UAV Motion Capture. (IPSN 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机与地面站之间的毫米波/Sub-6 GHz 信道具有高度时变、视距（LOS）主导和三维机动特性，为物理层安全（PLS）提供了天然的密钥源和波束成形增益。现有研究主要利用信道互惠性提取密钥、通过人工噪声（AN）和波束成形抑制窃听，但面临高速移动导致信道相关性快速下降、姿态变化引入天线方向图扰动、以及感知-通信一体化（ISAC）场景下安全与感知性能权衡等挑战。
+
+\textbf{实验方向：}使用 MATLAB 5G Toolbox 或 ns-3 mmWave 模块生成 UAV-to-Ground 信道序列，实现基于信道相位/幅度的密钥提取算法（如 KLT、量化、信息协调、隐私放大），量化密钥生成率（KGR）、密钥不一致率（KDR）和窃听残留互信息。可在本地实现多天线波束成形优化（如半定松弛、DRL），并对比不同飞行速度下的密钥稳定性。
+
+\textbf{密码学结合点：}经典密码学：LDPC/Zig-Zag 信息协调、Toeplitz 哈希隐私放大、Wyner 窃听信道编码；高级密码：可结合同态加密对信道特征进行安全外包处理，或利用安全多方计算在多个无人机之间协同提取密钥。
+
+\subsection{基于同态加密的无人机联邦学习安全聚合}
+\label{contrib-fl-he}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item UAV-Assisted Integrated Sensing and Communication for Emergency Rescue Activities Based on Transfer Deep Reinforcement Learning. (MobiCom 2024)
+\item Scalable Multi-Agent Reinforcement Learning for Effective UAV Scheduling in Multi-Hop Emergency Networks. (MobiCom 2024)
+\item Demo Abstract: CARL: Collaborative Altitude-Adaptive Reinforcement Learning for Active Search with UAV Swarms. (IPSN 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机联邦学习（FL）被广泛用于协同目标识别、路径规划与异常检测，但本地模型上传会泄露训练数据成员隐私和梯度信息。2024--2025 年 CCF-A 文献开始将 CKKS/BFV 同态加密、安全聚合（Secure Aggregation）和函数加密引入 UAV FL，但全同态加密在机载设备上的计算开销仍然巨大，且密文聚合与异步通信、掉队者（straggler）无人机之间存在兼容性矛盾。
+
+\textbf{实验方向：}在本地使用 PyTorch + TenSEAL/HElib/SEAL 实现小模型（如 LeNet / CNN-FMNIST / ResNet-20）的无人机联邦学习，3--10 个客户端模拟无人机，使用 CKKS 加密梯度并在服务器聚合。对比明文、差分隐私、安全聚合（FedAvg+SecAgg）和同态聚合的精度、通信量、单轮时间。RTX 3050 可处理小规模 CNN，ResNet-20 可缩小输入尺寸或租用云 GPU。
+
+\textbf{密码学结合点：}同态密码学：CKKS 近似同态加密用于浮点梯度聚合，BFV 用于整数量化梯度；经典密码学：Paillier 加法同态、Shamir 秘密共享 + 安全聚合（Bonawitz 协议）、双掩码技术。
+
+\subsection{基于安全多方计算的无人机协同控制与隐私保护轨迹规划}
+\label{contrib-mpc-trajectory}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Secure Beamforming and Obstacle Avoidance Trajectory Design for UAV-Assisted ISAC. (MobiCom 2024)
+\item Scalable Multi-Agent Reinforcement Learning for Effective UAV Scheduling in Multi-Hop Emergency Networks. (MobiCom 2024)
+\item Auto-UIT: Automating UAV Inspection Trajectory by Recognizing Pylon Structure from 3D Point Cloud. (MobiCom 2025)
+\end{itemize}
+
+\textbf{现状分析：}多无人机协同搜索、救援或物流中，每架无人机的起点、目的地、任务优先级和能耗模型都是敏感信息。集中式轨迹规划存在隐私泄露和单点故障风险，而完全分布式方法难以保证全局最优和碰撞避免。安全多方计算（MPC）可以在不暴露各方输入的前提下计算联合目标函数，但现有研究多停留在两方或三方场景，缺乏面向大规模蜂群、高动态约束和实时性要求的实用协议。
+
+\textbf{实验方向：}使用 MP-SPDZ/SCALE-MAMBA/SEEC 或自研 Python 基于 SPDZ/BGW 协议实现 3--10 方无人机协同轨迹规划。输入为各机起点/终点/障碍物位置，计算联合最短路径和碰撞约束。测量每轮 MPC 通信轮数、在线/离线阶段时间、内存占用。本地 PC 可运行小规模整数/定点电路；更大规模可租用云服务器。
+
+\textbf{密码学结合点：}经典密码学：Shamir 秘密共享、GMW/BGW、SPDZ 恶意安全 MPC；同态密码学：基于同态加密的 MPC 预处理（如 BGV/BFV 生成乘法三元组）；零知识证明：用于验证轨迹约束满足性。
+
+\subsection{基于零知识证明的无人机匿名身份与隐私会话标识}
+\label{contrib-zk-uav}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机身份常与设备注册、飞行任务、操作员身份强绑定，暴露身份会泄露任务意图和运营隐私。CAPSID 等工作提出在 CCS 2024 等会议上提出隐私会话标识系统，使无人机在每次通信时使用一次性、不可链接的会话 ID，并通过零知识证明向地面站证明其已注册。然而，zk-SNARKs 的证明生成时间、可信设置和存储开销仍是小型无人机部署的瓶颈。
+
+\textbf{实验方向：}本地实现基于 libsnark/bellman 的zk-SNARK 或基于 Bulletproofs 的零知识范围证明，证明无人机拥有合法注册凭证而不泄露身份。测量证明生成时间（RTX 3050 可加速多指数运算）、证明大小、验证时间。与明文 PKI 和传统群签名对比。可进一步在 Raspberry Pi 上模拟证明生成/验证。
+
+\textbf{密码学结合点：}高级密码学：zk-SNARKs、zk-STARKs、Bulletproofs、环签名、群签名；经典密码学：基于椭圆曲线的 Pedersen 承诺、Schnorr/ECDSA 签名。
+
+\subsection{基于区块链的无人机审计、取证与空域管理}
+\label{contrib-blockchain}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item HaDT: Hardening Digital Twins for UAVs-Based Industrial Logistics Distribution Systems. (INFOCOM 2025)
+\item GazeboNS3: A Digital Twin System for UAV Swarms. (MobiSys 2025)
+\end{itemize}
+
+\textbf{现状分析：}区块链为无人机提供了不可篡改的飞行日志、身份和交易记录，尤其适用于城市空中交通（UAM）、物流溯源和空域监管。然而，链上存储成本高、共识时延与飞行实时性冲突、PoW 能耗不适合电池供电无人机等問題限制了直接使用。2024--2025 年研究转向轻量级联盟链/侧链、DAG、智能合约自动执行违规处罚，但跨链互操作性和链上隐私仍需密码学增强。
+
+\textbf{实验方向：}在本地 PC 使用 Ethereum/Hyperledger Fabric 或自研 PoA 私链模拟 5--20 架无人机提交飞行日志和交易。对比不同共识机制（PBFT、Raft、PoA）的吞吐量、时延和能耗。结合同态承诺或 zk-SNARKs 将敏感飞行数据（坐标、载荷）以密文/承诺形式上链，实现隐私审计。
+
+\textbf{密码学结合点：}经典密码学：Merkle 树、哈希链、数字签名用于日志完整性；高级密码学：同态承诺、zk-SNARKs 实现可验证隐私审计、属性基加密用于细粒度访问控制。
+
+\subsection{无人机GPS欺骗与导航欺骗的密码学检测与防护}
+\label{contrib-gps-spoof}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster Cooperative UAV Sensor Fusion for Precision Localization and Navigation in Load Transport. (SenSys 2024)
+\item Poster: Joint RF-Gas Sensing for Victim Localization using UAV Networks. (MobiSys 2025)
+\item LTA: Control-Driven UAV Testing and Bug Localization with Flight Record Decomposition. (SenSys 2024)
+\end{itemize}
+
+\textbf{现状分析：}GPS 欺骗是无人机最严重的物理层威胁之一，攻击者可通过伪造卫星信号劫持或误导无人机。虽然 2022 年 USENIX Security 已有实验研究，但 2024--2025 年工作开始将密码学验证（如地面站签名的位置参考、传感器融合数据的数字签名、多源交叉验证）融入导航解算，以检测异常。现有挑战在于如何在不依赖额外基础设施的情况下实现低延迟、低开销的欺骗检测，并保证检测与飞控回路的实时性。
+
+\textbf{实验方向：}使用 PX4 SITL + Gazebo 或 MATLAB 无人机模型，模拟 GPS 欺骗攻击。实现基于地面站签名参考点、IMU/GPS 一致性检查和加密时间戳的检测模块。测量检测延迟、误报率、成功抵抗欺骗的飞行轨迹。可在本地 PC 运行 1000+ 次仿真，评估不同欺骗强度下的检测准确率。
+
+\textbf{密码学结合点：}经典密码学：HMAC/数字签名保护传感器数据和时间戳、Merkle 树聚合多源传感器读数；高级密码学：零知识证明验证位置一致性、同态签名聚合多无人机观测。
+
+\subsection{无人机抗干扰与反劫持的密码学链路保护}
+\label{contrib-anti-jam}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Secure Beamforming and Obstacle Avoidance Trajectory Design for UAV-Assisted ISAC. (MobiCom 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机通信链路暴露且功率受限，容易遭受干扰、欺骗和中间人劫持。跳频（FHSS）、直接序列扩频（DSSS）和认知无线电常与密码学密钥派生结合，以动态改变通信频率和扩频码。然而，密钥更新速率与跳频速率同步、密钥派生的熵源选择、以及跨层抗干扰设计仍缺乏系统评估。
+
+\textbf{实验方向：}使用 GNU Radio + USRP（如可用）或 MATLAB 仿真实现 FHSS/DSSS 链路，结合 AES-CTR 或 ChaCha20 派生跳频图案。模拟压制干扰、欺骗干扰和选择性干扰，测量比特误码率（BER）、链路可用性、密钥同步失败率。若无硬件，可用 ns-3 或 Python 仿真。
+
+\textbf{密码学结合点：}经典密码学：AES-CTR/ChaCha20 密钥流生成跳频图案、HMAC 验证消息完整性；高级密码学：基于伪随机函数（PRF）和密钥派生函数（KDF）的安全序列生成。
+
+\subsection{无人机固件与OTA安全更新}
+\label{contrib-ota}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item LTA: Control-Driven UAV Testing and Bug Localization with Flight Record Decomposition. (SenSys 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机固件和飞控软件需要频繁 OTA 更新以修复漏洞和添加功能，但空中链路开放、带宽有限、设备分散，使得更新过程易受中间人篡改、回滚攻击和恶意固件注入。现有研究提出差分更新、签名验证、远程证明和可信启动链，但如何在机载资源受限条件下实现强完整性保护、原子更新和快速回滚恢复仍是难点。
+
+\textbf{实验方向：}本地实现差分固件生成（bsdiff/自研）、Ed25519/Dilithium 签名、Merkle 树增量验证，在 Raspberry Pi 或模拟 ARM Cortex-M 上测量更新包大小、验证时间、内存占用。模拟恶意篡改和断电场景，测试回滚恢复成功率。可结合 TPM/TEE 模拟远程证明。
+
+\textbf{密码学结合点：}经典密码学：Ed25519/ECDSA 代码签名、Merkle 树/哈希链、HMAC；后量子密码：Dilithium/LMS/XMSS 签名；高级密码：可结合同态哈希实现增量验证。
+
+\subsection{无人机可信执行环境与安全飞控}
+\label{contrib-tee}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item HaDT: Hardening Digital Twins for UAVs-Based Industrial Logistics Distribution Systems. (INFOCOM 2025)
+\end{itemize}
+
+\textbf{现状分析：}飞控系统（如 PX4、ArduPilot）运行在嵌入式 Linux 或实时操作系统上，容易受到恶意载荷、驱动攻击和越权访问。可信执行环境（TEE，如 ARM TrustZone、Intel SGX、ARM CCA）可在飞控中隔离关键任务、保护密钥和执行远程证明。然而，TEE 在无人机上的可用性、中断延迟、与传感器驱动的集成以及侧信道攻击面仍需深入研究。
+
+\textbf{实验方向：}在 QEMU/ARM 模拟器或树莓派上搭建 TrustZone/OP-TEE 环境，将飞控中的密钥生成、签名验证、姿态控制安全区隔离。测量世界切换开销、安全存储读写延迟、远程证明时间。对比无 TEE 基线在受攻击场景下的控制完整性。
+
+\textbf{密码学结合点：}经典密码学：AES-GCM 安全存储、RSA/ECC 远程证明签名；高级密码：可信计算中的密封存储（sealing）、基于硬件的密钥派生。
+
+\subsection{无人机入侵检测与异常检测的联邦学习}
+\label{contrib-fl-ids}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item PIC-BI: Practical and Intelligent Combinatorial Batch Identification for UAV assisted IoT Networks. (CCS 2024)
+\item UAV-Assisted Integrated Sensing and Communication for Emergency Rescue Activities Based on Transfer Deep Reinforcement Learning. (MobiCom 2024)
+\item Scalable Multi-Agent Reinforcement Learning for Effective UAV Scheduling in Multi-Hop Emergency Networks. (MobiCom 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机网络中的入侵检测需要处理高维遥测数据、快速变化的飞行模式和分布式的数据所有权。联邦学习允许多架无人机协同训练检测模型而无需共享原始数据，但拜占庭节点、模型投毒和数据异构性会严重降低检测精度。2024--2025 年研究开始将 Krum、Trimmed-Mean、Median 等拜占庭鲁棒聚合和安全聚合引入 UAV IDS，但对动态拓扑和模型异构的适应性仍不足。
+
+\textbf{实验方向：}使用 CIC-UAV-2024、NSL-KDD 或自定义 UAV 遥测数据集，在 5--20 个模拟客户端上实现 FL 训练 LSTM/Transformer/Autoencoder 异常检测模型。对比 FedAvg、Krum、Trimmed-Mean、Median、RFA 在投毒攻击下的 AUC/F1。RTX 3050 可处理小模型，复杂模型可租用云 GPU。
+
+\textbf{密码学结合点：}经典密码学：安全聚合（SecAgg）保护本地梯度；高级密码：同态加密聚合、零知识证明验证梯度范数约束、差分隐私保护数据隐私。
+
+\subsection{基于后量子/格密码的无人机轻量密码体制}
+\label{contrib-pqc}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}随着量子计算威胁临近，传统 RSA/ECC 在未来可能被破解。无人机作为长寿命基础设施，需要尽早迁移到后量子密码（PQC）。NIST 标准化的 Kyber（KEM）、Dilithium（签名）、SPHINCS+（无状态哈希签名）和 Falcon 是候选方案。然而，这些算法在 RAM、Flash 和 CPU 受限的无人机飞控上的实现效率、密钥/签名大小、抗侧信道能力仍是研究热点。
+
+\textbf{实验方向：}在本地 PC 使用 pqm4 / liboqs / pqc-rust 评估 Kyber-512/768、Dilithium-2/3、SPHINCS+ 在 x86 和 ARM Cortex-M4 模拟器上的性能。对比 ECC-P256 和 RSA-2048 的密钥生成、封装、签名、验证时间和签名大小。进一步在无人机仿真链路中替换传统密钥协商，测量握手时延和通信开销。
+
+\textbf{密码学结合点：}后量子密码学： lattice-based Kyber KEM、Dilithium/Falcon 签名、hash-based SPHINCS+；经典密码学：AES-256 作为对称后量子安全级别加密、SHA-3/SHAKE 用于密钥派生。
+
+\subsection{无人机辅助边缘计算的安全任务卸载}
+\label{contrib-edge-offload}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster: Vehicle-Edge Server Collaborative Task Offloading for UAVs: A Game Theoretic Approach. (SenSys 2024)
+\item An Online Joint Optimization Approach for QoE Maximization in UAV-Enabled Mobile Edge Computing. (INFOCOM 2024)
+\item A Two Time-Scale Joint Optimization Approach for UAV-assisted MEC. (INFOCOM 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机可作为移动边缘节点为地面用户或物联网设备提供计算卸载服务。任务卸载涉及敏感数据、任务优先级和计算结果，需要保护隐私、完整性和公平性。现有研究将同态加密、安全多方计算、可验证计算和智能合约引入 UAV-MEC，但卸载决策与密码学开销的联合优化、动态信道下的安全 SLA 保障仍不充分。
+
+\textbf{实验方向：}在本地实现一个 UAV-MEC 仿真：无人机收集传感器数据，部分任务在本地执行，部分卸载到边缘服务器。对比明文卸载、TLS 加密、同态加密部分计算（如 CKKS 加密聚合）、MPC 协同计算在任务完成时间、能耗、隐私泄露风险方面的差异。使用 RL/DRL 优化卸载策略。
+
+\textbf{密码学结合点：}高级密码：CKKS/BFV 同态加密用于边缘聚合、安全多方计算保护任务输入、可验证计算（VDF/VC）保证结果正确性；经典密码：TLS 1.3、AES-GCM 保护传输。
+
+\subsection{无人机视觉数据隐私保护：同态加密图像推理与检索}
+\label{contrib-vision-he}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster: A Unified Framework for Simultaneous Video Analytics and Streaming on UAVs. (MobiCom 2025)
+\item Online Radio Environment Map Creation via UAV Vision for Aerial Networks. (INFOCOM 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机配备高分辨率摄像头执行搜救、监控、巡检，但图像/视频数据常包含人脸、车牌、地理信息和个人隐私。将数据直接上传云端分析会泄露隐私。同态加密允许在密文上执行推理，但全同态加密的计算开销使 CNN 推理极其昂贵。2024--2025 年研究探索了轻量同态方案、函数加密、部分同态加密与边缘协同的结合。
+
+\textbf{实验方向：}在本地使用 PyTorch + TenSEAL/SEAL/HElib 实现小卷积网络（如 LeNet、MNIST/CIFAR-10 尺寸）在加密图像上的推理。对比明文推理、Paillier/CKKS 加密推理、剪枝/量化后模型的时延和精度。RTX 3050 可加速小模型，但全同态 CNN 需要租用云 GPU 或限制网络深度。
+
+\textbf{密码学结合点：}同态密码：CKKS 近似同态加密、BFV 用于整数量化、Leveled HE 用于固定深度网络；函数加密：用于属性隐藏检索；经典密码：AES-GCM 加密图像传输。
+
+\subsection{无人机轨迹与位置隐私保护}
+\label{contrib-trajectory-privacy}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Auto-UIT: Automating UAV Inspection Trajectory by Recognizing Pylon Structure from 3D Point Cloud. (MobiCom 2025)
+\item Demo: UAV Trajectory Generation from Sparse and Noisy 3D Point Clouds. (MobiCom 2025)
+\end{itemize}
+
+\textbf{现状分析：}无人机轨迹可揭示任务目标、用户位置、军事部署和商业机密。现有位置隐私技术（如 k-匿名、假轨迹、差分隐私、Mix-zone）需要适配三维空间、高速移动和实时规划约束。2024--2025 年研究关注如何在保证飞行安全（避障、碰撞）的前提下注入噪声或混淆轨迹，同时最小化对任务效率的影响。
+
+\textbf{实验方向：}在本地使用 Python/MATLAB 实现无人机轨迹规划（如 A*、RRT*、DRL），加入差分隐私噪声（拉普拉斯/高斯机制）或生成假轨迹。评估隐私保护强度（轨迹重构误差、成员推理攻击成功率）与任务效用（飞行距离、时间、能耗）的权衡。可结合真实 UAV 轨迹数据集。
+
+\textbf{密码学结合点：}经典密码：伪匿名、Mix-zone、假名系统；高级密码：差分隐私（DP）、同态加密用于轨迹聚合、安全多方计算用于联合轨迹分析。
+
+\subsection{基于属性加密与函数加密的无人机数据访问控制}
+\label{contrib-abe-fhe}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机产生的数据需要按角色、任务、时间和安全级别进行细粒度访问控制。属性基加密（ABE）允许数据拥有者根据访问策略加密数据，无需为每个接收者单独分发密钥。函数加密（FE）更进一步，允许第三方在不知明文的情况下计算特定函数。然而，ABE 的解密计算、策略复杂度和密钥撤销在无人机上仍具挑战。
+
+\textbf{实验方向：}在本地实现基于 Charm-Crypto 或自研 Python 的 CP-ABE/KP-ABE 方案，定义无人机数据访问策略（如“仅紧急响应部门 + 等级 $\geq$ 3 + 24 小时内可解密”）。测量密钥生成、加密、解密时间，以及策略数量增加时的开销。可引入外包解密将计算转移到边缘服务器。
+
+\textbf{密码学结合点：}高级密码：CP-ABE/KP-ABE、函数加密（FE）、内积加密（IPE）、隐藏向量加密（HVE）；经典密码：AES-GCM 用于数据加密、ABE 用于密钥封装。
+
+\subsection{无人机蜂群拜占庭容错共识与可验证广播}
+\label{contrib-byzantine}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item GazeboNS3: A Digital Twin System for UAV Swarms. (MobiSys 2025)
+\end{itemize}
+
+\textbf{现状分析：}蜂群中的无人机可能因故障、恶意软件或外部攻击而表现拜占庭行为，传播错误状态或投票。传统 PBFT 类共识在动态拓扑和高移动性下通信复杂度高。2024--2025 年研究尝试将 DAG、VRF、HotStuff、Raft 等共识机制适配到 UAV 网络，同时利用数字签名和可验证广播保证消息来源。但共识时延与飞行控制周期的匹配仍是开放问题。
+
+\textbf{实验方向：}在本地使用 Python/Go 实现 PBFT、HotStuff、Raft、Tendermint 或 DAG-based 共识，模拟 10--100 个无人机节点，部分节点为拜占庭。测量达成共识的延迟、消息复杂度、吞吐量和容错率。可结合网络模拟器（ns-3）引入丢包和移动性。
+
+\textbf{密码学结合点：}经典密码：数字签名、消息认证码（MAC）、可验证广播；高级密码：可验证随机函数（VRF）、门限签名、BLS 聚合签名减少通信量。
+
+\subsection{无人机协同感知的隐私保护数据聚合}
+\label{contrib-agg}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster: Joint RF-Gas Sensing for Victim Localization using UAV Networks. (MobiSys 2025)
+\item Near-Optimal UAV Deployment for Delay-Bounded Data Collection in IoT Networks. (INFOCOM 2024)
+\item Poster Cooperative UAV Sensor Fusion for Precision Localization and Navigation in Load Transport. (SenSys 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机常被部署为移动汇聚节点，收集地面传感器的环境、交通或灾害数据。聚合数据可能泄露单个传感器或用户隐私。隐私保护聚合（PPA）通过同态加密、秘密共享、扰动或差分隐私实现“和/均值/直方图”等统计结果的安全聚合。现有方法在动态拓扑、异构数据质量和大规模节点下存在效率与鲁棒性矛盾。
+
+\textbf{实验方向：}在本地实现 10--100 个模拟传感器和 1--3 架无人机汇聚节点，使用 Paillier/CKKS 加法同态或 Shamir 秘密共享实现求和/均值聚合。对比明文聚合、纯密码学聚合和差分隐私聚合在精度、通信量、计算开销上的差异。可注入恶意节点评估鲁棒性。
+
+\textbf{密码学结合点：}高级密码：加法同态加密（Paillier/CKKS）、Shamir 秘密共享、安全聚合；经典密码：AES 用于传输加密、MAC 用于完整性。
+
+\subsection{无人机侧信道攻击与防护}
+\label{contrib-side-channel}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Few-shot Learning and Data Augmentation for Cross-Domain UAV Fingerprinting. (MobiCom 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机飞控和加密模块通常在功耗、电磁泄漏、时序等方面存在侧信道，攻击者可通过功耗分析（CPA/DPA）、电磁分析（EMA）或缓存时序推断密钥。2024 年 CCF-A 会议开始关注无人机商用控制器的侧信道安全，但系统性的攻击面评估、低成本攻击演示和自动化防护生成仍稀缺。
+
+\textbf{实验方向：}在本地使用 ChipWhisperer（如可用）或仿真功耗迹线，对 ARM Cortex-M 上的 AES/ECC 实现执行 DPA/CPA。实现掩码（masking）、随机化指令、随机延迟等对抗措施，对比攻击成功率（如密钥恢复所需迹线数）。若无硬件，可用 PIN/Valgrind 模拟缓存时序攻击。
+
+\textbf{密码学结合点：}经典密码：AES、ECC 在嵌入式平台上的实现安全；侧信道防护：布尔/算术掩码、 shuffling、随机延迟、恒定时间实现；高级密码：同态计算中同样面临侧信道，需结合噪声掩码。
+
+\subsection{无人机搜索加密与密文数据管理}
+\label{contrib-se}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Auto-UIT: Automating UAV Inspection Trajectory by Recognizing Pylon Structure from 3D Point Cloud. (MobiCom 2025)
+\item Demo: UAV Trajectory Generation from Sparse and Noisy 3D Point Clouds. (MobiCom 2025)
+\item Anchor: A Novel Modeling Methodology for Cooperative UAV-MEC Based on Stochastic Geometry. (INFOCOM 2025)
+\end{itemize}
+
+\textbf{现状分析：}无人机生成的视频、日志和传感器数据常上传到云端长期存储，但明文检索会泄露隐私。可搜索加密（SE）允许用户在密文上执行关键字搜索。然而，无人机数据动态追加、多关键字联合查询、前向/后向安全以及搜索模式泄露等问题使现有 SE 方案难以直接套用。2024--2025 年研究开始针对 UAV 日志和监控视频设计专用 SE 方案。
+
+\textbf{实验方向：}在本地实现一个基于对称可搜索加密（SSE）或公钥可搜索加密（PEKS）的无人机日志/图像元数据检索系统。使用 Enron 邮件数据集或自定义 UAV 日志作为数据。评估关键词搜索延迟、索引大小、更新效率、泄漏分析（如访问模式攻击）抵抗力。
+
+\textbf{密码学结合点：}经典密码：SSE/PEKS、PRF、对称加密、双线性对；高级密码：前向安全 SE、ORAM 隐藏访问模式、同态加密支持范围/聚合查询。
+
+\subsection{无人机网络中的差分隐私与成员推理防御}
+\label{contrib-dp}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}差分隐私（DP）为无人机数据发布和模型训练提供了可证明的隐私保证。但无人机数据具有强时空相关性，直接添加独立噪声会破坏数据效用。成员推理攻击（MIA）和模型反演攻击可恢复训练数据。2024--2025 年研究探索了自适应隐私预算分配、相关数据下的 DP 机制、以及 DP 与模型鲁棒性的联合优化。
+
+\textbf{实验方向：}在本地实现 UAV 数据集（轨迹或图像）的差分隐私发布，对比拉普拉斯机制、高斯机制、Geo-Indistinguishability、Wasserstein/Grassmann 流形 DP。成员推理攻击实验：在 FL 或集中训练模型上实现 shadow model 攻击，评估 DP-SGD 对 MIA 成功率的降低。RTX 3050 可训练小模型。
+
+\textbf{密码学结合点：}高级密码：差分隐私（中心/本地/混洗模型）、隐私预算组合定理、梯度裁剪与噪声注入；经典密码：随机化响应、安全聚合用于 DP-SGD。
+
+\subsection{无人机可验证计算外包}
+\label{contrib-vc}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机算力有限，常将复杂优化任务（如路径规划、SLAM、目标检测）外包到边缘或云端。可验证计算（VC）和简洁非交互式证明（SNARKs）允许无人机验证外包结果正确性而不重新执行完整计算。但 VC 的预处理开销、证明生成时间和电路复杂度限制了其在实时飞行任务中的应用。
+
+\textbf{实验方向：}在本地实现一个简化路径规划或矩阵运算的外包验证：使用 Python 实现 SNARKs（如 libsnark、babySNARK、SnarkPack）或交互式证明（如 sum-check），测量证明者时间、验证时间、证明大小。对比本地重新计算开销，找出外包获益临界点。RTX 3050 可加速椭圆曲线运算。
+
+\textbf{密码学结合点：}高级密码：zk-SNARKs、zk-STARKs、Proof-Carrying Data、可验证多项式求值、同态签名；经典密码：Merkle 树、哈希链用于状态验证。
+
+\subsection{无人机安全路由与机会网络匿名通信}
+\label{contrib-routing}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Near-Optimal UAV Deployment for Delay-Bounded Data Collection in IoT Networks. (INFOCOM 2024)
+\item PIC-BI: Practical and Intelligent Combinatorial Batch Identification for UAV assisted IoT Networks. (CCS 2024)
+\item Poster: Joint RF-Gas Sensing for Victim Localization using UAV Networks. (MobiSys 2025)
+\end{itemize}
+
+\textbf{现状分析：}无人机自组网（FANET）拓扑变化快、链路间歇、节点高度移动。传统 Ad-hoc 路由协议（AODV、OLSR、DSR）在安全性上缺乏认证、完整性和匿名性保护。2024--2025 年研究将地理路由、机会网络、洋葱路由和匿名凭证引入 FANET，以同时保护通信内容和源/目的关系。但匿名性与路由效率的权衡仍是开放问题。
+
+\textbf{实验方向：}在 ns-3 或 OMNeT++ 中实现 FANET 拓扑生成（随机路点或真实飞行轨迹），集成安全地理路由或洋葱路由。模拟 Sybil 攻击、黑洞攻击、女巫攻击，测量包投递率、端到端延迟、匿名集大小、追踪成功率。
+
+\textbf{密码学结合点：}经典密码：TLS/IPsec、洋葱加密（Onion Routing）、源路由认证；高级密码：群签名/环签名保护源匿名、零知识证明验证路由资格、Mix-net 隐藏通信关系。
+
+\subsection{无人机AI模型安全：对抗样本、后门与模型提取攻击}
+\label{contrib-ai-sec}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Few-shot Learning and Data Augmentation for Cross-Domain UAV Fingerprinting. (MobiCom 2024)
+\item UAV-Assisted Integrated Sensing and Communication for Emergency Rescue Activities Based on Transfer Deep Reinforcement Learning. (MobiCom 2024)
+\item Poster Abstract: Adaptive Chirps Domain Window Order of MM-Wave Radar for UAV Motion Capture. (IPSN 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机广泛依赖深度学习进行目标检测、避障和路径规划，但这些模型易受对抗样本、后门、模型窃取和成员推理攻击。与传统云端模型不同，UAV 模型在资源受限环境中运行，防御方法（如对抗训练、输入变换、知识蒸馏）需要考虑计算开销和实时性。2024--2025 年研究将对抗机器学习与 UAV 场景结合，但系统性的攻击-防御评估框架仍不足。
+
+\textbf{实验方向：}在本地使用 PyTorch 训练/加载 UAV 目标检测模型（如 YOLOv5-tiny、MobileNet、ResNet-18），实施 FGSM/PGD/CW 对抗样本攻击、BadNets 后门攻击、模型提取攻击。评估防御方法：对抗训练、特征压缩、输入去噪、联邦鲁棒聚合。RTX 3050 可训练小模型，YOLOv5-tiny 等可在本地运行。
+
+\textbf{密码学结合点：}经典密码：模型签名/哈希保护模型完整性；高级密码：同态加密保护训练数据、安全多方计算保护模型聚合、零知识证明验证模型推理正确性。
+
+\subsection{无人机数字孪生安全与隐私保护仿真}
+\label{contrib-digital-twin}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item GazeboNS3: A Digital Twin System for UAV Swarms. (MobiSys 2025)
+\item HaDT: Hardening Digital Twins for UAVs-Based Industrial Logistics Distribution Systems. (INFOCOM 2025)
+\end{itemize}
+
+\textbf{现状分析：}数字孪生（Digital Twin）为无人机群提供了高保真仿真、预测性维护和任务规划能力，但孪生模型本身包含大量物理、任务和运营敏感信息。现有研究关注如何利用数字孪生进行安全测试、异常检测和隐私保护训练，但孪生数据同步的完整性、孪生模型与物理实体之间的一致性验证、以及跨组织共享孪生数据时的隐私保护仍是挑战。
+
+\textbf{实验方向：}在本地使用 Gazebo + AirSim 或自研 Python 构建单个/多个无人机的数字孪生，模拟飞行状态、传感器数据和通信链路。实现孪生数据加密同步、基于区块链的日志、联邦学习在孪生体间训练异常检测模型。评估同步延迟、模型精度和隐私泄露风险。
+
+\textbf{密码学结合点：}高级密码：同态加密/安全多方计算保护孪生数据联合训练、零知识证明验证孪生状态转换、属性基加密控制孪生访问；经典密码：TLS、数字签名保护同步。
+
+\subsection{无人机物联网混合网络中的安全网关联动}
+\label{contrib-iot-gateway}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Near-Optimal UAV Deployment for Delay-Bounded Data Collection in IoT Networks. (INFOCOM 2024)
+\item PIC-BI: Practical and Intelligent Combinatorial Batch Identification for UAV assisted IoT Networks. (CCS 2024)
+\item Online Radio Environment Map Creation via UAV Vision for Aerial Networks. (INFOCOM 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机作为空中网关连接地面 IoT 设备与云端，提供灵活覆盖和应急通信。但 IoT 设备异构、资源差异大、数量众多，给统一认证、密钥管理和访问控制带来挑战。2024--2025 年研究提出 UAV-IoT 网关的轻量认证、异构设备适配和可信数据采集机制，但跨协议（LoRa、Zigbee、Wi-Fi、5G）的安全互联、网关被攻陷后的级联影响仍需深入研究。
+
+\textbf{实验方向：}在本地模拟 UAV-IoT 混合网络：地面节点使用不同协议，无人机作为网关收集数据。实现轻量认证协议（如 PUF + ECC、证书less）、网关上的入侵检测、数据完整性校验。测量认证延迟、吞吐量、网关 CPU 占用。可模拟网关被攻陷场景，测试隔离与恢复机制。
+
+\textbf{密码学结合点：}经典密码：ECC/Ed25519 轻量签名、TLS/DTLS 端到端加密、HMAC 完整性；高级密码：PUF 物理不可克隆函数用于设备认证、属性基加密实现异构设备访问控制。
+
+\subsection{无人机群身份混淆与Mix网络}
+\label{contrib-mix}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}在军事侦察、搜救或抗议监控中，无人机需要隐藏通信关系（谁与谁通信）和身份。Mix-net、DC-net、匿名凭证和群签名等技术可以保护通信元数据。但无人机高速移动和稀疏拓扑使 Mix 节点部署困难，且传统 Mix 网络延迟高。2024--2025 年研究尝试将轻量 Mix 方案与无人机移动性结合，但可扩展性和抗共谋分析不足。
+
+\textbf{实验方向：}在本地使用 Python 实现一个简化 Mix-net 或 DC-net，模拟 10--50 架无人机节点，部分为 Mix/DC 节点。评估匿名集大小、消息延迟、带宽开销、共谋节点数量对匿名性的影响。对比传统 Tor 式洋葱路由与 UAV 优化 Mix 方案。
+
+\textbf{密码学结合点：}高级密码：Mix-net 分层加密、DC-net  Dining Cryptographers、环签名/群签名；经典密码：AES/ChaCha20 对称加密、TLS 保护单跳链路。
+
+\subsection{无人机跨域认证与信任管理}
+\label{contrib-cross-domain}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Few-shot Learning and Data Augmentation for Cross-Domain UAV Fingerprinting. (MobiCom 2024)
+\item Poster Abstract: Adaptive Chirps Domain Window Order of MM-Wave Radar for UAV Motion Capture. (IPSN 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机常跨越不同空域、组织或国家运营，每个域有自己的身份管理和信任根。跨域认证需要解决不同 PKI 域之间的互认、证书链验证、信任协商和策略冲突。现有研究采用联邦身份、区块链跨域信任、属性基凭证和零知识证明，但在实际空域管理中的标准化和实验验证不足。
+
+\textbf{实验方向：}在本地模拟 3--5 个管理域，每个域有自己的 CA/身份提供商。实现基于联邦身份（如 SAML/OIDC 适配）、跨域证书路径验证、信任评分模型或区块链跨域信任。评估跨域认证时间、证书链长度、信任协商成功率和恶意域检测能力。
+
+\textbf{密码学结合点：}经典密码：PKI、证书链、交叉认证、OCSP/CRL；高级密码：属性基凭证、零知识证明保护域内策略、区块链分布式信任。
+
+\subsection{基于同态/安全多方计算的无人机智能反射面安全优化}
+\label{contrib-irs}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item PIC-BI: Practical and Intelligent Combinatorial Batch Identification for UAV assisted IoT Networks. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}智能反射面（IRS）可增强无人机通信覆盖和能效，但其优化需要共享信道状态信息（CSI），可能泄露用户位置和通信模式。2024--2025 年研究将物理层安全和密码学隐私保护引入 UAV-IRS 联合优化，但 IRS 相移优化问题非凸，同态/安全计算求解开销高，实时性难以保证。
+
+\textbf{实验方向：}在 MATLAB 中实现 UAV-IRS 信道模型和波束成形优化，将部分敏感 CSI 用同态加密或 MPC 保护。对比明文优化、加密 CSI 优化、混合方案（部分本地、部分外包）在可达速率、隐私泄露和计算时间上的权衡。RTX 3050 可加速小规模矩阵运算。
+
+\textbf{密码学结合点：}高级密码：CKKS 同态加密用于 CSI 聚合、MPC 用于联合波束优化、零知识证明验证 IRS 配置约束；经典密码：物理层预共享密钥、AES 保护控制信令。
+
+\subsection{无人机语义/隐蔽通信与信息隐藏}
+\label{contrib-covert}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}隐蔽通信旨在使第三方无法检测到通信行为本身，对军事和隐私敏感场景至关重要。无人机网络中可利用信道噪声、无人机移动性、视频冗余和语义通信实现隐蔽。但现有理论（如 LPD/LPI）多针对静态信道，UAV 高移动性下的隐蔽容量、检测概率和信息隐藏容量分析仍不完善。
+
+\textbf{实验方向：}在 MATLAB/ns-3 中实现 UAV-to-Ground 或 UAV-to-UAV 隐蔽通信，将信息隐藏在噪声、导频或视频帧中。模拟 warden 检测器（能量检测、统计检测），测量检测错误概率、隐蔽速率、鲁棒性。可结合深度学习隐写术（如 HiDDeN、StegaStamp）在无人机视频中嵌入命令。
+
+\textbf{密码学结合点：}经典密码：隐写术、扩频、 DSSS 低概率检测；高级密码：信息论安全编码、差分隐私混淆流量模式、同态加密隐藏语义内容。
+
+\subsection{无人机群中的公平激励与博弈论安全机制}
+\label{contrib-incentive}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster: Vehicle-Edge Server Collaborative Task Offloading for UAVs: A Game Theoretic Approach. (SenSys 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机群需要节点贡献计算、通信、感知资源，但节点可能自私或恶意。博弈论和激励机制（如 VCG、Shapley 值、合同理论）可以激励合作并惩罚恶意行为。区块链技术用于透明记录贡献和支付。现有研究多停留在理论分析，缺乏真实动态拓扑下的实验验证和抗合谋分析。
+
+\textbf{实验方向：}在本地使用 Python 模拟 UAV 群，设计任务分配和奖励机制。实现基于声誉或贡献的奖励分配（如 Shapley 值近似），引入自私节点和恶意节点。对比不同机制下的总任务完成率、公平性（Jain 公平指数）和系统开销。可结合智能合约自动执行支付。
+
+\textbf{密码学结合点：}经典密码：数字签名保护贡献记录、哈希链保证不可篡改；高级密码：安全多方计算用于隐私保护贡献聚合、零知识证明验证贡献声明。
+
+\subsection{无人机辅助6G网络的安全NOMA接入}
+\label{contrib-noma}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Secure Beamforming and Obstacle Avoidance Trajectory Design for UAV-Assisted ISAC. (MobiCom 2024)
+\end{itemize}
+
+\textbf{现状分析：}非正交多址接入（NOMA）通过功率域复用提高频谱效率，与无人机结合可服务地面密集用户。但 NOMA 的串行干扰消除（SIC）容易因信道估计错误和用户配对策略被攻击。安全研究关注物理层认证、功率分配隐私、用户访问控制和干扰管理。密码学在保护 CSI 和用户调度策略方面尚未充分融合。
+
+\textbf{实验方向：}在 MATLAB 中实现 UAV-to-Ground NOMA 系统，生成多用户信道，实现功率分配和 SIC。加入物理层认证（基于信道特征）和基于 ABE 的访问控制。模拟内部窃听和外部干扰，测量安全速率、中断概率、用户公平性和计算开销。
+
+\textbf{密码学结合点：}经典密码：物理层认证、功率域安全编码；高级密码：同态加密聚合用户 CSI 用于安全功率优化、ABE 实现细粒度用户访问控制。
+
+\subsection{无人机射频指纹与硬件认证}
+\label{contrib-rf-fingerprint}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item Poster Abstract: Real-Time Active Identification and Tracking of UAVs Using Millimeter-Wave Radar. (SenSys 2025)
+\end{itemize}
+
+\textbf{现状分析：}射频指纹（RFF）利用发射机硬件 imperfections（如载波频偏、I/Q 不平衡、功率放大器非线性）作为设备身份，提供轻量级物理层认证。无人机 RFF 面临高移动性导致多普勒频移、姿态变化改变天线方向图、以及对抗样本攻击欺骗 RFF 分类器等问题。2024--2025 年研究将深度学习与 RFF 结合，并探索对抗鲁棒性。
+
+\textbf{实验方向：}在本地使用 MATLAB/Python 生成或加载 UAV 射频信号数据集（如 ADS-B、Wi-Fi、 Zigbee），提取 I/Q 样本、高阶累积量、星座图特征，训练 CNN/ResNet/LSTM 分类器。模拟对抗样本攻击（PGD）和信道变化（多普勒、衰落），评估认证准确率和对抗鲁棒性。
+
+\textbf{密码学结合点：}经典密码：RFF 与密码学认证结合（如 RFF 作为第一因素，ECC 签名作为第二因素）；高级密码：同态/安全计算保护 RFF 特征聚合、零知识证明验证设备身份。
+
+\subsection{无人机网络中的可搜索加密与密文策略}
+\label{contrib-cp-abe-search}
+
+\textbf{聚类论文：}\begin{itemize}[leftmargin=2em,itemsep=0pt,topsep=0pt]
+\item CAPSID: A Private Session ID System for Small UAVs. (CCS 2024)
+\end{itemize}
+
+\textbf{现状分析：}无人机指挥日志、监控视频和任务报告需要同时满足访问控制（谁能看）和检索能力（按关键词找）。CP-ABE 与可搜索加密结合可在密文上实现策略感知的检索，但现有方案在策略隐藏、多关键词搜索、动态策略更新和计算开销方面存在权衡。2024--2025 年研究开始针对 UAV 日志和多媒体数据设计专用方案。
+
+\textbf{实验方向：}在本地实现 CP-ABE + 可搜索加密混合方案，定义 UAV 数据访问策略（如“指挥官 OR 分析师 AND 任务 A”），支持关键词等值/子集/范围查询。使用自定义日志数据集评估加密、索引、搜索和策略更新时间。对比纯 CP-ABE 和纯 SSE 的优劣。
+
+\textbf{密码学结合点：}高级密码：CP-ABE、KP-ABE、可搜索加密（PEKS/SSE）、隐藏策略 ABE、同态加密用于范围查询；经典密码：AES 数据加密、HMAC 索引完整性。
+
+
+\section{总结与选题建议}
+\label{sec:conclusion}
+本文从 DBLP 2024--2026 年 CCF-A 文献中提炼出 30 余个面向无人机安全的可实验贡献点。每个贡献点都强调“经典密码学 / 同态密码学”与“无人机场景”的结合，并给出具体可执行的实验路径。建议研究者优先选择以下三类方向：\textbf{（1）} 同态/安全多方计算与联邦学习在无人机群中的联合优化；\textbf{（2）} 后量子密码学在资源受限无人机上的轻量化实现；\textbf{（3）} 物理层与密码学融合的抗欺骗、抗干扰联合方案。这些方向既有扎实的密码学基础，又能利用现有实验环境快速产出可验证结果。
+
+\bibliographystyle{IEEEtran}
+\nocite{*}
+\bibliography{refs}
+
+\end{document}

@@ -1,0 +1,70 @@
+\subsection{Sensitivity Analysis}
+\label{subsec:sensitivity}
+
+To comprehensively evaluate the robustness of \textsc{ECPFL}, we conduct a sensitivity analysis on the Fashion-MNIST dataset.
+We systematically investigate the impact of voting mechanisms, client selection strategies, local sparsity ratios, and prefetch window sizes on model convergence.
+
+\begin{figure}[t]
+  \centering
+  % 第一行：(a) (b)
+  \begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/fashion_mnist_vote_accuracy_grouped.pdf}
+    \subcaption{AC under different voting mechanisms.}
+    \label{fig:vote}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/fashion_mnist_client_selection_accuracy_nature.pdf}
+    \subcaption{AC under different client selection strategies.}
+    \label{fig:select}
+  \end{minipage}
+
+  \vspace{1em} % 行间距
+
+  % 第二行：(c) (d)
+  \begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/fashion_mnist-cnn_fmnist_accuracy_curves_vibrant_marker.pdf}
+    \subcaption{AC under different sparsity ratios.}
+    \label{fig:sparsity}
+  \end{minipage}
+    \hfill
+     \begin{minipage}{0.48\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/accuracy_curves_by_window.pdf}
+    \subcaption{AC under different fetch window sizes.}
+    \label{fig:window}
+  \end{minipage}
+  \caption{Comprehensive evaluation of system configurations on Fashion-MNIST.}
+  \label{fig:all_results}
+\end{figure}
+
+\subsubsection{Impact of Voting Mechanisms}
+
+Fig.~\ref{fig:all_results}(a) compares voting mechanisms.
+Union and rank-based variants (RK-0.3 to RK-0.9) converge rapidly to approximately 90\% within 20 rounds, with final accuracy above 89\%.
+Threshold voting with \textsc{TH-0.7} and \textsc{TH-0.9} degrades progressively: \textsc{TH-0.9} plateaus near 84\%, a 6\% accuracy gap compared with Union.
+This gap arises because a 90\% consensus threshold is overly rigid and discards class-specific gradient features.
+\textsc{ECPFL-RK} avoids this bottleneck by retaining globally significant updates without inflexible frequency cutoffs.
+
+\subsubsection{Impact of Client Selection Strategies}
+
+Fig.~\ref{fig:all_results}(b) evaluates seven representative client selection strategies: random, sticky, sketch\_clustering, poc, tifl, haccs, and oort.
+All trajectories overlap almost exactly and converge to approximately 86\%, with a final accuracy deviation below 1\%.
+This confirms that \textsc{ECPFL} is insensitive to selection bias: the ECP module allows infrequently selected or low-bandwidth clients to prefetch global ciphertexts during idle periods and fetch only minimal residuals when selected.
+As a result, resource-aware selection can accelerate wall-clock training without sacrificing model accuracy.
+
+\subsubsection{Impact of Local Sparsity Ratio}
+
+Fig.~\ref{fig:all_results}(c) shows the impact of local sparsity ratios.
+Retention ratios of 0.3 and above closely match the dense baseline (sparsity=1) and converge to approximately 90\%.
+At sparsity=0.1, however, accuracy plateaus near 80\%, a 10\% drop, because excessive pruning discards too much gradient information before global consensus.
+A retention ratio of at least 0.3 is therefore necessary to filter local noise while preserving enough information for voting.
+
+\subsubsection{Impact of Prefetch Window Size $R$}
+
+Fig.~\ref{fig:all_results}(d) compares prefetch window sizes.
+For $R \leq 7$, the accuracy curves are nearly identical, with peak deviation under 0.3\%, because asynchronous prefetching decouples transmission from computation and prevents critical staleness.
+At $R=9$, a noticeable degradation emerges, exposing the upper bound beyond which excessive stale gradient accumulation hurts convergence.

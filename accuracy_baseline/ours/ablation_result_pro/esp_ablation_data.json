@@ -1,0 +1,105 @@
+{
+  "dataset": "SVHN",
+  "model": "ResNet20",
+  "note": "LS = 0.5, RK = 0.7",
+  "components": {
+    "LS": {
+      "enabled": true,
+      "param": 0.5,
+      "description": "Local Sparsification"
+    },
+    "RF": {
+      "enabled": true,
+      "description": "Residual Feedback"
+    },
+    "PRD": {
+      "enabled": true,
+      "param": 0.3,
+      "description": "Partial Residual Decay"
+    },
+    "CRD": {
+      "enabled": true,
+      "param": 0.5,
+      "description": "Client Residual Decay (stale)"
+    },
+    "RK": {
+      "enabled": true,
+      "param": 0.7,
+      "description": "Ranking-based Knowledge aggregation"
+    }
+  },
+  "experiments": [
+    {
+      "id": "06_no_sparse",
+      "label": "w/o ESP",
+      "LS": false,
+      "RF": false,
+      "PRD": false,
+      "CRD": false,
+      "RK": false,
+      "AC": 95.13,
+      "UV_MB": 26699.75,
+      "TT_H": 0.88
+    },
+    {
+      "id": "01_sparse_only",
+      "label": "+ LS",
+      "LS": true,
+      "RF": false,
+      "PRD": false,
+      "CRD": false,
+      "RK": false,
+      "AC": 95.07,
+      "UV_MB": 24420.47,
+      "TT_H": 0.87
+    },
+    {
+      "id": "02_sparse_residual",
+      "label": "+ LS + RF",
+      "LS": true,
+      "RF": true,
+      "PRD": false,
+      "CRD": false,
+      "RK": false,
+      "AC": 95.01,
+      "UV_MB": 24563.86,
+      "TT_H": 0.89
+    },
+    {
+      "id": "03_sparse_residual_decay",
+      "label": "+ LS + RF + PRD",
+      "LS": true,
+      "RF": true,
+      "PRD": true,
+      "CRD": false,
+      "RK": false,
+      "AC": 94.89,
+      "UV_MB": 24922.46,
+      "TT_H": 0.88
+    },
+    {
+      "id": "04_sparse_residual_decay_stale",
+      "label": "+ LS + RF + PRD + CRD",
+      "LS": true,
+      "RF": true,
+      "PRD": true,
+      "CRD": true,
+      "RK": false,
+      "AC": 94.91,
+      "UV_MB": 24404.35,
+      "TT_H": 0.88
+    },
+    {
+      "id": "05_esp_full",
+      "label": "ESP (full)",
+      "LS": true,
+      "RF": true,
+      "PRD": true,
+      "CRD": true,
+      "RK": true,
+      "AC": 94.9,
+      "UV_MB": 18729.7,
+      "TT_H": 0.88
+    }
+  ]
+}

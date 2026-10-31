@@ -1,0 +1,56 @@
+\begin{table}[t]
+\centering
+\caption{End-to-End Performance Breakdown Across Baseline Algorithms and Datasets}
+\label{tab:perf_evaluation}
+\resizebox{\linewidth}{!}{
+\begin{tabular}{ll c c c}
+\toprule
+\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Algorithm}} & \textbf{Counts} & \textbf{Comm. Vol. (MB)} & \textbf{Latency (s)} \\
+\cmidrule(lr){3-3} \cmidrule(lr){4-4} \cmidrule(lr){5-5}
+& & \scriptsize $N_{\mathrm{up}} \,/\, N_{\mathrm{agg}}$ & \scriptsize Up $\,/\,$ Down & \scriptsize Up $\,/\,$ Down $\,/\,$ \textbf{TT} \\
+\midrule
+
+% ---------------- MNIST ----------------
+\multirow{5}{*}{\textbf{MNIST}} 
+& FedAvg+CKKS & $13750 \,/\, 1100$ & $4382.7 \,/\, 4382.7$ & $269.1 \,/\, 182.6 \,/\, 451.64$ \\
+& FedPHE & $2500 \,/\, 200$ & $798.7 \,/\, 3133.4$ & $48.9 \,/\, 130.5 \,/\, 179.41$ \\
+& ESAFL & $7500 \,/\, 600$ & $2385.9 \,/\, 2385.9$ & $146.8 \,/\, 99.6 \,/\, 246.32$ \\
+& MASER & $8675 \,/\, 694$ & $5529.6 \,/\, 2979.8$ & $339.5 \,/\, 124.0 \,/\, 463.49$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL-RK-$\theta$ (Ours)} & $\mathbf{2500} \,/\, \mathbf{50}$ & $\mathbf{798.7} \,/\, \mathbf{20.5}$ & $\mathbf{78.3} \,/\, \mathbf{2.0} \,/\, \mathbf{80.31}$ \\
+\midrule
+
+% ---------------- FMNIST ----------------
+\multirow{5}{*}{\textbf{FMNIST}} 
+& FedAvg+CKKS & $12500 \,/\, 1000$ & $3983.4 \,/\, 3983.4$ & $244.6 \,/\, 166.0 \,/\, 410.55$ \\
+& FedPHE & $1250 \,/\, 100$ & $399.4 \,/\, 3645.4$ & $24.5 \,/\, 151.8 \,/\, 176.30$ \\
+& ESAFL & $6250 \,/\, 500$ & $1996.8 \,/\, 1996.8$ & $122.3 \,/\, 83.0 \,/\, 205.29$ \\
+& MASER & $7475 \,/\, 598$ & $4761.6 \,/\, 2570.2$ & $292.5 \,/\, 107.2 \,/\, 399.73$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL-RK-$\theta$ (Ours)} & $\mathbf{3750} \,/\, \mathbf{50}$ & $\mathbf{1198.1} \,/\, \mathbf{20.5}$ & $\mathbf{71.3} \,/\, \mathbf{1.2} \,/\, \mathbf{72.53}$ \\
+\midrule
+
+% ---------------- CIFAR-10 ----------------
+\multirow{5}{*}{\textbf{CIFAR-10}} 
+& FedAvg+CKKS & $83750 \,/\, 6700$ & $26695.7 \,/\, 26695.7$ & $1638.7 \,/\, 1111.9 \,/\, 2750.65$ \\
+& FedPHE & $42500 \,/\, 3400$ & $13547.5 \,/\, 18964.5$ & $831.6 \,/\, 789.6 \,/\, 1621.22$ \\
+& ESAFL & $42500 \,/\, 3400$ & $13547.5 \,/\, 13547.5$ & $831.6 \,/\, 564.3 \,/\, 1395.88$ \\
+& MASER & $42450 \,/\, 3396$ & $27064.3 \,/\, 14837.8$ & $1661.2 \,/\, 618.0 \,/\, 2279.22$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL-RK-$\theta$ (Ours)} & $\mathbf{58750} \,/\, \mathbf{50}$ & $\mathbf{18729.0} \,/\, \mathbf{378.9}$ & $\mathbf{1478.8} \,/\, \mathbf{29.9} \,/\, \mathbf{1508.75}$ \\
+\midrule
+
+% ---------------- SVHN ----------------
+\multirow{5}{*}{\textbf{SVHN}} 
+& FedAvg+CKKS & $58750 \,/\, 4700$ & $18729.0 \,/\, 18729.0$ & $1149.5 \,/\, 780.0 \,/\, 1929.57$ \\
+& FedPHE & $72500 \,/\, 5800$ & $23111.7 \,/\, 32563.2$ & $1418.6 \,/\, 1356.3 \,/\, 2774.89$ \\
+& ESAFL & $72500 \,/\, 5800$ & $23111.7 \,/\, 23111.7$ & $1418.6 \,/\, 962.6 \,/\, 2381.19$ \\
+& MASER & $73700 \,/\, 5896$ & $46991.4 \,/\, 25733.1$ & $2884.1 \,/\, 1071.7 \,/\, 3955.82$ \\
+\rowcolor{gray!15}
+& \textbf{ECPFL-RK-$\theta$ (Ours)} & $\mathbf{100000} \,/\, \mathbf{50}$ & $\mathbf{31877.1} \,/\, \mathbf{553.0}$ & $\mathbf{780.9} \,/\, \mathbf{20.4} \,/\, \mathbf{801.28}$ \\
+
+\bottomrule
+\multicolumn{5}{l}{\scriptsize \textit{Note:} All values are totals over 50 communication rounds. $N_{\mathrm{up}}$ = upload ciphertext batches; $N_{\mathrm{agg}}$ = aggregated model/ciphertext batches. ECPFL-RK uses plaintext model broadcast (1 per round).}
+\end{tabular}
+}
+\end{table}

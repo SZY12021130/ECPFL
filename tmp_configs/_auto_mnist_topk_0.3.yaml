@@ -1,0 +1,185 @@
+bandwidth:
+  base_dl_bw: 8192.0
+  base_ul_bw: 4096.0
+  distribution: uniform
+  filter_low_bandwidth: false
+  max_dl_bw_kbps: 8192.0
+  max_ul_bw_kbps: 4096.0
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+  variance: 0.2
+blinding_mask:
+  apply_mode: post_topk
+  compensation_mode: auto
+  enabled: false
+  mask_range: 1.0
+ckks:
+  coeff_mod_bit_sizes:
+  - 60
+  - 40
+  - 40
+  - 60
+  global_scale: 1099511627776
+  packing:
+    crt_layers: 4
+    crt_quant_bits: 8
+    quant_bits: 16
+    strategy: merged
+  poly_modulus_degree: 8192
+  ptopk:
+    client_residual:
+      clip_tau: 0.0
+      decay_gamma: 0.3
+      enabled: true
+      stale_gamma: 0.5
+    enable: true
+    server_accumulator:
+      enabled: false
+      mode: none
+      momentum_beta: 0.9
+      sync_interval: 1
+  slot_packing: true
+  sparsification:
+    batch_size: 4096
+    local_completion:
+      enabled: false
+    scoring_method: l2_norm
+    seed: 42
+    sparsity_rate: 0.5
+    strategy: topk
+    use_warmup_skip_sparse: false
+    warmup_rounds: 2
+client_selection:
+  fairness:
+    enabled: false
+    min_participation_ratio: 0.3
+  haccs:
+    num_clusters: null
+    recluster_interval: 0
+  max_k: null
+  oort:
+    exploration_factor: 0.1
+    util_time_alpha: 1.0
+  poc:
+    d: null
+  quan_threshold: 0.05
+  selection_interval: 0
+  sim_len: 64
+  sticky:
+    change_num_base: 3
+    enable_score: false
+    group_size: null
+    score_decay: 0.9
+  strategy: sticky
+  tifl:
+    num_tiers: null
+data:
+  alpha: 5
+  data_dir: ./data
+  dataset: mnist
+  iid: false
+  num_classes: 10
+esafl:
+  enabled: true
+  mode: SIMULATION
+  prpg_seed: 42
+global_mask_vote:
+  mode: topk
+  topk_count_k: 20
+  topk_pct: 0.3
+metrics:
+  accuracy: true
+  ciphertext_size: true
+  communication_cost: true
+  communication_rounds: true
+  compute_time: true
+  cpu_utilization: true
+  dropout_rate: true
+  expansion_ratio: true
+  key_distribution_cost: true
+  loss: true
+  memory_usage: true
+model:
+  block_config:
+  - 6
+  - 6
+  - 6
+  bn_size: 4
+  drop_rate: 0.0
+  dropout: 0.2
+  embed_dim: 8
+  growth_rate: 12
+  hidden_dim: 256
+  hidden_dims:
+  - 256
+  - 128
+  lstm_dropout: 0.5
+  name: lenet
+  num_init_features: 24
+  num_layers: 2
+  shufflenet_groups: 3
+  shufflenet_width: 1.0
+  vocab_size: 80
+  width_mult: 1.0
+output:
+  model_dir: ./history_models
+  results_dir: accuracy_threshold_v2/20260604_mnist_threshold_pct_0.5
+  save_interval: 999
+  viz_dir: ./visualization
+prefetch:
+  enable_prefetch: true
+  max_prefetch_round: 3
+  overcommitment: 1.3
+  scheduler_beta: 1.0
+  warmup_round: 1
+ptopk:
+  client_residual:
+    clip_tau: 0.0
+    decay_gamma: 0.3
+    enabled: true
+    mutually_exclusive: false
+    stale_gamma: 0.5
+  enable: true
+  server_accumulator:
+    enabled: false
+    mode: none
+system:
+  batch_size: 64
+  client_sampling_rate: 0.5
+  device: cuda
+  learning_rate: 0.001
+  lr_scheduler:
+    T_max: 30
+    enabled: false
+    eta_min: 0.0
+    gamma: 0.5
+    name: step
+    step_size: 10
+  num_clients: 50
+  num_epochs: 3
+  num_rounds: 50
+  optimizer:
+    lr: 0.001
+    momentum: 0.9
+    name: adam
+  random_seed: 42
+  run_plaintext_baseline: false
+  upload_difference: true
+tee:
+  compression:
+    enabled: false
+    sparsity_rate: 0.8
+  enabled: false
+  residual_strategy:
+    clip_tau: 0.0
+    clip_window: 4
+    decay_gamma: 0.9
+    mode: decay
+visualization:
+  dpi: 300
+  enabled: true
+  figure_size:
+  - 10
+  - 6
+  save_format: png
+  style: seaborn-v0_8-whitegrid

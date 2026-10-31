@@ -1,0 +1,38 @@
+\begin{table*}[t]
+ \centering
+ \caption{Comparison of Accuracy and Communication Cost Across Datasets}
+ \label{tab:comm-comparison}
+ \resizebox{\textwidth}{!}{
+ \begin{tabular}{l ccc ccc ccc ccc}
+ \toprule
+ \multirow{3}{*}{\textbf{Methods}} &
+ \multicolumn{3}{c}{\textbf{MNIST}} &
+ \multicolumn{3}{c}{\textbf{FMNIST}} &
+ \multicolumn{3}{c}{\textbf{CIFAR-10}} &
+ \multicolumn{3}{c}{\textbf{SVHN}} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+ & \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.1)$} &
+ \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.3)$} &
+ \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.7)$} &
+ \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.5)$} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(lr){11-13}
+ & \scriptsize AC (\%) & \scriptsize TV (GB) & \scriptsize TT (S)
+ & \scriptsize AC (\%) & \scriptsize TV (GB) & \scriptsize TT (S)
+ & \scriptsize AC (\%) & \scriptsize TV (GB) & \scriptsize TT (S)
+ & \scriptsize AC (\%) & \scriptsize TV (GB) & \scriptsize TT (S) \\
+ \midrule
+FedAvg+CKKS & 98.86 & 8.56 & 315.01 & \textbf{90.96} & 7.78 & 285.43 & 77.56 & 52.15 & 1756.32 & 95.24 & 76.53 & 3141.61 \\
+FedPHE & 98.69 & 3.84 & \textbf{201.50} & 79.02 & 3.95 & \textbf{179.43} & 75.77 & 31.75 & \textbf{1221.47} & 94.44 & 54.38 & 2445.11 \\
+ESAFL & 99.11 & 4.67 & 239.98 & 89.51 & 3.89 & 244.43 & \textbf{81.91} & 26.46 & 1402.62 & 95.74 & 45.14 & 2363.50 \\
+MASER & \textbf{99.13} & 8.31 & 466.66 & 90.66 & 7.17 & 427.77 & 80.64 & 40.92 & 1927.93 & \textbf{95.82} & 71.02 & 3308.35 \\
+ \midrule
+ \rowcolor{gray!10}
+ECPFL-UN (Ours) & 0.00 & 4.21 & 1759.44 & 0.00 & 2.86 & 1292.68 & 0.00 & 20.03 & 6259.40 & 0.00 & 31.68 & 801.28 \\
+ \rowcolor{gray!10}
+ECPFL-TH-$\theta$ (Ours) & 0.00 & 4.06 & 1689.80 & 0.00 & 2.15 & 1039.12 & 0.00 & \textbf{7.60} & 2756.68 & 0.00 & \textbf{19.10} & \textbf{577.60} \\
+ \rowcolor{gray!10}
+ECPFL-RK-$\theta$ (Ours) & 0.00 & \textbf{0.80} & 482.16 & 0.00 & \textbf{1.19} & 654.36 & 0.00 & 18.66 & 5797.88 & 0.00 & 31.68 & 801.28 \\
+ \bottomrule
+ \end{tabular}
+ }
+ \end{table*}

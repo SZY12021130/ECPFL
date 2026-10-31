@@ -1,0 +1,38 @@
+{
+  "accuracy": [
+    10.0,
+    20.5,
+    30.0
+  ],
+  "loss": [
+    2.3,
+    1.8,
+    1.5
+  ],
+  "round_time": [
+    5.0,
+    10.0,
+    15.0
+  ],
+  "upload_cost": [
+    1000,
+    2000,
+    3000
+  ],
+  "download_cost": [
+    500,
+    1000,
+    1500
+  ],
+  "cipher_size_per_round": [
+    1000,
+    2000,
+    3000
+  ],
+  "participation_list": [
+    50,
+    50,
+    50
+  ],
+  "total_rounds": 3
+}

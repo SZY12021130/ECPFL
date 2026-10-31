@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "20260604_105925",
+    "output_dir": "accuracy_threshold_v2/20260604_mnist_threshold_pct_0.3",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 98.8,
+      "final_test_loss": 0.03639246371274749,
+      "total_time_sec": 340.1061459056409,
+      "total_communication_mb": 3166.24916267395,
+      "avg_round_time_sec": 6.802122918112818,
+      "avg_upload_kb": 63658.7505859375,
+      "avg_download_kb": 1186.032265625,
+      "avg_expansion_ratio": 14.673065457164721,
+      "avg_encryption_time_sec": 0.046971780204772946,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 33.614397048950195,
+      "total_ciphertext_blocks": 9750,
+      "prefetch_enabled": true,
+      "avg_prefetch_time_sec": 2.1899986267089843e-05,
+      "avg_fetch_time_sec": 0.049542669004637434,
+      "avg_apply_time_sec": 0.016907814025878907,
+      "total_prefetch_download_kb": 4206386.7294921875,
+      "total_fetch_download_kb": 59301.61328125
+    }
+  }
+]

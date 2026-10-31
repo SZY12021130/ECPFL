@@ -1,0 +1,143 @@
+\section{Threat Model and Security Analysis}
+\label{sec:threat-model}
+
+\subsection{No DP Noise in Current Implementation}
+
+Before presenting the threat model, we explicitly address a question regarding the current implementation: \textbf{no differential privacy (DP) noise is added before local gradient encryption}. Specifically, \texttt{client.py::local\_train()} computes the raw gradient difference $\mathbf{W}_{\text{new}} - \mathbf{W}_{\text{old}}$ without any noise injection. The residual accumulation in \texttt{ptopk.py} implements \textit{error feedback} for Top-K compression compensation, not privacy-preserving noise. Consequently, the privacy guarantee of the current system relies solely on the semantic security of CKKS encryption under the RLWE assumption. DP noise injection can be added orthogonally between \texttt{local\_train()} and \texttt{encrypt\_model\_update()} without affecting the TEE aggregation or prefetch pipeline.
+
+\subsection{System Entities and Trust Assumptions}
+
+Following the entity abstraction in FedPHE~\cite{li2025fedphe}, CipherFetch involves four core entities, summarized in Table~\ref{tab:entities}.
+
+\begin{table}[t]
+\centering
+\caption{System Entities and Trust Assumptions}
+\label{tab:entities}
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Entity} & \textbf{Symbol} & \textbf{Function} & \textbf{Trust} \\
+\midrule
+Key Gen. Center & $\mathcal{K}$ & Gen. $(pk, sk)$, init. params & Offline after setup \\
+Server (Host) & $\mathcal{S}_H$ & Collect, aggregate, schedule & \textbf{Untrusted} \\
+TEE Enclave & $\mathcal{S}_E$ & Decrypt, aggregate, compress & Hardware-trusted \\
+Client & $\mathcal{C}_i$ & Train, encrypt, prefetch & Semi-honest \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The critical trust boundary lies between $\mathcal{S}_H$ and $\mathcal{S}_E$: the Host cannot read TEE memory, and the TEE only exposes an ECALL interface consuming ciphertexts and producing ciphertexts. Clients hold the full key context (including $sk$ for local decryption of prefetched states) but do not share $sk$ with other clients. The KGC goes offline after initialization and plays no role in per-round execution.
+
+\subsection{Adversary Models}
+
+We consider four adversary models, mirroring the taxonomy in FedPHE~\cite{li2025fedphe}.
+
+\subsubsection{Honest-but-Curious Server}
+
+\textbf{Capabilities.} The Server Host faithfully executes all prescribed protocol operations---collecting updates, invoking the TEE, scheduling prefetches---but attempts to infer private information from observed ciphertexts and metadata.
+
+\textbf{Attack Objectives.}
+\begin{itemize}
+    \item Recover plaintext gradient $\mathbf{g}_i$ of Client $i$ from ciphertext $\textsf{upload}_i$.
+    \item Infer client participation history from prefetch delta traffic patterns.
+    \item Track a specific client's model evolution through multi-round ciphertext comparison.
+\end{itemize}
+
+\textbf{Security Goal (IND-CPA against Server).}
+\begin{definition}[Semantic Security against Server]
+For any PPT adversary $\mathcal{A}$, given two equal-length plaintext gradients $\mathbf{g}_0, \mathbf{g}_1$ and challenge ciphertext $\textsf{ct}^* \leftarrow \textsf{Enc}(pk, \mathbf{g}_b)$ with $b \in \{0,1\}$, the advantage satisfies:
+\begin{equation}
+\left| \Pr[b' = b] - \frac{1}{2} \right| \leq \textsf{negl}(\lambda).
+\end{equation}
+\end{definition}
+
+\textbf{Proof Sketch.}
+(1) Client uploads are standard CKKS ciphertexts; their IND-CPA security is reducible to the Decisional-RLWE assumption~\cite{cheon2017homomorphic}. (2) The Server Host only holds $pk$, not $sk$ (which remains sealed inside the TEE). (3) Under RLWE, $(\mathbf{a}, \mathbf{a}\mathbf{s} + \mathbf{e} + \mathbf{m})$ is computationally indistinguishable from uniform. (4) Therefore the Host's view of $\textsf{upload}_i$ is indistinguishable from a random ciphertext.
+
+\subsubsection{Honest-but-Curious Client}
+
+\textbf{Capabilities.} Client $j$ follows the protocol (local training, encrypted upload, prefetch accumulation) but attempts to infer other clients' gradients from received information.
+
+\textbf{Information Available.}
+(1) \textit{Global ciphertext model:} Client $j$ receives the full global model ciphertext (or sparse delta). After decryption, it observes the aggregate $\sum_i \alpha_i \mathbf{g}_i$, not any individual $\mathbf{g}_i$. (2) \textit{Prefetch delta:} Client $j$ receives broadcast deltas that are identical across all clients and contain no client-specific information.
+
+\textbf{Limitation.} When the client count is extremely small (e.g., $n=2$), Client $j$ can subtract its own contribution from the aggregate and exactly recover the other client's gradient. This is a fundamental limitation shared by all homomorphic-aggregation-based FL schemes.
+
+\subsubsection{Malicious Server}
+
+\textbf{Capabilities.} The Server Host may arbitrarily deviate from the protocol: tamper aggregation weights $\{\alpha_i\}$, forge prefetch deltas, selectively drop client updates, delay or deny prefetch broadcasts, or manipulate TEE inputs (but cannot alter TEE internal execution without hardware compromise).
+
+\textbf{Defense Mechanisms and Residual Risks.}
+\begin{itemize}
+    \item \textit{Weight tampering:} TEE stores weights in sealed memory; the Host cannot modify them. Residual risk: TEE hardware vulnerability.
+    \item \textit{Forged delta:} Digital signatures (extension) verify delta provenance. Residual risk: signing key compromise.
+    \item \textit{Selective dropping:} Clients monitor local accuracy changes. Limitation: cryptographic detection is impossible without additional verification.
+\end{itemize}
+
+\textbf{Self-Recovery Property.} Even if the Server sends incorrect prefetch deltas, the system exhibits self-recovery: the affected client uploads local gradient differences relative to its (now deviated) local model, and the next round's aggregation re-centers the global model. Sustained large-scale tampering, however, will cause convergence failure.
+
+\subsubsection{Client Collusion}
+
+\textbf{Capabilities.} $k$ clients share all received information (global models, prefetch deltas, participation history) to jointly infer non-colluding clients' privacy.
+
+\textbf{Attack Analysis (No Blinding Mask).} With $k = n-1$ colluding clients, the target gradient is fully recovered:
+\begin{equation}
+\mathbf{g}_{\text{target}} = \frac{1}{\alpha_{\text{target}}} \Bigl( \sum_{i=1}^{n} \alpha_i \mathbf{g}_i - \sum_{j \in \text{collusion}} \alpha_j \mathbf{g}_j \Bigr).
+\end{equation}
+
+\textbf{Mitigations.} In cross-device FL with large $n$, $n-1$ collusion is statistically negligible. In cross-silo FL, legal contracts and reputation mechanisms deter collusion. DP noise injection (Section~\ref{subsec:dp-extension}) further degrades recovered gradients to noisy approximations.
+
+\subsection{Security Objectives}
+
+\subsubsection{Privacy}
+
+Any entity not holding $sk$ (including the Server Host and other clients) cannot recover a single client's plaintext gradient from ciphertexts. This relies on: (i) the Decisional-RLWE assumption, (ii) effective TEE hardware isolation, and (iii) clients not leaking their own plaintext.
+
+\subsubsection{Correctness}
+
+Let $\mathbf{W}_{t+1}^{\textsf{FedAvg}}$ denote standard FedAvg aggregation and $\mathbf{W}_{t+1}^{\textsf{CF}}$ denote CipherFetch decryption. Then:
+\begin{equation}
+\|\mathbf{W}_{t+1}^{\textsf{CF}} - \mathbf{W}_{t+1}^{\textsf{FedAvg}}\|_\infty \leq \varepsilon_{\textsf{CKKS}} + \varepsilon_{\textsf{sparse}},
+\end{equation}
+where $\varepsilon_{\textsf{CKKS}}$ is CKKS encoding/decoding approximation error and $\varepsilon_{\textsf{sparse}}$ is Top-K sparsification loss (asymptotically eliminated by PTopK residual compensation).
+
+\subsubsection{Availability}
+
+The system tolerates client dropout (uncompleted local updates do not affect the global model), TEE temporary unavailability (fallback to standard homomorphic aggregation), and prefetch failures (missing deltas are补齐 during the Fetch' phase).
+
+\subsection{Extended Discussion: Blinding Mask}
+\label{subsec:blinding-mask}
+
+FedPHE~\cite{li2025fedphe} introduces a \textit{blinding mask} mechanism to address the $n-1$ collusion vulnerability. CipherFetch's design blueprint reserves this extension.
+
+\textbf{Mechanism.} The KGC generates per-client random masks $\mathbf{b}_i$ satisfying the zero-sum constraint $\sum_i w_i \mathbf{b}_i = \mathbf{0}$. Each client adds its mask before encryption: $\tilde{\mathbf{g}}_i = \mathbf{g}_i + \mathbf{b}_i$. Inside the TEE, masks cancel during aggregation.
+
+\textbf{Theorem (Collusion Resistance).} With zero-sum masking, $k < n-1$ colluding clients cannot recover a non-colluding client's gradient.
+
+\textbf{Proof.} The colluders know $\{\mathbf{b}_j\}_{j \in \text{collusion}}$, but the zero-sum constraint provides one equation with $n-k$ unknown masks. When $k < n-1$, the system is underdetermined with infinitely many solutions; the target mask cannot be uniquely determined, preventing separation of the target gradient from the aggregate.
+
+\textbf{Limit.} When $k = n-1$, only one mask remains unknown and is uniquely determined by the zero-sum constraint. This is an information-theoretic lower bound for any linear masking scheme.
+
+\subsection{Extended Discussion: DP Noise Injection}
+\label{subsec:dp-extension}
+
+The current implementation does not inject DP noise, but the architecture supports orthogonal enhancement. The injection point lies between \texttt{local\_train()} and \texttt{encrypt\_model\_update()}. CKKS's approximate arithmetic interacts uniquely with DP noise: the encoding round-off error ($\approx 1/\Delta$) is statistically indistinguishable from DP noise, providing ``free'' additional privacy, while the noise budget limits the magnitude of injectable perturbation.
+
+\begin{table}[t]
+\centering
+\caption{Threat Matrix Summary}
+\label{tab:threat-matrix}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+\textbf{Threat} & \textbf{Attacker} & \textbf{Defense} & \textbf{Level} \\
+\midrule
+Server窥探梯度 & Semi-honest Host & RLWE + TEE-isolated $sk$ & Computational \\
+Client窥探梯度 & Semi-honest Client & Aggregation dilution & Weak for small $n$ \\
+$n-1$ collusion & Colluding clients & Blinding mask (ext.) & Info-theoretic bound \\
+Weight tampering & Malicious Host & TEE sealed storage & TEE breach risk \\
+Forged delta & Malicious Host & Signatures (ext.) & Key compromise risk \\
+Selective drop & Malicious Host & Accuracy monitoring & No crypto detection \\
+TEE side-channel & Physical & Constant-time + noise & Advanced SC possible \\
+MITM on delta & Network & HTTPS + signatures & Cert hijack risk \\
+\bottomrule
+\end{tabular}
+\end{table}

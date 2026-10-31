@@ -1,0 +1,22 @@
+\begin{abstract}
+
+Cross-device federated learning (FL) faces substantial limitations due to the significant communication burden associated with exchanging model updates between a central server and heterogeneous, bandwidth-limited edge devices.
+Although upstream sparsification and downstream prefetching methods provide partial relief, integrating them into homomorphically encrypted FL creates a fundamental structural conflict: naively encrypting dynamically sparsified updates destroys the strict spatial alignment required by Single Instruction Multiple Data (SIMD), which effectively negates any expected communication benefits.
+To address these issues, we propose ECPFL, a secure framework based on CKKS homomorphic encryption that systematically optimizes both upstream and downstream communication.
+First, to support upstream efficiency, we develop Efficient Sparse Packing (ESP). ESP harmonizes sparsification with SIMD slot constraints via a distributed voting mechanism for pack-level selection, guaranteeing spatial alignment across clients.
+Building upon this, we introduce Efficient Ciphertext Prefetching (ECP) to tackle downstream latency. ECP enables asynchronous prefetching in the encrypted domain by aggregating sparse updates during client idle periods, drastically reducing synchronous communication while strictly preserving IND-CPA security.
+Comprehensive evaluations across four standard datasets demonstrate that ECPFL preserves baseline model accuracy within 1\% while reducing total bidirectional communication overhead by 2.5--10.8$\times$ and accelerating end-to-end training by 1.2--5.7$\times$.
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+Federated learning, homomorphic encryption, ciphertext prefetching, sparse packing, voting mechanism
+\end{IEEEkeywords}
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+This paper presented \textsc{ECPFL}, the first federated learning framework that realizes ciphertext prefetching under homomorphic encryption while preserving privacy and reducing bidirectional communication overhead.
+ESP resolves the spatial alignment conflict in encrypted sparsification through distributed voting-based consensus, while ECP enables clients to asynchronously accumulate sparse ciphertext updates during idle periods and decrypt them once upon selection, shifting the dominant downstream cost out of the synchronous training path.
+Nevertheless, the current design still relies on a trusted Key Generation Center (KGC) for per-round compensatory operations.
+Future work will remove such third-party trusted software and hardware dependencies and explore dynamic pack-level voting mechanisms that adapt to gradient consensus and client availability.

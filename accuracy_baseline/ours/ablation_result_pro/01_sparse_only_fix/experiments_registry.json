@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "20260627_142557",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\accuracy_baseline\\ours\\ablation_result_pro\\01_sparse_only_fix\\experiment_20260627_142557_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 95.07145052243392,
+      "final_test_loss": 0.18515736633609678,
+      "total_time_sec": 4298.724684715271,
+      "total_communication_mb": 43383.87204170227,
+      "avg_round_time_sec": 85.97449369430542,
+      "avg_upload_kb": 500131.16376953124,
+      "avg_download_kb": 388370.53564453125,
+      "avg_expansion_ratio": 18.688168663927428,
+      "avg_encryption_time_sec": 0.3525757287979126,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.641092300415,
+      "total_ciphertext_blocks": 76600,
+      "prefetch_enabled": false
+    }
+  }
+]

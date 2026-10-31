@@ -1,0 +1,37 @@
+[
+  {
+    "timestamp": "20260521_171108",
+    "output_dir": "E:\\GithubProjects\\ckks_fed_robustness\\compare_analysis\\deep_model_test\\cnn_layerwise_quantized_gc1_uc1_20260521_171108\\experiment_20260521_171108",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "cnn",
+      "num_clients": 100,
+      "num_rounds": 3,
+      "client_sampling_rate": 0.3,
+      "local_epochs": 2,
+      "batch_size": 64,
+      "learning_rate": 0.0005,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192
+    },
+    "metrics_summary": {
+      "final_test_acc": 17.69,
+      "final_test_loss": 2.1366922680739386,
+      "total_time_sec": 264.5467760562897,
+      "total_communication_mb": 2761.9355611801147,
+      "avg_round_time_sec": 44.09112934271494,
+      "avg_upload_kb": 230153.8660481771,
+      "avg_download_kb": 241216.4697265625,
+      "avg_expansion_ratio": 20.803767352835596,
+      "avg_encryption_time_sec": 0.26886232429080537,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 3383.2756996154785,
+      "total_ciphertext_blocks": 4230,
+      "prefetch_enabled": false
+    }
+  }
+]

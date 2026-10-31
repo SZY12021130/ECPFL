@@ -1,0 +1,132 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+
+\DeclareMathOperator{\negl}{negl}
+\DeclareMathOperator{\Adv}{Adv}
+
+\begin{document}
+
+\section{Security Analysis}
+\label{sec:security}
+
+All theorems below hold under the decisional Ring-LWE (dRLWE) assumption with public parameters $(n,q,\chi_s,\chi_e)$ and under the pseudorandomness of the public-polynomial generator $\mathsf{PRPG}$. The threat model assumed here is: the Key Generation Center (KGC) is fully trusted and does not collude with the server or any clients; the server is honest-but-curious; clients are honest-but-curious; external eavesdroppers observe all public-channel traffic. The server knows by design the active set $\mathcal{S}^{(t)}$, the inactive set $\bar{\mathcal{S}}^{(t)}$, the prefetch set $\mathcal{P}^{(t^*)}$, and the consensus set $\mathcal{K}^{(t)}$; these quantities are therefore not treated as secrets against the server.
+
+% -----------------------------------------------------------------------------
+\subsection{Resilience Against Semi-Honest Clients}
+\label{ssec:ind-cpa}
+
+\begin{theorem}[IND-CPA Security]
+\label{thm:ind-cpa}
+For any honest client $\mathcal{C}_{i^*}$, the encryption scheme
+\begin{equation*}
+    \mathsf{ct}_{i^*,j}^{(t)} = \bigl[ a^{(t)} \cdot s_{i^*} + \tilde{p} \cdot e_{i^*,j}^{(t)} + \mathsf{pt}_{i^*,j}^{(t)} \bigr]_q,
+    \qquad e_{i^*,j}^{(t)} \leftarrow \chi_e,
+\end{equation*}
+is IND-CPA secure. For any probabilistic polynomial-time (PPT) adversary $\mathcal{A}$ that corrupts any subset of clients not containing $\mathcal{C}_{i^*}$ and has adaptive access to an encryption oracle $\mathcal{O}_{\mathsf{Enc}}(s_{i^*}, \cdot)$, the advantage is negligible:
+\begin{equation*}
+    \Bigl| \Pr\bigl[ \mathsf{Exp}_{\mathcal{A},i^*}^{\text{ind-cpa}}(\lambda) = 1 \bigr] - \frac{1}{2} \Bigr|
+    \le \negl(\lambda).
+\end{equation*}
+\end{theorem}
+
+\begin{proof}
+We proceed by a sequence of hybrids.
+
+\paragraph{Hybrid 0.} This is the real IND-CPA experiment. The challenger samples $s_{i^*} \leftarrow \chi_s$ and gives the adversary the public parameters and the PRPG seed $B$. The adversary may query $\mathcal{O}_{\mathsf{Enc}}(s_{i^*}, m)$ on any message $m$ and receives $\mathsf{ct} = [a^{(t)} s_{i^*} + \tilde{p} e + m]_q$ with $a^{(t)} = \mathsf{PRPG}(B,t)$ and $e \leftarrow \chi_e$. The adversary then submits two challenge messages $m_0, m_1$, the challenger picks $b \leftarrow \{0,1\}$, and returns $c^* = [a^{(t)} s_{i^*} + \tilde{p} e^* + m_b]_q$.
+
+\paragraph{Hybrid 1.} Same as Hybrid~0 except every $a^{(t)} = \mathsf{PRPG}(B,t)$ used in the experiment (including the challenge and all oracle responses) is replaced by an independent uniform $u^{(t)} \leftarrow \mathcal{U}(\mathcal{R}_q)$. By the pseudorandomness of $\mathsf{PRPG}$ and a standard hybrid argument over all oracle queries, Hybrid~0 and Hybrid~1 are computationally indistinguishable.
+
+\paragraph{Hybrid 2.} Same as Hybrid~1 except every masking term $u^{(t)} s_{i^*} + \tilde{p} e$ is replaced by an independent uniform $u' \leftarrow \mathcal{U}(\mathcal{R}_q)$. Under the dRLWE assumption, $(u^{(t)}, u^{(t)} s_{i^*} + \tilde{p} e)$ is computationally indistinguishable from $(u^{(t)}, u')$. Adding a fixed plaintext preserves this indistinguishability, so Hybrid~1 and Hybrid~2 are computationally indistinguishable.
+
+In Hybrid~2, the challenge ciphertext is $c^* = [u' + m_b]_q$ with $u'$ uniform and independent of $b$. Since addition by a fixed $m_b$ preserves uniformity in $\mathcal{R}_q$, the distribution of $c^*$ is independent of $b$. Hence the adversary's advantage in Hybrid~2 is exactly zero. It follows that the advantage in Hybrid~0 is at most $\negl(\lambda)$.
+\end{proof}
+
+% -----------------------------------------------------------------------------
+\subsection{Resilience Against Semi-Honest Server}
+\label{ssec:server-obliviousness}
+
+\begin{theorem}[Server Obliviousness]
+\label{thm:semi-honest-server}
+An honest-but-curious server that follows the protocol but observes all public-channel messages cannot recover (i) any individual client's plaintext gradient $\mathsf{pt}_{i,j}^{(t)}$, or (ii) the aggregated plaintext $m_j^{(t)} = \sum_{i \in \mathcal{S}^{(t)}} \mathsf{pt}_{i,j}^{(t)}$.
+\end{theorem}
+
+\begin{proof}
+The server observes individual ciphertexts $\mathsf{ct}_{i,j}^{(t)} = [a^{(t)} s_i + \tilde{p} e_{i,j}^{(t)} + \mathsf{pt}_{i,j}^{(t)}]_q$ and aggregated ciphertexts $C_j^{(t)} = [a^{(t)} S + \tilde{p} E_j^{(t)} + m_j^{(t)}]_q$, where $S = \sum_{i=1}^N s_i$. By the threat model, the server is never given any client secret key $s_i$ or the global key $S$.
+
+For an individual ciphertext, the tuple $(a^{(t)}, a^{(t)} s_i + \tilde{p} e_{i,j}^{(t)})$ is a valid dRLWE sample. Under the dRLWE assumption, this tuple is computationally indistinguishable from $(a^{(t)}, u)$ with $u \leftarrow \mathcal{U}(\mathcal{R}_q)$. Since the plaintext $\mathsf{pt}_{i,j}^{(t)}$ is added to a pseudorandom mask, the server cannot distinguish it from a uniformly random ring element and therefore cannot recover $\mathsf{pt}_{i,j}^{(t)}$.
+
+For the aggregated ciphertext, the masking term is $a^{(t)} S + \tilde{p} E_j^{(t)}$. Again by dRLWE, $(a^{(t)}, a^{(t)} S + \tilde{p} E_j^{(t)})$ is computationally indistinguishable from uniform. Without $S$, the server cannot remove this mask, so $m_j^{(t)}$ remains hidden.
+\end{proof}
+
+% -----------------------------------------------------------------------------
+\subsection{Resilience Against Collusion}
+\label{ssec:collusion}
+
+\begin{theorem}[$(N-2)$-Collusion Resistance]
+\label{thm:collusion}
+Even if the server colludes with any strict subset of at most $N-2$ clients, the plaintext gradient of each remaining honest client remains unrecoverable.
+\end{theorem}
+
+\begin{proof}
+Consider a coalition consisting of the server and $\kappa \le N-2$ corrupted clients. By the threat model, each client holds the global decryption key $S$; therefore the coalition obtains $S$ and the individual secret keys $\{s_i\}_{i \in \mathcal{C}^*}$ of the corrupted clients, where $|\mathcal{C}^*| = \kappa$. Let $\mathcal{H} = [N] \setminus \mathcal{C}^*$ denote the set of honest clients, with $|\mathcal{H}| \ge 2$.
+
+Using $S$, the coalition decrypts the aggregated ciphertext $C_j^{(t)}$ and obtains the full aggregate plaintext $\sum_{i=1}^N \mathsf{pt}_{i,j}^{(t)}$. Using the corrupted secret keys $\{s_i\}_{i \in \mathcal{C}^*}$, it further decrypts the corrupted clients' individual ciphertexts and obtains $\{\mathsf{pt}_{i,j}^{(t)}\}_{i \in \mathcal{C}^*}$. By subtraction, the coalition learns only the sum of honest clients' plaintexts:
+\begin{equation*}
+    \sum_{h \in \mathcal{H}} \mathsf{pt}_{h,j}^{(t)}
+    = \sum_{i=1}^N \mathsf{pt}_{i,j}^{(t)} - \sum_{i \in \mathcal{C}^*} \mathsf{pt}_{i,j}^{(t)}.
+\end{equation*}
+
+However, the coalition does not possess the secret keys $\{s_h\}_{h \in \mathcal{H}}$ of the honest clients. Consequently, it cannot decrypt any honest client's individual ciphertext $\mathsf{ct}_{h,j}^{(t)} = [a^{(t)} s_h + \tilde{p} e_{h,j}^{(t)} + \mathsf{pt}_{h,j}^{(t)}]_q$. Since $|\mathcal{H}| \ge 2$, the single equation $\sum_{h \in \mathcal{H}} \mathsf{pt}_{h,j}^{(t)}$ does not determine any individual $\mathsf{pt}_{h,j}^{(t)}$. Under dRLWE, recovering $\mathsf{pt}_{h,j}^{(t)}$ from $\mathsf{ct}_{h,j}^{(t)}$ without $s_h$ remains computationally infeasible. Thus no individual honest client's plaintext is recoverable.
+\end{proof}
+
+% -----------------------------------------------------------------------------
+\subsection{Compensatory Ciphertext Security}
+\label{ssec:compensatory}
+
+\begin{theorem}[Compensatory Ciphertext Indistinguishability]
+\label{thm:kgc-indistinguishability}
+A compensatory ciphertext generated by the KGC for an inactive client $k \in \bar{\mathcal{S}}^{(t)}$,
+\begin{equation*}
+    \mathsf{ct}_{k,j}^{(t)} = \bigl[ a^{(t)} s_k + \tilde{p} e_{k,j}^{(t)} \bigr]_q,
+\end{equation*}
+is computationally indistinguishable from an active client's ciphertext
+$\mathsf{ct}_{k,j}^{(t)} = [a^{(t)} s_k + \tilde{p} e_{k,j}^{(t)} + \mathsf{pt}_{k,j}^{(t)}]_q$
+to any external passive eavesdropper.
+\end{theorem}
+
+\begin{proof}
+Define the two distributions
+\begin{align*}
+    \mathcal{D}_0 &= \bigl\{ (a^{(t)}, \mathsf{ct}_{k,j}^{(t)}) :
+        \mathsf{ct}_{k,j}^{(t)} = [a^{(t)} s_k + \tilde{p} e_{k,j}^{(t)}]_q,\;
+        e_{k,j}^{(t)} \leftarrow \chi_e \bigr\}, \\
+    \mathcal{D}_1 &= \bigl\{ (a^{(t)}, \mathsf{ct}_{k,j}^{(t)}) :
+        \mathsf{ct}_{k,j}^{(t)} = [a^{(t)} s_k + \tilde{p} e_{k,j}^{(t)} + \mathsf{pt}_{k,j}^{(t)}]_q,\;
+        e_{k,j}^{(t)} \leftarrow \chi_e \bigr\}.
+\end{align*}
+Under the dRLWE assumption, the base tuple $(a^{(t)}, [a^{(t)} s_k + \tilde{p} e_{k,j}^{(t)}]_q)$ is computationally indistinguishable from $(a^{(t)}, u)$ with $u \leftarrow \mathcal{U}(\mathcal{R}_q)$. Adding a fixed plaintext term $\mathsf{pt}_{k,j}^{(t)}$ to a uniformly random ring element yields another uniformly random ring element; therefore $\mathcal{D}_0 \approx_c \mathcal{D}_1$.
+
+Note that this indistinguishability is stated against external eavesdroppers only. By design, the server manages client dropout status and knows which ciphertexts are compensatory, so the theorem does not claim indistinguishability from the server's perspective.
+\end{proof}
+
+% -----------------------------------------------------------------------------
+\subsection{Cross-Round Prefetching Security}
+\label{ssec:prefetch}
+
+\begin{theorem}[Cross-Round Prefetching Security]
+\label{thm:prefetch-security}
+The prefetch aggregate $C_{\mathrm{pre},j}$ is computationally indistinguishable from uniform to external eavesdroppers. Authorized clients decrypt only the $R$-round plaintext sum $m_{\mathrm{pre},j} = \sum_{r=0}^{R-1} m_j^{(t+r)}$; no per-round intermediate ciphertext is exposed.
+\end{theorem}
+
+\begin{proof}
+The prefetch ciphertext is $C_{\mathrm{pre},j} = [A_{\mathrm{pre}} S + \tilde{p} E_{\mathrm{pre}} + m_{\mathrm{pre},j}]_q$, where $A_{\mathrm{pre}} = \sum_{r=0}^{R-1} a^{(t+r)}$ and $E_{\mathrm{pre}} = \sum_{r=0}^{R-1} E_j^{(t+r)}$. Since each $a^{(t+r)}$ is pseudorandom, $A_{\mathrm{pre}}$ is computationally indistinguishable from uniform; by the dRLWE assumption, the masking term $A_{\mathrm{pre}} S + \tilde{p} E_{\mathrm{pre}}$ hides the plaintext, so $(A_{\mathrm{pre}}, C_{\mathrm{pre},j})$ is indistinguishable from $(A_{\mathrm{pre}}, u)$ with $u \leftarrow \mathcal{U}(\mathcal{R}_q)$. An authorized client uses $S$ to recover only the aggregate $m_{\mathrm{pre},j}$, while the individual round ciphertexts remain unobserved.
+\end{proof}
+
+\end{document}

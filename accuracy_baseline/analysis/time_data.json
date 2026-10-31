@@ -1,0 +1,178 @@
+{
+  "MNIST": {
+    "FedAvg+CKKS": {
+      "total_time": 315.01,
+      "comm_time": 259.596252450943,
+      "compute_time": 55.41374754905701,
+      "report_comm_time": 451.64
+    },
+    "FedPHE": {
+      "total_time": 201.5,
+      "comm_time": 150.19068384170532,
+      "compute_time": 51.30931615829468,
+      "report_comm_time": 179.41
+    },
+    "ESAFL": {
+      "total_time": 239.98,
+      "comm_time": 73.16185210227965,
+      "compute_time": 166.81814789772034,
+      "report_comm_time": 246.32
+    },
+    "MASER": {
+      "total_time": 466.66,
+      "comm_time": 246.9220396614075,
+      "compute_time": 219.73796033859253,
+      "report_comm_time": 463.49
+    },
+    "ECPFL-UN": {
+      "total_time": 1759.44,
+      "comm_time": 1667.6241070360068,
+      "compute_time": 91.81589296399326,
+      "report_comm_time": 426.28
+    },
+    "ECPFL-TH": {
+      "total_time": 1689.8,
+      "comm_time": 1601.5989315508632,
+      "compute_time": 88.20106844913686,
+      "report_comm_time": 410.37
+    },
+    "ECPFL-RK": {
+      "total_time": 129.89,
+      "comm_time": 62.41030069895304,
+      "compute_time": 67.47969930104695,
+      "report_comm_time": 80.93
+    }
+  },
+  "FMNIST": {
+    "FedAvg+CKKS": {
+      "total_time": 285.43,
+      "comm_time": 227.5380892086029,
+      "compute_time": 57.891910791397095,
+      "report_comm_time": 410.55
+    },
+    "FedPHE": {
+      "total_time": 179.43,
+      "comm_time": 122.86910884857178,
+      "compute_time": 56.56089115142822,
+      "report_comm_time": 176.3
+    },
+    "ESAFL": {
+      "total_time": 244.43,
+      "comm_time": 46.12555091857911,
+      "compute_time": 198.3044490814209,
+      "report_comm_time": 205.29
+    },
+    "MASER": {
+      "total_time": 427.77,
+      "comm_time": 233.5988869857788,
+      "compute_time": 194.1711130142212,
+      "report_comm_time": 399.73
+    },
+    "ECPFL-UN": {
+      "total_time": 1292.68,
+      "comm_time": 1208.5573982170347,
+      "compute_time": 84.12260178296546,
+      "report_comm_time": 288.21
+    },
+    "ECPFL-TH": {
+      "total_time": 1039.12,
+      "comm_time": 945.0089000173773,
+      "compute_time": 94.11109998262256,
+      "report_comm_time": 216.63
+    },
+    "ECPFL-RK": {
+      "total_time": 95.85,
+      "comm_time": 6.000397717234108,
+      "compute_time": 89.84960228276589,
+      "report_comm_time": 53.47
+    }
+  },
+  "CIFAR-10": {
+    "FedAvg+CKKS": {
+      "total_time": 1756.32,
+      "comm_time": 1595.695545978546,
+      "compute_time": 160.62445402145386,
+      "report_comm_time": 2750.65
+    },
+    "FedPHE": {
+      "total_time": 1221.47,
+      "comm_time": 1093.0801670265198,
+      "compute_time": 128.38983297348022,
+      "report_comm_time": 1621.22
+    },
+    "ESAFL": {
+      "total_time": 1402.62,
+      "comm_time": 1095.1804586601256,
+      "compute_time": 307.43954133987427,
+      "report_comm_time": 1395.88
+    },
+    "MASER": {
+      "total_time": 1927.93,
+      "comm_time": 1606.530421190262,
+      "compute_time": 321.39957880973816,
+      "report_comm_time": 2279.22
+    },
+    "ECPFL-UN": {
+      "total_time": 6259.4,
+      "comm_time": 6014.430408629037,
+      "compute_time": 244.96959137096266,
+      "report_comm_time": 1616.06
+    },
+    "ECPFL-TH": {
+      "total_time": 2756.68,
+      "comm_time": 2573.560523550454,
+      "compute_time": 183.11947644954574,
+      "report_comm_time": 612.6
+    },
+    "ECPFL-RK": {
+      "total_time": 1441.36,
+      "comm_time": 1212.0720028218363,
+      "compute_time": 229.28799717816364,
+      "report_comm_time": 1391.15
+    }
+  },
+  "SVHN": {
+    "FedAvg+CKKS": {
+      "total_time": 3141.61,
+      "comm_time": 2754.4347623443605,
+      "compute_time": 387.17523765563965,
+      "report_comm_time": 3660.43
+    },
+    "FedPHE": {
+      "total_time": 2445.11,
+      "comm_time": 2118.404846534729,
+      "compute_time": 326.705153465271,
+      "report_comm_time": 2774.89
+    },
+    "ESAFL": {
+      "total_time": 2363.5,
+      "comm_time": 1852.3232424259186,
+      "compute_time": 511.1767575740814,
+      "report_comm_time": 2381.19
+    },
+    "MASER": {
+      "total_time": 3308.35,
+      "comm_time": 2736.1661945343017,
+      "compute_time": 572.1838054656982,
+      "report_comm_time": 3955.82
+    },
+    "ECPFL-UN": {
+      "total_time": 986.53,
+      "comm_time": 760.36394076386,
+      "compute_time": 226.16605923614,
+      "report_comm_time": 915.08
+    },
+    "ECPFL-TH": {
+      "total_time": 577.6,
+      "comm_time": 397.77183980598517,
+      "compute_time": 179.82816019401486,
+      "report_comm_time": 488.82
+    },
+    "ECPFL-RK": {
+      "total_time": 923.17,
+      "comm_time": 587.312949952063,
+      "compute_time": 335.857050047937,
+      "report_comm_time": 792.17
+    }
+  }
+}

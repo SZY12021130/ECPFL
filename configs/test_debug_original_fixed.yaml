@@ -1,0 +1,84 @@
+# 10轮验证实验：复现之前出问题的配置（sparse=0.9, l2_norm, ptopk on）
+system:
+  num_clients: 10
+  num_rounds: 10
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cpu"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 0.5
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+
+data:
+  dataset: "cifar10"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 1
+
+model:
+  name: "resnet20"
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60,40,40,60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    strategy: "merged"
+  sparsification:
+    strategy: "topk"
+    sparsity_rate: 0.9
+    scoring_method: "l2_norm"
+  ptopk:
+    enable: true
+    client_residual:
+      enabled: true
+      stale_gamma: 0.9
+      decay_gamma: 0.5
+      clip_tau: 0.0
+
+blinding_mask:
+  enabled: false
+
+global_mask_vote:
+  mode: "none"
+
+esafl:
+  enabled: true
+  mode: "SIMULATION"
+
+tee:
+  enabled: false
+
+prefetch:
+  enable_prefetch: false
+
+bandwidth:
+  fedfetch_trace_path: null
+  base_dl_bw: 1024.0
+  base_ul_bw: 512.0
+  variance: 0.3
+  distribution: "lognormal"
+
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+
+visualization:
+  enabled: false
+
+output:
+  results_dir: "./results"
+  model_dir: "./history_models"
+  viz_dir: "./visualization"
+  save_interval: 999

@@ -1,0 +1,101 @@
+# ============================================================================
+# CKKS-Fed / CIFAR10 无打包对照实验
+# 用途：验证 CIFAR10 ResNet20 在标准 CKKS（无 ESAFL 打包）下是否收敛，
+#       以判断问题是否出在 ESAFL 打包本身。
+# ============================================================================
+
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 25
+  num_rounds: 5
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 1.0
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: false
+
+data:
+  dataset: "cifar10"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 1
+
+model:
+  name: "resnet20"
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    strategy: "layerwise"
+  sparsification:
+    strategy: null
+    sparsity_rate: 0.0
+    batch_size: 4096
+    seed: 42
+    scoring_method: "l2_norm"
+    use_warmup_skip_sparse: false
+    warmup_rounds: 0
+    local_completion:
+      enabled: false
+  ptopk:
+    enable: false
+    client_residual:
+      enabled: false
+      stale_gamma: 0.5
+      decay_gamma: 0.3
+      clip_tau: 0.0
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+blinding_mask:
+  enabled: false
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+global_mask_vote:
+  mode: "none"
+  threshold_pct: 0.5
+  topk_count_k: 20
+  topk_pct: 0.1
+
+esafl:
+  enabled: false
+  mode: "SIMULATION"
+  prpg_seed: 42
+
+tee:
+  enabled: false
+
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 10240.0
+  base_ul_bw: 10240.0
+  variance: 0.3
+  distribution: "lognormal"
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+
+output:
+  results_dir: "accuracy_baseline/esafl/test_multikey"
+  model_dir: "./models"
+  save_interval: 5

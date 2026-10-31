@@ -1,0 +1,101 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{hyperref}
+\usepackage{tabularx}
+
+\begin{document}
+
+\section{Updated Notation Table}
+\label{sec:notation}
+
+\begin{table}[t]
+\centering
+\caption{\textsc{Summary of Key Notations}}
+\label{tab:notations}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.08}
+
+\begin{tabularx}{\columnwidth}{@{}|>{\raggedright\arraybackslash}p{0.23\columnwidth}|>{\raggedright\arraybackslash}X|@{}}
+\hline
+\multicolumn{1}{|c|}{\textbf{Notation}} & \multicolumn{1}{c|}{\textbf{Description}} \\
+\hline
+\multicolumn{2}{|c|}{\textit{System Foundation}} \\
+\hline
+$\lambda, n, \Delta$ & Security parameter, RLWE dimension, Scaling factor \\
+$\mathbb{Z}_q, \mathcal{R}_q, \mathcal{R}_p$ & Integer, ciphertext, and plaintext rings \\
+$\varphi, M$ & Ring isomorphism; Prime bounding modulus \\
+$\chi_s, \chi_e$ & Secret key and Gaussian error distributions \\
+\hline
+\multicolumn{2}{|c|}{\textit{Client \& Training Context}} \\
+\hline
+$\mathcal{C}, N, K$ & All client set, total count, selected count \\
+$T, t, \mathcal{E}$ & Total rounds, current round, local epochs \\
+$J, B, j$ & Total packs, PRPG seed, pack index \\
+$R, sd_{i,j}$ & Prefetch window; Pairwise PRG seed \\
+$\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \mathcal{P}^{(t^*)}$ & Active, inactive, prefetched client sets \\
+$S, s_i$ & Global decryption key; Local encryption key \\
+\hline
+\multicolumn{2}{|c|}{\textit{Consensus \& Model Updates}} \\
+\hline
+$\mathcal{T}_i^{(t)}, \mathcal{K}^{(t)}$ & Local Top-$k$ indices; Consensus mask \\
+$\mathbf{v}_i^{(t)}, v_{i,j}^{(t)}$ & Vote bitmap; Binary voting element \\
+$s_j^{(t)}, \theta, \tau_{\theta}$ & Global score; Selection ratio; Truncation threshold \\
+$\mathbf{W}^{(t)}, \mathbf{w}_i^{(t)}$ & Global model; Local model \\
+\hline
+\multicolumn{2}{|c|}{\textit{Gradients \& Residuals}} \\
+\hline
+$\mathbf{g}_{i}^{(t)}, \tilde{\mathbf{g}}_i^{(t)}, \mathbf{r}_i^{(t)}$ & Raw gradient; Compensated gradient; Pack Residual \\
+$\mathrm{pt}_{i,j}^{(t)}, e_{i,j}^{(t)}$ & Encoded gradient polynomial; Noise polynomial \\
+$\gamma_{d}, \gamma_{s}$ & Per-round and cross-round decay factors \\
+\hline
+\multicolumn{2}{|c|}{\textit{Privacy \& Cryptography}} \\
+\hline
+$\mathbf{y}_{i,j}^{(t)}, \mathbf{z}_i^{(t)}, \hat{\mathbf{v}}_i^{(t)}$ & Pairwise vector; Perturbation; Obfuscated vote \\
+$\mathsf{ct}_{i, j}^{(t)}, \mathsf{ct}_{k, j}^{(t)}$ & Local upload and compensatory ciphertexts \\
+$C^{(t)}, C_j^{(t)}$ & Global and pack-level aggregated ciphertexts; $C_j^{(t)}$ includes active gradients and KGC compensation \\
+$\mathbf{\Delta}^{(t)}$ & KGC compensatory perturbation \\
+\hline
+\multicolumn{2}{|c|}{\textit{Prefetching \& Aggregation}} \\
+\hline
+$\mathcal{Q}$ & Sliding queue of the latest $R$ rounds' encrypted updates \\
+$\mathcal{L}_{i,j}$ & Client $i$'s prefetch accumulator for pack $j$ \\
+$t_{\mathrm{last},i}$ & Last training round of client $i$ \\
+$\mathbf{m}_{\mathrm{pre}}$ & Prefetched plaintext from local accumulators \\
+$\alpha, \beta$ & EMA decay and over-commitment factors \\
+$\hat{d}^{(t)}, d^{(t)}$ & EMA estimate and measured wall-clock round duration \\
+\hline
+\end{tabularx}
+\end{table}
+
+\section{Consensus Selection Strategies}
+\label{sec:consensus}
+
+Let $\bar{\mathbf{v}}^{(t)}$ denote the global vote tally vector, where each entry
+\begin{equation}
+\bar{v}_j^{(t)} = \sum_{i \in \mathcal{S}^{(t)}} v_{i,j}^{(t)}
+\end{equation}
+counts how many active clients voted for pack $j$ at round $t$. The server obtains the consensus set $\mathcal{K}^{(t)}$ using one of the following rules.
+
+\begin{itemize}
+    \item \textbf{Union (\textsc{ECPFL-UN}):} retains every pack that receives at least one vote,
+    \begin{equation}
+        \mathcal{K}^{(t)} = \Bigl\{ j \in [J] \;\Big|\; \bar{v}_j^{(t)} \ge 1 \Bigr\}.
+    \end{equation}
+
+    \item \textbf{Rank (\textsc{ECPFL-RK-}$\theta$):} sorts packs by their global vote tallies in descending order and retains the top-$\lfloor \theta J \rfloor$ packs, where $\theta \in (0,1]$,
+    \begin{equation}
+        \mathcal{K}^{(t)} = \Bigl\{ \pi_\ell \in [J] \;\Big|\; 1 \le \ell \le \lfloor \theta J \rfloor,\; \bar{v}_{\pi_1}^{(t)} \ge \bar{v}_{\pi_2}^{(t)} \ge \dots \ge \bar{v}_{\pi_J}^{(t)} \Bigr\}.
+    \end{equation}
+
+    \item \textbf{Threshold (\textsc{ECPFL-TH-}$\theta$):} retains a pack only if its accumulated votes reach a proportion $\theta \in (0,1]$ of the active clients,
+    \begin{equation}
+        \mathcal{K}^{(t)} = \Bigl\{ j \in [J] \;\Big|\; \bar{v}_j^{(t)} \ge \theta \cdot |\mathcal{S}^{(t)}| \Bigr\}.
+    \end{equation}
+\end{itemize}
+
+\end{document}
