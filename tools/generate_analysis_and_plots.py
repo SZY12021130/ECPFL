@@ -38,7 +38,7 @@ def normalize(values, higher_is_better=True):
 # ---------------------------------------------------------------------------
 def generate_summary():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
 
     lines = []
     lines.append("# 实验汇总分析与最平衡结果\n")
@@ -114,7 +114,7 @@ def generate_summary():
 # ---------------------------------------------------------------------------
 def draw_client_selection():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
     methods = ["random", "sticky", "sketch_clustering", "poc", "tifl", "haccs", "oort"]
 
     out_dir = Path("accuracy_result/client_selection/pic")
@@ -165,7 +165,7 @@ def draw_client_selection():
 # ---------------------------------------------------------------------------
 def draw_vote_ratios():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
 
     # Methods to draw: threshold 0.1-0.9, topk 0.1-0.9, union
     threshold_methods = [f"threshold_{x}" for x in [0.1, 0.3, 0.5, 0.7, 0.9]]

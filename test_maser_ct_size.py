@@ -154,7 +154,7 @@ def main():
         slope, intercept = np.polyfit(x, y, 1)
         r_squared = 1 - sum((yi - (slope * xi + intercept)) ** 2 for xi, yi in zip(x, y)) / sum((yi - sum(y)/len(y))**2 for yi in y)
         print(f"\n线性拟合: agg_size = {slope:.4f} * N + {intercept:.4f}")
-        print(f"R^2 = {r_squared:.6f} (越接近1越线性)")
+        print(f"R² = {r_squared:.6f} (越接近1越线性)")
 
     print("\n" + "=" * 60)
     print("测试完成")

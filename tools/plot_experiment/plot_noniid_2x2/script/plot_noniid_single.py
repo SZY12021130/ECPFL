@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from noniid_common import (
     CUSTOM_RCPARAMS,
     HEATMAP_CMAPS,
+    HEATMAP_PANEL_STYLES,
     PLOTTER,
     load_data,
     save_dir,
@@ -22,7 +23,26 @@ from noniid_common import (
     draw_line_step,
     draw_line_labeled,
     draw_alpha_heatmap,
+    draw_heatmap_panel,
 )
+
+# 与 Fig.6 单栏面板 (a)(b) 完全一致的画布与边距，保证可以直接并排成一行
+PANEL_SIZE = (3.55, 2.95)
+PANEL_TITLE_FS = 12.5
+PANEL_RCPARAMS = {
+    "axes.titlesize": PANEL_TITLE_FS,
+    "axes.labelsize": 10.0,
+    "xtick.labelsize": 8.5,
+    "ytick.labelsize": 8.5,
+    "legend.fontsize": 8.5,
+    "axes.linewidth": 0.9,
+    "xtick.major.width": 0.8,
+    "ytick.major.width": 0.8,
+    "xtick.major.size": 2.5,
+    "ytick.major.size": 2.5,
+}
+# 面板模式的热力图不画标题以外的角标、不留 (a)/(b)
+PANEL_DIR = save_dir / "heatmap_panels"
 
 
 def main():
@@ -79,7 +99,8 @@ def main():
                 plt.rcParams.update(CUSTOM_RCPARAMS)
                 fig, ax = plt.subplots(figsize=single_size)
                 draw_func(ax, ds, accuracy, alphas)
-                ax.set_title(f"{ds} ({desc})", fontsize=20, fontweight="bold", pad=10)
+                # 标题只保留数据集名，风格描述（desc）只用于文件名
+                ax.set_title(ds, fontsize=20, fontweight="bold", pad=10)
                 plt.tight_layout()
                 ds_safe = ds.replace("-", "")
                 for fmt in ("png", "pdf"):
@@ -124,6 +145,30 @@ def main():
                     plt.savefig(fpath, dpi=300, bbox_inches="tight")
                     print(f"[Saved] {fpath}")
                 plt.close(fig_hm)
+
+    # ------------------------------------------------------------------
+    # 紧凑热力图面板：尺寸与 Fig.6 的 (a)(b) 单栏图一致，
+    # 标题只有数据集名，不带 (a)/(b)/(style) 任何描述，可直接作第 4 个面板
+    # ------------------------------------------------------------------
+    PANEL_DIR.mkdir(parents=True, exist_ok=True)
+    for style in HEATMAP_PANEL_STYLES:
+        for ds in ("CIFAR-10", "FMNIST"):
+            with plt.style.context(PLOTTER.style):
+                plt.rcParams.update(PANEL_RCPARAMS)
+                fig_p, ax_p = plt.subplots(figsize=PANEL_SIZE)
+                fig_p.subplots_adjust(left=0.255, right=0.995,
+                                      bottom=0.190, top=0.900)
+                draw_heatmap_panel(ax_p, ds, accuracy, alphas, style=style)
+                ax_p.set_title(ds, fontsize=PANEL_TITLE_FS,
+                               fontweight="bold", pad=5)
+                ax_p.grid(False)
+                ds_safe = ds.replace("-", "")
+                for fmt in ("png", "pdf"):
+                    fpath = PANEL_DIR / f"noniid_heatmap_{ds_safe}_{style}.{fmt}"
+                    plt.savefig(fpath, dpi=600, bbox_inches="tight",
+                                facecolor="white")
+                    print(f"[Saved] {fpath}")
+                plt.close(fig_p)
 
 
 if __name__ == "__main__":

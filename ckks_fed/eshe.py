@@ -125,8 +125,10 @@ class RingArray:
         return _ring_mul(self, other)
 
     def scalar_mul(self, c: int) -> "RingArray":
+        # 先取模再乘，避免 int64 溢出（c 可达 2^60 量级，如拉格朗日系数）
         ctx = self.ctx
-        return RingArray(ctx, (self.r1 * c) % ctx.q1, (self.r2 * c) % ctx.q2)
+        c1, c2 = int(c) % ctx.q1, int(c) % ctx.q2
+        return RingArray(ctx, (self.r1 * c1) % ctx.q1, (self.r2 * c2) % ctx.q2)
 
     def nbytes(self) -> int:
         return int(self.r1.nbytes + self.r2.nbytes)
@@ -306,6 +308,18 @@ class ESHEPurePyCiphertext:
     def nbytes(self) -> int:
         return int(self.coeffs.nbytes() + self.mask.nbytes())
 
+    def coeffs_nbytes(self) -> int:
+        """
+        线上密文大小：仅计 coeffs 多项式的紧凑系数表示。
+        mask = a^t·s_i 中 a^t 由 PRPG(t, B) 公开再生、解密方持 s_i，
+        因此 mask 无需传输（聚合密文同理，仅 coeffs 求和结果需下发）。
+
+        大小 = n × log₂Q / 8 字节（每系数 log₂Q bit，与 ECPFL 的
+        ct_coeff_bytes = n × Q.bit_length() // 8 完全同一口径）。
+        注：CRT 双 int64 存储（16 B/系数）仅为内存表示，非线上大小。
+        """
+        return int(self.coeffs.ctx.n * self.coeffs.ctx.Q.bit_length() // 8)
+
 
 class PRPG:
     """
@@ -375,7 +389,20 @@ class PurePyESHE:
     """
 
     def __init__(self, n: int = 2048, seed: int = 42,
-                 logp: int = 40, eta: int = 4):
+                 logp: int = 40, eta: int = 4,
+                 encoding: str = "ep", delta_scale: int = 1 << 20):
+        """
+        Args:
+            encoding:  "ep"   = 论文 EP 位打包（ct = a·s_i + p·e + m，mod p 解密；
+                                m ∈ [0, p) 为位域编码整数，配合 ESHEEPPacking）
+                       "fixed" = CKKS 式定点编码变体（ct = a·s_i + e + m，m 可为负；
+                                无 p̃ 噪声项、无 mod p，解密 = (ct − mask)/Δ）
+            delta_scale: fixed 模式的定点缩放 Δ（x̂ = round(x·Δ)/Δ）
+        """
+        if encoding not in ("ep", "fixed"):
+            raise ValueError(f"未知 encoding: {encoding}（可选 'ep' | 'fixed'）")
+        self.encoding = encoding
+        self.delta = int(delta_scale)
         self.params = ESHEParameters(n=n, logp=logp, eta=eta)
         self.ring = RingContext(n)
         self.prpg = PRPG(seed, self.ring)
@@ -454,11 +481,65 @@ class PurePyESHE:
         a = self.prpg.generate(counter)
         s_i = self._client_secrets[client_id]
         e = self._sample_noise()
-        p_const = ring.from_ints(np.full(self.n, self.p, dtype=np.int64))
+        # p̃ 为常数多项式（仅 X^0 系数 = p，见方案文档）：
+        # 稠密 p̃ 的 negacyclic 卷积 p̃·e 系数 ~ p·n·eta，会随机超出 Q/2 触发回绕
+        _pc = np.zeros(self.n, dtype=np.int64); _pc[0] = self.p
+        p_const = ring.from_ints(_pc)
         coeffs = a.mul(s_i).add(p_const.mul(ring.from_ints(e))).add(
             ring.from_ints(m))
         mask = a.mul(s_i)
         return ESHEPurePyCiphertext(coeffs, mask, int(counter))
+
+    def encrypt_chunk_fixed(self, client_id: int, values: np.ndarray,
+                            counter: int) -> ESHEPurePyCiphertext:
+        """
+        fixed 编码 Enc：ct = [a^t · s_i + e + m]_Q，m = round(x·Δ)（可为负）。
+
+        与论文 EP 模式的差异：噪声项为系数级小整数 e（非 p̃·e），明文为有符号
+        定点整数；解密不取 mod p。精度：单客户端误差 ≤ eta/Δ。
+        越界检查：|m| 须 ≪ Q/2（含聚合噪声余量，取 |m| < Q/8）。
+        """
+        if self.encoding != "fixed":
+            raise RuntimeError("encrypt_chunk_fixed 仅在 encoding='fixed' 下可用")
+        self.register_client(client_id)
+        x = np.asarray(values, dtype=np.float64).reshape(-1)
+        if x.shape[0] != self.n:
+            raise ValueError(f"明文长度 {x.shape[0]} != 环维度 {self.n}")
+        bound = self.Q // 8
+        x_bound = bound / self.delta
+        if x.min() < -x_bound or x.max() >= x_bound:
+            raise ValueError(
+                f"fixed 定点明文越界 [{x.min():.6g}, {x.max():.6g}]，要求 |x| < "
+                f"Q/(8Δ) ≈ {x_bound:.3g}；请减小 esafl.delta_scale 或裁剪梯度")
+        m = np.round(x * self.delta).astype(np.int64)
+        if m.min() < -bound or m.max() >= bound:
+            raise ValueError(
+                f"fixed 定点明文越界 [{m.min()}, {m.max()}]，要求 |m| < Q/8 = 2^"
+                f"{(self.Q.bit_length() - 4)}；请减小 esafl.delta_scale 或裁剪梯度")
+        ring = self.ring
+        a = self.prpg.generate(counter)
+        s_i = self._client_secrets[client_id]
+        e = self._sample_noise()
+        coeffs = a.mul(s_i).add(ring.from_ints(e)).add(ring.from_ints(m))
+        mask = a.mul(s_i)
+        return ESHEPurePyCiphertext(coeffs, mask, int(counter))
+
+    def decrypt_fixed_ints(self, ct: ESHEPurePyCiphertext) -> np.ndarray:
+        """fixed 解密（整数级）：y = [ct.coeffs − ct.mask]_Q（中心化，可为负）。"""
+        t = ct.coeffs.sub(ct.mask)
+        q1, q2 = self.ring.q1, self.ring.q2
+        q1_inv = pow(q1 % q2, q2 - 2, q2)
+        c1 = t.r1.astype(object)
+        c2 = t.r2.astype(object)
+        k = ((c2 - c1) % q2 * q1_inv) % q2
+        x = (c1 + q1 * k)
+        half = self.Q // 2
+        x = np.where(x > half, x - self.Q, x)
+        return np.array(x, dtype=np.int64)
+
+    def decrypt_fixed(self, ct: ESHEPurePyCiphertext) -> np.ndarray:
+        """fixed 解密（浮点级）：x̂ = [ct − mask]_Q / Δ，误差 ≤ eta/Δ（聚合 ≤ N·eta/Δ）。"""
+        return self.decrypt_fixed_ints(ct).astype(np.float64) / self.delta
 
     def encrypt_zero(self, client_id: int, counter: int) -> ESHEPurePyCiphertext:
         """Enc(0)：未采样客户端的全参与补齐密文（ESHE-PS 修正）。"""
@@ -480,7 +561,10 @@ class PurePyESHE:
         mask = self.ring.zeros() if self.s_total is None else a.mul(self.s_total)
         coeffs = ring.from_ints(m).add(mask)
         if noise:
-            p_const = ring.from_ints(np.full(self.n, self.p, dtype=np.int64))
+            # p̃ 为常数多项式（仅 X^0 系数 = p，见方案文档）：
+            # 稠密 p̃ 的 negacyclic 卷积 p̃·e 系数 ~ p·n·eta，会随机超出 Q/2 触发回绕
+            _pc = np.zeros(self.n, dtype=np.int64); _pc[0] = self.p
+            p_const = ring.from_ints(_pc)
             coeffs = coeffs.add(p_const.mul(ring.from_ints(self._sample_noise())))
         return ESHEPurePyCiphertext(coeffs, mask, int(counter))
 

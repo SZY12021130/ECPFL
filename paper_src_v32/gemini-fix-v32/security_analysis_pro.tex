@@ -1,0 +1,63 @@
+\section{Security Analysis}
+\label{sec:security}
+
+In this section, we formally prove that \textsc{ECPFL} satisfies all five security goals defined in Section~\ref{sec:threat_model}.
+
+\subsection{Entity-Level Security Guarantees}
+
+\subsubsection{Individual Ciphertext Confidentiality}
+\begin{theorem}[Individual Ciphertext Confidentiality]
+\label{thm:cpa}
+Under the dRLWE assumption and $(\tau, N)$-Shamir secret sharing, for any honest client $h \in \mathcal{H}^{(t)}$, the uploaded ciphertext $\mathrm{ct}_{h,j}^{(t)}$ is computationally indistinguishable from uniform over $\mathcal{R}_q$ against both $\mathcal{A}_{\mathrm{srv}}$ and any coalition $\mathcal{A}_{\mathrm{cli}}$ of $\kappa \le \tau - 2$ semi-honest clients.
+\end{theorem}
+\begin{proof}
+The server $\mathcal{A}_{\mathrm{srv}}$ observes $\mathrm{ct}_{h,j}^{(t)}$ in Eq.~\eqref{eq:effective-key-enc} and public indices $(t,j)$ without holding $(\sigma_a, \sigma_b)$ or $(S_h, z_h)$; by PRPG security and the dRLWE assumption, $\mathcal{A}_{\mathrm{srv}}$ cannot distinguish the RLWE mask $a_j^{(t)}\tilde{s}_{h,j}^{(t)} + \tilde{p}e_{h,j}^{(t)}$ from uniform over $\mathcal{R}_q$ and thus cannot deduce $\mathrm{pt}_{h,j}^{(t)}$. Meanwhile, the client coalition $\mathcal{A}_{\mathrm{cli}}$ holds $(S, \sigma_a, \sigma_b)$ and at most $\kappa \le \tau - 2$ share pairs $\{(S_u, z_u)\}_{u \in \mathcal{A}_{\mathrm{cli}}}$, which together with $F_S(0)=S$ and $Z(0)=0$ provide at most $\kappa + 1 \le \tau - 1 < \tau$ evaluations of the degree-$(\tau-1)$ polynomials $F_S(x)$ and $Z(x)$. By the $(\tau, N)$-Shamir threshold constraint and the distinct pack-specific masking polynomials $b_j^{(t)}$~\cite{colin2026tfhesd}, $\mathcal{A}_{\mathrm{cli}}$ cannot deduce $(S_h, z_h)$ or eliminate $\tilde{s}_{h,j}^{(t)}$ across packs or rounds; therefore, under the dRLWE assumption, $\mathrm{ct}_{h,j}^{(t)}$ is computationally indistinguishable from uniform over $\mathcal{R}_q$.
+\end{proof}
+
+\subsubsection{Server Obliviousness}
+\begin{theorem}[Server Obliviousness]
+\label{thm:server}
+Without client--server collusion, the server $\mathcal{A}_{\mathrm{srv}}$ cannot obtain any individual update $\mathrm{pt}_{i,j}^{(t)}$ or the aggregated update $\mathrm{pt}_j^{(t)}$.
+\end{theorem}
+\begin{proof}
+During training, $\mathcal{A}_{\mathrm{srv}}$ observes only the uploaded ciphertexts $\{\mathrm{ct}_{i,j}^{(t)}\}$ and their homomorphic sum $C_j^{(t)}$ in Eq.~\eqref{eq:spatial-agg} or Eq.~\eqref{eq:async-agg}, without holding $S$, $\{S_i, z_i\}$, or $(\sigma_a, \sigma_b)$. Based on PRPG security and the dRLWE assumption, $\mathcal{A}_{\mathrm{srv}}$ cannot deduce the individual masks $a_j^{(t)}\tilde{s}_{i,j}^{(t)} + \tilde{p}e_{i,j}^{(t)}$ or the aggregate mask $a_j^{(t)}S + \tilde{p}E_j^{(t)}$, and therefore cannot recover either $\mathrm{pt}_{i,j}^{(t)}$ or $\mathrm{pt}_j^{(t)}$.
+\end{proof}
+
+\subsubsection{Collusion Resistance}
+\begin{theorem}[Collusion Resistance]
+\label{thm:collusion}
+Against at most $\kappa \le \tau - 2$ colluding clients $\mathcal{A}_{\mathrm{cli}} \subset \mathcal{C}$ in any valid round $t$ ($|\widehat{\mathcal{S}}^{(t)}| \ge \tau$), no honest client's key share $S_h$, zero-share $z_h$, or individual update $\mathrm{pt}_{h,j}^{(t)}$ ($h \in \mathcal{H}^{(t)}$) is recoverable; the coalition learns at most $\sum_{h \in \mathcal{H}^{(t)}} \mathrm{pt}_{h,j}^{(t)}$.
+\end{theorem}
+\begin{proof}
+The coalition $\mathcal{A}_{\mathrm{cli}}$ holds $(S, \sigma_a, \sigma_b)$, its own shares $\{(S_u, z_u)\}_{u \in \mathcal{A}_{\mathrm{cli}}}$, and the decrypted round aggregate $\mathrm{pt}_j^{(t)}$. Based on the $(\tau, N)$-Shamir degree-$(\tau-1)$ polynomial constraint, the $\kappa + 1 \le \tau - 1$ known evaluations cannot determine the $\tau$ coefficients of $F_S(x)$ or $Z(x)$ over $\mathcal{R}_q$, so $\mathcal{A}_{\mathrm{cli}}$ cannot deduce $(S_h, z_h)$ or decrypt $\mathrm{ct}_{h,j}^{(t)}$ by Theorem~\ref{thm:cpa}. Furthermore, subtracting the coalition's known updates from $\mathrm{pt}_j^{(t)}$ yields only a single linear equation $\sum_{h \in \mathcal{H}^{(t)}} \mathrm{pt}_{h,j}^{(t)}$ in $|\mathcal{H}^{(t)}| \ge \tau - \kappa \ge 2$ unknown honest updates, from which $\mathcal{A}_{\mathrm{cli}}$ cannot isolate any individual $\mathrm{pt}_{h,j}^{(t)}$.
+\end{proof}
+
+\subsection{Protocol Correctness and Privacy}
+
+\subsubsection{Voting Correctness and Privacy}
+\begin{lemma}[Voting Correctness and Privacy]
+\label{lem:vote}
+When $|\mathcal{S}^{(t)}| \ge \tau$, $\kappa \le \tau - 2$, $|\mathcal{S}^{(t)}| < p$, and $\|\tilde{p} E_0^{(t)} + \sum_{i} v_i^{(t)}\|_\infty < q/2$ over $i \in \mathcal{S}^{(t)}$, server aggregation in Eq.~\eqref{eq:cancellation} recovers the exact pack scores $\{\nu_j^{(t)}\}_{j=1}^J$ while keeping each honest vote bitmap $\mathbf{v}_h^{(t)}$ confidential.
+\end{lemma}
+\begin{proof}
+Correctness follows directly from Eq.~\eqref{eq:cancellation}: since $|\mathcal{S}^{(t)}| \ge \tau$, the zero-share masks sum to $Z(0)=0$ by Eq.~\eqref{eq:shamir_identities}, and reduction modulo $q$ and $p$ removes $\tilde{p}E_0^{(t)}$ without overflow to recover $v^{(t)}$. For privacy, $\mathcal{A}_{\mathrm{srv}}$ and $\mathcal{A}_{\mathrm{cli}}$ observe the masked vote $\hat{v}_h^{(t)}$ in Eq.~\eqref{eq:perturbation}, where $z_h$ is unknown to both adversaries by Theorem~\ref{thm:collusion} and any cross-round linear elimination of $z_h$ amplifies the fresh noise $e_{h,0}^{(t)}$ beyond $q/2$; based on the dRLWE assumption, neither adversary can deduce the honest vote bitmap $\mathbf{v}_h^{(t)}$ beyond the global tally.
+\end{proof}
+
+\subsubsection{Dropout Compensation Privacy}
+\begin{theorem}[Dropout Compensation Privacy]
+\label{thm:dropout}
+For any surviving set $\widehat{\mathcal{S}}^{(t)} \subseteq \mathcal{S}^{(t)}$ with $|\widehat{\mathcal{S}}^{(t)}| \ge \tau$, aggregation in Eq.~\eqref{eq:spatial-agg} and Eq.~\eqref{eq:async-agg} restores the exact key contribution $a_j^{(t)} S$, and the compensation ciphertext $\delta_{h,j}^{(t)}$ is computationally indistinguishable from uniform over $\mathcal{R}_q$ against $\mathcal{A}_{\mathrm{srv}}$ and $\mathcal{A}_{\mathrm{cli}}$ ($\kappa \le \tau - 2$).
+\end{theorem}
+\begin{proof}
+By Eq.~\eqref{eq:key-cancel-detail} and Eq.~\eqref{eq:async-agg}, adding $\delta_{i,j}^{(t)}$ replaces the stale weights $\lambda_i^{(t)}$ with $\widehat{\lambda}_i^{(t)}$ over $|\widehat{\mathcal{S}}^{(t)}| \ge \tau$, reconstructing $a_j^{(t)}S$ while canceling $z_i$ without exposing $S$ to the server. For privacy, the adversary observes $\delta_{h,j}^{(t)}$ in Eq.~\eqref{eq:async-patch}, where the independent Phase-3 masking polynomial $\hat{b}_j^{(t)}$ makes $\kappa_{h,j}^{(t)}$ linearly independent of $\tilde{s}_{h,j}^{(t)}$ in the two unknown shares $(S_h, z_h)$; based on Theorem~\ref{thm:collusion} and the dRLWE assumption, the adversary cannot deduce $(S_h, z_h)$ or cancel $\tilde{s}_{h,j}^{(t)}$ in $\mathrm{ct}_{h,j}^{(t)}$, so $\delta_{h,j}^{(t)}$ is computationally indistinguishable from uniform over $\mathcal{R}_q$.
+\end{proof}
+
+\subsubsection{Cross-Round Prefetching Privacy}
+\begin{theorem}[Cross-Round Prefetching Privacy]
+\label{thm:prefetch}
+Whenever $\|\tilde{p} E_{\mathrm{pre},j} + \mathrm{pt}_{\mathrm{pre},j}\|_\infty < q/2$, (i) one-step decryption in Eq.~\eqref{eq:one-shot-dec} recovers $\mathrm{pt}_{\mathrm{pre},j}$; and (ii) $C_{\mathrm{pre},j}$ is computationally indistinguishable from uniform over $\mathcal{R}_q$ to $\mathcal{A}_{\mathrm{srv}}$ and leaks no single-client update to $\mathcal{A}_{\mathrm{cli}}$.
+\end{theorem}
+\begin{proof}
+(i) Because every round aggregate $C_j^{(r)}$ is encrypted under the round-invariant key $S$, homomorphic summation in Eq.~\eqref{eq:prefetch-accumulation} and one-step subtraction of $A_{\mathrm{pre},j}S$ in Eq.~\eqref{eq:one-shot-dec} remove the accumulated noise $\tilde{p}E_{\mathrm{pre},j}$ modulo $p$ without overflow. (ii) The server $\mathcal{A}_{\mathrm{srv}}$ observes $\{C_j^{(r)}\}_{r \in \mathcal{M}_j}$ and $C_{\mathrm{pre},j}$ without holding $(S, \sigma_a)$, and by Theorem~\ref{thm:server} under dRLWE cannot deduce $\mathrm{pt}_{\mathrm{pre},j}$; meanwhile, registered clients in $\mathcal{A}_{\mathrm{cli}}$ obtain $C_{\mathrm{pre},j}$ solely from public round aggregates $\{C_j^{(r)}\}_{r \in \mathcal{M}_j}$ and, by the linear indeterminacy constraint of Theorem~\ref{thm:collusion}, cannot deduce any single honest client's update beyond the round-level sums $\{\mathrm{pt}_j^{(r)}\}_{r \in \mathcal{M}_j}$.
+\end{proof}
+

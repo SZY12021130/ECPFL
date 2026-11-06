@@ -1,0 +1,35 @@
+\section{Introduction}
+\label{sec:introduction}
+
+\IEEEPARstart{F}{ederated} learning (FL) enables distributed devices to collaboratively train a shared model without centralizing raw data~\cite{bonawitz2019towards}. Extending this paradigm to the network edge, cross-device FL coordinates millions of resource-constrained smartphones, wearables, and Internet of Things (IoT) nodes, making it well suited to privacy-sensitive domains such as healthcare~\cite{zhang2022homomorphic}, finance, and smart edge computing~\cite{li2025enhancing}. However, as illustrated in Fig.~\ref{fig:background}, practical cross-device deployments must contend with pronounced system, bandwidth, and statistical heterogeneities across unstable wireless links and non-IID local datasets \cite{he2025ace}, \cite{wang2026heterogeneous}. 
+
+
+\begin{figure}[t]
+ \centering 
+ \includegraphics[width=0.95\linewidth]{../figures/background_final.pdf}
+ \caption{\textbf{System model of heterogeneous cross-device FL.} The lower panels detail the device, bandwidth, and statistical heterogeneities across edge devices, while the upper topology illustrates parallel ciphertext prefetching.}
+ \label{fig:background}
+ 
+\end{figure}
+
+A primary bottleneck in cross-device FL is bidirectional communication overhead between edge devices and the server~\cite{kairouz2021advances}. Two complementary directions have been explored to alleviate this cost: partial client sampling~\cite{cho2022towards}, \cite{li2025fedphe}, \cite{chai2020tifl}, \cite{wolfrath2022haccs}, \cite{lai2021oort}, \cite{he2023gluefl} and gradient compression via quantization~\cite{alistarh2017qsgd}, sparsification~\cite{xu2025harnessing}, low-rank decomposition~\cite{dorfman2023docofl}, or sketching~\cite{rothchild2020fetchsgd}. Yet, recent work~\cite{yan2025fedfetch} reveals a fundamental tension between client sampling and downstream compression: intermittently selected devices accumulate model staleness across skipped rounds and must fetch large catch-up payloads upon rejoining, eroding the bandwidth gains of upstream compression within a few rounds.
+
+Privacy leakage further complicates cross-device FL, as exchanged gradients remain vulnerable to data reconstruction and inference attacks~\cite{zhu2019deep}, \cite{geiping2020inverting}, \cite{zhao2020idlg}, \cite{guo2025exploring}. Among existing countermeasures---differential privacy (DP)~\cite{mcmahan2017learning}, secure multi-party computation (SMPC)~\cite{bonawitz2017practical}, and homomorphic encryption (HE)~\cite{gentry2009fully}---HE provides cryptographic confidentiality without degrading model utility. Built on the Ring Learning With Errors (RLWE) assumption~\cite{lyubashevsky2010ideal}, the Cheon-Kim-Kim-Song (CKKS) scheme~\cite{cheon2017homomorphic} supports approximate arithmetic and Single Instruction Multiple Data (SIMD) slot packing, amortizing per-ciphertext overhead and boosting throughput over element-wise encryption~\cite{pan2024fedshe}. Recent frameworks~\cite{li2025fedphe}, \cite{wu2025esafl} combine CKKS packing with sparsification or polynomial encoding to reduce upstream traffic, while multi-key HE (MKHE) protects individual updates against curious clients by encrypting under distinct client keys~\cite{cai2023secfed}.
+
+
+However, existing HE-based FL frameworks predominantly target upstream compression while treating synchronous downstream delivery of encrypted global models as an unavoidable cost. Although plaintext FL systems hide downstream latency by prefetching updates during idle periods~\cite{yan2025fedfetch}, extending prefetching to packed ciphertexts faces strict algebraic barriers: packed ciphertexts are indivisible ring elements that cannot be subsetted without dimensional expansion, and upstream sparsification introduces both slot misalignment and dropout sensitivity. Specifically, coordinate-level sparsification~\cite{sattler2019sparse}, \cite{sattler2019robust} disrupts the SIMD slot alignment required for homomorphic addition; moreover, in symmetric aggregate-key schemes~\cite{wu2025esafl} where clients decrypt via a shared aggregate key, partial client sampling and upload-phase dropouts after participant confirmation leave missing key shares, preventing correct Lagrange interpolation and direct local decryption. Existing remedies rely on Trusted Execution Environments (TEEs)~\cite{cai2023secfed}, auxiliary twin servers~\cite{yuan2026fedout}, or interactive decryption-share uploads, introducing extra hardware trust assumptions or multi-round communication bottlenecks.
+
+
+To overcome these limitations, we propose \textsc{ECPFL}, a dropout-resilient and communication-efficient secure FL framework comprising Efficient Sparse Packing (\textsc{ESP}) and Efficient Ciphertext Prefetching (\textsc{ECP}). By embedding Shamir secret sharing over cyclotomic rings into upstream additive homomorphic encryption~\cite{wu2025esafl}, \textsc{ECPFL} reconstructs the target aggregate encryption mask on the fly while protecting individual updates against colluding clients, eliminating peer-to-peer communication and decryption-share uploads. Upstream, \textsc{ESP} pairs Shamir zero-sharing-based consensus voting with Lagrange-weighted dropout compensation so surviving clients locally restore the exact aggregate encryption mask across aligned update packs. Downstream, as shown in Fig.~\ref{fig:background}, \textsc{ECP} exploits additive homomorphism to let intermittently available clients asynchronously prefetch and accumulate sparse ciphertexts across rounds during idle windows, recovering the accumulated updates through a single local decryption per pack upon rejoining.
+
+Our main contributions are summarized as follows:
+\begin{itemize}
+    \item We propose \textsc{ECPFL}, a dropout-resilient secure FL framework that jointly optimizes upstream and downstream communication. By embedding Shamir secret sharing into upstream encryption, \textsc{ECPFL} reconstructs the aggregate encryption mask across surviving participants without peer-to-peer communication or decryption-share uploads.
+    
+    \item We develop \textsc{ESP} for sparse ciphertext aggregation under dynamic participation. A Shamir zero-sharing voting mechanism aligns selected update packs across clients, while Lagrange-weighted compensation restores the aggregate encryption mask after upload-phase dropouts.
+    
+    \item We design \textsc{ECP} to accelerate model synchronization for intermittently active clients, enabling background prefetching and cross-round homomorphic accumulation of sparse ciphertexts so rejoining clients recover missed updates via a single local decryption per pack.
+    
+    \item We evaluate \textsc{ECPFL} across four datasets under heterogeneous and non-IID settings, demonstrating accuracy comparable to dense baselines alongside up to $10.7\times$ lower communication volume and $5.7\times$ faster end-to-end training.
+\end{itemize}
+

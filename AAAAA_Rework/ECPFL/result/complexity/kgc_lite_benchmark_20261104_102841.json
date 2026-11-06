@@ -1,0 +1,69 @@
+{
+  "config": {
+    "n": 4096,
+    "tau": 3,
+    "seed": 42
+  },
+  "complexity": {
+    "time": "O(N*tau*n)",
+    "kgc_memory": "O(tau*n)",
+    "distribution": "O(N*n)",
+    "per_client_storage": "O(n) = 192KB const"
+  },
+  "results": [
+    {
+      "N": 50,
+      "t_init_s": 0.0451,
+      "t_distribute_s": 0.0088,
+      "t_total_s": 0.0539,
+      "rss_delta_mb": 8.2,
+      "distributed_bytes": 9830400,
+      "per_client_bytes": 196608
+    },
+    {
+      "N": 100,
+      "t_init_s": 0.0441,
+      "t_distribute_s": 0.018,
+      "t_total_s": 0.0621,
+      "rss_delta_mb": 7.8,
+      "distributed_bytes": 19660800,
+      "per_client_bytes": 196608
+    },
+    {
+      "N": 500,
+      "t_init_s": 0.0456,
+      "t_distribute_s": 0.0846,
+      "t_total_s": 0.1302,
+      "rss_delta_mb": 53.1,
+      "distributed_bytes": 98304000,
+      "per_client_bytes": 196608
+    },
+    {
+      "N": 1000,
+      "t_init_s": 0.0451,
+      "t_distribute_s": 0.1723,
+      "t_total_s": 0.2174,
+      "rss_delta_mb": 66.9,
+      "distributed_bytes": 196608000,
+      "per_client_bytes": 196608
+    },
+    {
+      "N": 5000,
+      "t_init_s": 0.0468,
+      "t_distribute_s": 0.9537,
+      "t_total_s": 1.0005,
+      "rss_delta_mb": 531.9,
+      "distributed_bytes": 983040000,
+      "per_client_bytes": 196608
+    },
+    {
+      "N": 10000,
+      "t_init_s": 0.0458,
+      "t_distribute_s": 2.5654,
+      "t_total_s": 2.6112,
+      "rss_delta_mb": 664.1,
+      "distributed_bytes": 1966080000,
+      "per_client_bytes": 196608
+    }
+  ]
+}

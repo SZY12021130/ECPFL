@@ -1,0 +1,55 @@
+# ============================================================================
+# ECPFL 扩展性实验：N=500、K=250（采样率 0.5），MNIST + LeNet
+# ============================================================================
+# 公共参数：MNIST + lenet、τ=3、R=3、β=1.5、RK-0.1、ζ=0.1、
+#           γ_d=0.9/γ_s=0.8、n=4096、Δ=2^20、p=2^50、eta=4、cuda、dropout=0
+# 运行命令：
+#   python main_ecpfl.py --config AAAAA_Rework/ECPFL/config/scalability/scalability_N500.yaml --output-dir AAAAA_Rework/ECPFL/result/scalability
+# ============================================================================
+system:
+  num_clients: 500
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "lenet"
+
+ecpfl:
+  n: 4096
+  tau: 3
+  sparsity_rate: 0.1
+  vote_rule: "rk"
+  vote_threshold: 0.1
+  logp: 50
+  delta_scale: 1048576
+  eta: 4
+  max_abs_x: 1.0
+  sampling:
+    active_count: 250
+    prefetch_rounds: 3
+    overcommit: 1.5
+  dropout_rate: 0
+  gamma_d: 0.9
+  gamma_s: 0.8
+  prefetch:
+    enabled: true
+    bandwidth:
+      base_dl_bw: 8192.0
+      base_ul_bw: 4096.0
+      distribution: "uniform"
+      filter_low_bandwidth: false
+      max_dl_bw_kbps: 8192.0
+      max_ul_bw_kbps: 4096.0
+      min_dl_bw_kbps: 5120
+      min_ul_bw_kbps: 5120

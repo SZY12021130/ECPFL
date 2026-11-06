@@ -1,0 +1,121 @@
+# ============================================================================
+# ESAFL (PUREPY EP) accuracy 实验：cifar10 + resnet20，TH-0.7、ζ=0.5
+# ============================================================================
+# 安全参数（与 ECPFL 控制变量）：poly_modulus_degree=8192（n=4096 同维度）、
+#   esafl.mode=PUREPY、encoding=ep、logp=56（logQ≈61 内最大）、quant_bits=10、
+#   eta=4、prpg_seed=42
+# 参与模式：num_clients=50、client_sampling_rate=0.5（选 25 个且 25 个全参与；
+#   main.py PUREPY 分支 pad 由 esafl.num_clients 推导，设 25 → pad=6、T=3）
+# 运行命令：
+#   python main.py --config AAAAA_Rework/ESAFL/config/<子目录>/<本文件>
+# 结果目录：output.results_dir = AAAAA_Rework/ESAFL/result/<accuracy|noniid>/
+# ============================================================================
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 50
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 0.5        # 选 25 个客户端/轮
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: false
+
+data:
+  dataset: "cifar10"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 1
+
+model:
+  name: "resnet20"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+ckks:
+  poly_modulus_degree: 8192        # 与 ECPFL n=4096 同维度（slot_count=4096）
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    strategy: "esafl"
+    logq0: 10
+    slots2: 2
+    quant_bits: 10                 # EP 打包 logq0 复用本项 → pad=6、T=3
+    pad_bits: 0
+  sparsification:
+    strategy: "topk"               # ζ：客户端本地 TopK 投票比例 0.5
+    sparsity_rate: 0.5
+    batch_size: 4096
+    seed: 42
+    scoring_method: "l2_norm"
+    use_warmup_skip_sparse: false
+    warmup_rounds: 0
+    local_completion:
+      enabled: false
+  ptopk:
+    enable: false
+    client_residual:
+      enabled: false
+      stale_gamma: 0.5
+      decay_gamma: 0.3
+      clip_tau: 0.0
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+blinding_mask:
+  enabled: false
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+global_mask_vote:
+  mode: "threshold"                # θ：TH-θ 阈值共识 0.7
+  threshold_pct: 0.7
+  topk_count_k: 20
+  topk_pct: 0.1
+
+esafl:
+  enabled: true
+  mode: "PUREPY"
+  encoding: "ep"
+  prpg_seed: 42
+  logp: 56                         # logQ≈61 内取最大
+  eta: 4
+  num_clients: 25                  # PUREPY pad 推导：pad=6、T=3
+
+prefetch:
+  enable_prefetch: false           # ESAFL 对照：无 ECP 预取
+  max_prefetch_round: 3
+
+tee:
+  enabled: false
+
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 10240.0
+  base_ul_bw: 10240.0
+  variance: 0.3
+  distribution: "lognormal"
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+
+output:
+  results_dir: "AAAAA_Rework/ESAFL/result/accuracy"
+  model_dir: "./models"
+  save_interval: 5

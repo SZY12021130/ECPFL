@@ -1,0 +1,44 @@
+# ECPFL (V17) 论文实验配置 — cifar10 / rk
+# theta=0.7 zeta=0.5 N=50 K=25 dropout=0.2 prefetch=on
+system:
+  num_clients: 50
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "cifar10"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "resnet20"
+
+ecpfl:
+  n: 4096
+  tau: 3
+  sparsity_rate: 0.5
+  vote_rule: "rk"
+  logp: 50
+  delta_scale: 1048576
+  eta: 4
+  max_abs_x: 1.0
+  sampling:
+    active_count: 25
+    prefetch_rounds: 3
+    overcommit: 1.5
+  dropout_rate: 0.2
+  gamma_d: 0.9
+  gamma_s: 0.8
+  prefetch:
+    enabled: true
+    bandwidth:
+      base_dl_bw: 1024.0
+      base_ul_bw: 512.0
+      variance: 0.3
+      distribution: "uniform"

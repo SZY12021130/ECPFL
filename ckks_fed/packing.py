@@ -1161,6 +1161,115 @@ class ESHEEPPacking:
         return self.values_per_chunk
 
 
+class ESHEFixedPacking:
+    """
+    PUREPY fixed 编码模式的打包（CKKS 式定点编码，非论文 EP 位打包）。
+
+    与 EP（ESHEEPPacking）的对比：
+      - 容量：每密文 n 个值（EP 为 (T−1)·n 个值）
+      - 密度：每值 32B（密文 coeff 8B × CRT 2 / n 值... 实际 16n B / n 值 = 16B/值
+        coeffs-only 口径 8n B → 8B/值；EP 为 16n/((T−1)n) B ≈ 8–16B/值）
+      - 精度：量化步 1/Δ（Δ=2^20 → ~1e-6），无符号位宽损失，无需 quant_clip
+        的跨客户端 scale 一致性（Δ 全局固定）
+      - 密文公式：ct = a·s_i + e + m（无 p̃ 噪声项、无 mod p），m ∈ Z 有符号
+
+    pack 输出 float chunk（编码 round(x·Δ) 在 eshe 层完成），
+    unpack_average 对求和密文解密整数做 Σm/(N·Δ)。
+    """
+
+    def __init__(self, n: int, delta_scale: int):
+        self.n = int(n)
+        self.delta = int(delta_scale)
+        self.values_per_chunk = self.n
+
+    @property
+    def name(self) -> str:
+        return f"eshe_fixed_d{self.delta.bit_length() - 1}"
+
+    def pack(self, model_update: Dict[str, torch.Tensor],
+             fixed_scale: float = None) -> Tuple[List[np.ndarray], PackingMetadata]:
+        """
+        flatten → 按 n 切块。BN running statistics 明文保存在 metadata
+        （与 EP/ESAFLPacking 惯例一致）。返回 float chunk，定点 round(x·Δ)
+        由 PurePyESHE.encrypt_chunk_fixed 完成。
+        """
+        bn_buffers = {}
+        packed_update = {}
+        for name, param in model_update.items():
+            if any(k in name for k in ("running_mean", "running_var", "num_batches_tracked")):
+                bn_buffers[name] = param.detach().cpu().numpy().copy()
+            else:
+                packed_update[name] = param
+
+        all_values = []
+        shapes = {}
+        offsets = {}
+        offset = 0
+        for name in sorted(packed_update.keys()):
+            param = packed_update[name]
+            flat = param.detach().cpu().numpy().flatten()
+            shapes[name] = list(param.shape)
+            offsets[name] = (offset, param.numel())
+            all_values.extend(flat.tolist())
+            offset += param.numel()
+
+        total_elements = len(all_values)
+        chunks = []
+        for i in range(0, total_elements, self.n):
+            chunk = np.array(all_values[i:i + self.n], dtype=np.float64)
+            if len(chunk) < self.n:
+                chunk = np.pad(chunk, (0, self.n - len(chunk)), mode="constant")
+            chunks.append(chunk)
+
+        metadata = PackingMetadata(self.name, {
+            "shapes": shapes,
+            "offsets": offsets,
+            "total_elements": total_elements,
+            "delta": self.delta,
+            "quant_bits": self.delta.bit_length(),  # 触发框架 packing_plain 路径
+            "bn_buffers": bn_buffers,
+        })
+        return chunks, metadata
+
+    def unpack_average(self, summed_chunks: List[np.ndarray],
+                       metadata: PackingMetadata,
+                       num_sum: int,
+                       zero_point: float = None) -> Dict[str, torch.Tensor]:
+        """
+        求和密文解密（整数 Σm，含噪声 e）→ x̂ = Σm / (N·Δ)。
+        噪声误差 ≤ N·eta/Δ ≈ 1e-4（Δ=2^20, eta=4, N=25）。
+        """
+        data = metadata.data
+        shapes = data["shapes"]
+        offsets = data["offsets"]
+        total_elements = data["total_elements"]
+        delta = data.get("delta", self.delta)
+
+        all_vals = []
+        for chunk in summed_chunks:
+            all_vals.extend(np.asarray(chunk[:self.n], dtype=np.float64).tolist())
+        all_vals = np.array(all_vals[:total_elements], dtype=np.float64)
+
+        x_avg = all_vals / (float(num_sum) * delta)
+        result = {}
+        for name in sorted(shapes.keys()):
+            off, numel = offsets[name]
+            result[name] = torch.tensor(x_avg[off:off + numel].reshape(shapes[name]))
+        for name, arr in data.get("bn_buffers", {}).items():
+            result[name] = torch.tensor(arr).clone()
+        return result
+
+    def unpack(self, decrypted_chunks: List[np.ndarray],
+               metadata: PackingMetadata) -> Dict[str, torch.Tensor]:
+        return self.unpack_average(decrypted_chunks, metadata, num_sum=1)
+
+    def create_zero_chunk(self) -> np.ndarray:
+        return np.zeros(self.n, dtype=np.float64)
+
+    def get_values_per_chunk(self) -> int:
+        return self.values_per_chunk
+
+
 def create_packing_strategy(config: Dict, slot_count: int) -> PackingStrategy:
     """根据配置创建打包策略"""
     global _CONJUGATE_SUPPORTED

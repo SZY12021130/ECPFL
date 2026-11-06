@@ -170,6 +170,49 @@ model uses the adaptive scale automatically (`skip_sparsification=True`).
 are **not used** under PUREPY+EP (pad and T are derived from N and logp) — a
 warning is logged if they are set.
 
+## Fixed-point encoding variant (`esafl.encoding: "fixed"`)
+
+An alternative message encoding for PUREPY that keeps the paper's single-
+ciphertext ESHE structure (`ct = a^t·s_i + e + m`, one-shot decryption
+`ct − a^t·s`, multi-key `s = Σ s_i`, PRPG-regenerated `a^t`) but replaces the
+EP bit-packing with a CKKS-style fixed-point encoding:
+
+- **Encoding**: `m_j = round(x_j · Δ)`, one float value per coefficient
+  (`Δ = 2^esafl.delta_scale`, default `2^20`). n values per ciphertext
+  (EP packs `(T−1)·n` values into the same ciphertext).
+- **Encryption**: `ct = [a^t·s_i + e + m]_Q` — the noise term is the raw small
+  integer `e ∈ [−eta, eta]` (no `p̃·e`, no mod-p semantics).
+- **Decryption**: `x̂_j = [ct − mask]_Q / Δ`. Error per coefficient ≤
+  `(eta + 0.5)/Δ ≈ 5e-6`; after summing N clients ≤ `N·(eta+0.5)/Δ ≈ 1e-4`
+  — roughly two orders of magnitude better than EP's `1/(2^logq0−1)`.
+- **Aggregation**: same ciphertext-domain summation as EP.Eval (scale does not
+  grow; only addition is used, no rescaling). The summed coefficients are
+  integer sums `Σ round(x_i·Δ)`; divide by N and by Δ to get the average.
+- **No quant_clip needed**: Δ is fixed globally, so all clients share the
+  encoding scale by construction (the EP cross-client scale consistency
+  requirement disappears). The only bound is `|x| < Q/(8Δ)` (≈ 1.4e11 for
+  Q≈2^60, Δ=2^20), which never binds for FL updates.
+- **Ciphertext size (paper accounting)**: per ESAFL, the mask polynomial is
+  not transmitted (`a^t` is publicly regenerated via PRPG(t, B) and `s` is the
+  shared decryption key), so only the coeffs polynomial counts: 8·n·2 bytes
+  (CRT pair, int64) = 64 KB per ciphertext at n = 4096, i.e. **8 bytes per
+  value** (EP: 128 KB coeffs+mask ≈ 16 B/value, or 64 KB coeffs-only ≈ 8 B/
+  value at 2 values/coefficient). At n = 4096 a 44,426-param LeNet needs
+  ceil(44426/4096) = **11 ciphertexts of 64 KB = 704 KB per client**
+  (EP: 6 × 128 KB = 768 KB).
+
+Trade-off vs EP: 2× fewer values per ciphertext (n vs (T−1)·n) → ~2× more
+ciphertexts for the same model, but much higher precision and no quant_clip
+tuning. Set `esafl.encoding: "fixed"` (default remains `"ep"`; EP behavior
+unchanged).
+
+Implementation: `PurePyESHE(encoding="fixed", delta_scale=...)` with
+`encrypt_chunk_fixed` / `decrypt_fixed(_ints)`; packing in
+`ESHEFixedPacking` (flatten → n-sized chunks; rounding happens in the eshe
+layer). Aggregation, subtraction, extended decryption and the server paths are
+shared with the EP mode.
+
+
 ## Cross-round (extended) decryption
 
 Each ciphertext carries its *mask* polynomial (`a^t*s_i` at encryption,
@@ -230,11 +273,12 @@ codes) carry no unsigned zero-point, so the EP unpacker is told
 
 ## Verified
 
-- `python -m pytest tests/test_eshe_purepy.py -v` — 16 tests green (ring ops
+- `python -m pytest tests/test_eshe_purepy.py -v` — 20 tests green (ring ops
   vs naive convolution, 1/5/25-client Enc->aggregate->Dec round-trips,
   cross-round delta decryption, EP setup formulas, EP pack/unpack round-trip,
   EP ciphertext-sum aggregation incl. all-max carry boundary, CKKSManager e2e
-  over the ciphertext-domain aggregation path, adapter extended decrypt).
+  over the ciphertext-domain aggregation path, adapter extended decrypt, plus
+  fixed-mode round-trip/sum-average/bounds/manager-e2e).
 - `python main.py --config <mnist PUREPY EP, 2 rounds>` runs end-to-end with
   accuracy in the normal MNIST-LeNet range (~82% after round 1, ~94% after
   round 2).

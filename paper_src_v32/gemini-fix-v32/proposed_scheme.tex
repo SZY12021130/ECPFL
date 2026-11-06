@@ -1,0 +1,268 @@
+\section{Scheme Design}
+\label{sec:scheme}
+
+\input{fedprefetch_scheme_en}
+
+\subsection{ESP: Efficient Sparse Packing}
+\label{sec:vptopk}
+
+To address the \textbf{Alignment Dilemma (Q1)} and the \textbf{Dropout Dilemma (Q2)} while improving aggregation efficiency under client subsampling and upload-phase dropouts, we propose the ESP mechanism. The upstream process is formalized in Alg.~\ref{alg:upload} and illustrated in Fig.~\ref{fig:ESP}.
+
+\subsubsection{Local Compensation and Consensus Voting}
+To preserve SIMD slot alignment, \textsc{ESP} sparsifies updates at the pack level. Following FedFetch~\cite{yan2025fedfetch}, the first $K \ge \tau$ responsive clients in $\mathcal{P}^{(t)}$ form the active set $\mathcal{S}^{(t)}$. After synchronizing $\mathbf{w}_i$ via \textsc{ECP-Sync} and running $\mathcal{E}$ local epochs, each client $i\in\mathcal{S}^{(t)}$ adds its unweighted residual $\mathbf{r}_i^{(t-1)}$ to the model increment $\Delta\mathbf{w}_i^{(t)}$ and partitions the compensated update $\mathbf{x}_i^{(t)}$ into $J$ packs:
+\begin{equation}
+\mathbf{x}_i^{(t)}
+=\Delta\mathbf{w}_i^{(t)}+\mathbf{r}_i^{(t-1)} = \bigl(\mathbf{x}_{i,1}^{(t)},\, \mathbf{x}_{i,2}^{(t)},\, \ldots,\, \mathbf{x}_{i,J}^{(t)}\bigr).
+\label{eq:compensated-pack}
+\end{equation}
+Client $i$ evaluates the $\ell_2$-norm $\|\mathbf{x}_{i,j}^{(t)}\|_2$ of each pack $j \in [J]$ and selects the Top-$\zeta$ fraction ($\lceil \zeta J \rceil$ packs) to form the binary vote bitmap $\mathbf{v}_i^{(t)}=(v_{i,1}^{(t)},\ldots,v_{i,J}^{(t)})\in\{0,1\}^J$:
+\begin{equation}
+v_{i,j}^{(t)} =
+\begin{cases}
+1, & \text{if } j \in \operatorname{Top}_{\lceil \zeta J \rceil}\!\Bigl(\bigl\{\|\mathbf{x}_{i,\ell}^{(t)}\|_2\bigr\}_{\ell=1}^{J}\Bigr), \\[4pt]
+0, & \text{otherwise}.
+\end{cases}
+\label{eq:local-vote-bitmap}
+\end{equation}
+
+Through secure vote aggregation (\textsc{ESP-Tally}), the server obtains the global voting score $\nu_j^{(t)}$ for each pack $j$ and determines the consensus pack set $\mathcal{K}^{(t)}\subseteq[J]$, represented equivalently by the binary mask $\mathbf{m}^{(t)}\in\{0,1\}^J$ ($m_j^{(t)}=1$ iff $j\in\mathcal{K}^{(t)}$). We consider three consensus rules:
+\begin{equation}
+\mathcal{K}^{(t)}=
+\begin{cases}
+\{j\in[J]\mid\nu_j^{(t)}\ge1\},
+& \text{(\textsc{ECPFL-UN})},\\[3pt]
+\operatorname{Top}_{\lceil\theta J\rceil}
+\bigl(\{\nu_j^{(t)}\}_{j=1}^{J}\bigr),
+& \text{(\textsc{ECPFL-RK}-$\theta$)},\\[3pt]
+\{j\in[J]\mid\nu_j^{(t)}\ge \;\lceil\theta K\rceil\},
+& \text{(\textsc{ECPFL-TH}-$\theta$)}.
+\end{cases}
+\label{eq:consensus-variants}
+\end{equation}
+Here, $\theta\in(0,1]$ controls the retained-pack ratio in \textsc{ECPFL-RK} and the voting threshold in \textsc{ECPFL-TH}: \textsc{ECPFL-UN} retains the union of all nominated packs; \textsc{ECPFL-RK}-$\theta$ retains the $\lceil \theta J \rceil$ highest-scoring packs; and \textsc{ECPFL-TH}-$\theta$ retains packs endorsed by at least $\lceil \theta K \rceil$ active clients. The operator $\operatorname{Top}_k$ returns the indices of the $k$ highest voting scores, breaking ties by ascending pack index.
+
+
+\begin{figure}[!t]
+ \centering 
+ \includegraphics[width=0.95\linewidth]{../figures/2026-11-01-ESP.pdf}
+ \caption{\textbf{ESP upstream module.} \textit{Step 1:} merge previous-round residuals with current increments to form compensated updates. \textit{Step 2:} active clients vote for important packs and the server derives the consensus pack mask. \textit{Step 3:} clients encrypt and upload only the consensus-selected packs.}
+ \label{fig:ESP}
+ 
+\end{figure}
+
+
+\begingroup
+\RestyleAlgo{boxruled}
+\setlength{\fboxrule}{0.4pt}
+\setlength{\algomargin}{14pt}  
+\begin{algorithm}[!t]
+\small
+\caption{\textsc{ESP} Upstream Module}
+\label{alg:upload}
+\KwParam{$J, q, p, \Delta, \zeta, \gamma_d, \gamma_s$, $(S_i, z_i, \sigma_a, \sigma_b)$}
+\SetKwProg{Fn}{Function}{}{}
+\Fn{\textsc{ESP-Vote}{$(i, t, \Delta\mathbf{w}_i^{(t)}, \mathbf{r}_i^{(t-1)})$}}{
+ Compute $\mathbf{x}_i^{(t)} \leftarrow \Delta\mathbf{w}_i^{(t)} + \mathbf{r}_i^{(t-1)}$\;
+ Form $v_i^{(t)} \leftarrow \sum_{j=1}^J v_{i,j}^{(t)} X^{j-1}$\;
+ Compute masked vote $\hat{v}_i^{(t)}$ as Eq.~\eqref{eq:perturbation}\;
+ \Return{$(\hat{v}_i^{(t)}, \mathbf{x}_i^{(t)})$}
+}
+\Fn{\textsc{ESP-Tally}{$(\{\hat{v}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}})$}}{
+ Compute $v^{(t)}$ and scores $\{\nu_j^{(t)}\}_{j=1}^J$ as Eq.~\eqref{eq:cancellation}\;
+ Determine consensus pack mask $\mathcal{K}^{(t)}$ as Eq.~\eqref{eq:consensus-variants}\;
+ \Return{$\mathcal{K}^{(t)}$}
+}
+\Fn{\textsc{ESP-Enc}{$(i, t, \mathbf{x}_i^{(t)}, \omega_i^{(t)}, \mathcal{K}^{(t)})$}}{
+ Compute weighted update $\tilde{\mathbf{g}}_i^{(t)} \leftarrow \omega_i^{(t)} \mathbf{x}_i^{(t)}$\;
+ Update residual $\mathbf{r}_i^{(t)}$ as Eq.~\eqref{eq:dual-residual-update} and set $t_{\mathrm{last},i} \leftarrow t$\;
+ \ForEach{$j \in \mathcal{K}^{(t)}$}{
+  Encode $\mathrm{pt}_{i,j}^{(t)} \leftarrow \mathrm{Ecd}(\tilde{\mathbf{g}}_{i,j}^{(t)}, \Delta)$\;
+  Encrypt $\mathrm{ct}_{i,j}^{(t)}$ as Eq.~\eqref{eq:effective-key-enc}\;
+ }
+ \Return{$\{\mathrm{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$}
+}
+\Fn{\textsc{ESP-Comp}{$(i, t, \widehat{\mathcal{S}}^{(t)}, \mathcal{K}^{(t)})$}}{
+ Compute updated Lagrange weight $\widehat{\lambda}_i^{(t)}$ over $\widehat{\mathcal{S}}^{(t)}$\;
+ \ForEach{$j \in \mathcal{K}^{(t)}$}{
+  Compute $\kappa_{i,j}^{(t)}$ and $\delta_{i,j}^{(t)}$ as Eq.~\eqref{eq:async-patch}\;
+ }
+ \Return{$\{\delta_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$}
+}
+\Fn{\textsc{ESP-Agg}{$(t, \widehat{\mathcal{S}}^{(t)}, \mathcal{K}^{(t)})$}}{
+ \ForEach{$j \in \mathcal{K}^{(t)}$}{
+  Compute aggregate $C_j^{(t)}$ as Eq.~\eqref{eq:spatial-agg} or Eq.~\eqref{eq:async-agg}\;
+ }
+ \Return{$\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}$}
+}
+\end{algorithm}
+\endgroup
+
+\subsubsection{Shamir Zero-Sharing Secure Voting}
+\label{sec:secure-voting}
+Transmitting plaintext vote bitmaps $\mathbf{v}_i^{(t)}$ inherently exposes the sparse structure of local updates, enabling gradient-index and label-inference attacks~\cite{xu2025harnessing}, \cite{zhao2020idlg}, \cite{guo2025exploring}. To preserve index privacy, we design a \emph{Shamir zero-sharing-based secure voting mechanism} with single-polynomial coefficient packing. Because $J \ll n$, each active client $i \in \mathcal{S}^{(t)}$ embeds its $J$-bit binary vote bitmap into the lower $J$ coefficients of $v_i^{(t)} = \sum_{j=1}^J v_{i,j}^{(t)} X^{j-1} \in \mathcal{R}_p$ and generates the voting masking polynomial $a_0^{(t)} = \mathrm{HE.PRPG}(\sigma_b, t \parallel 0) \in \mathcal{R}_q$ using reserved index $0$ for domain separation from pack indices $j \in [J]$. Using its Lagrange weight $\lambda_i^{(t)}$ and a fresh error $e_{i,0}^{(t)} \leftarrow \chi_e$, client $i$ uploads the masked vote polynomial:
+\begin{equation}
+\hat{v}_i^{(t)} = \Bigl[\, a_0^{(t)} \cdot \lambda_i^{(t)} z_i + \tilde{p}\cdot e_{i,0}^{(t)} + v_i^{(t)} \,\Bigr]_q \in \mathcal{R}_q.
+\label{eq:perturbation}
+\end{equation}
+Upon receiving $\{\hat{v}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}$, the server sums the masked votes over all active clients $i \in \mathcal{S}^{(t)}$ in $\mathcal{R}_q$ and reduces modulo $p$. Factoring out $a_0^{(t)}$ and applying Eq.~\eqref{eq:shamir_identities} yields:
+\begin{align}
+v^{(t)} &= \Bigl[\bigl[\, \sum_{i} \hat{v}_i^{(t)} \,\bigr]_q\Bigr]_p \notag \\
+&= \Bigl[ a_0^{(t)} \sum_{i} \lambda_i^{(t)} z_i + \tilde{p} E_0^{(t)} + \sum_{i} v_i^{(t)} \Bigr]_{q,p} \notag \\
+&= \Bigl[ \tilde{p} E_0^{(t)} + \sum_{i} v_i^{(t)} \Bigr]_{q,p} = \sum_{j=1}^J \nu_j^{(t)} X^{j-1},
+\label{eq:cancellation}
+\end{align}
+where $E_0^{(t)} = \sum_{i} e_{i,0}^{(t)}$ and $\nu_j^{(t)} = \sum_{i} v_{i,j}^{(t)}$. Whenever $\|\tilde{p} E_0^{(t)} + \sum_{i} v_i^{(t)}\|_\infty < q/2$ and $|\mathcal{S}^{(t)}| < p$, the server extracts the exact pack scores $\{\nu_j^{(t)}\}_{j=1}^J$ from the lower $J$ coefficients of $v^{(t)}$ without leaking individual vote bitmaps.
+
+
+\subsubsection{Dropout-Resilient Sparse Ciphertext Upload}
+Upon receiving $\mathcal{K}^{(t)}$, each active client scales $\mathbf{x}_i^{(t)}$ by $\omega_i^{(t)}$ to form $\tilde{\mathbf{g}}_i^{(t)} = \omega_i^{(t)} \mathbf{x}_i^{(t)}$. For each selected pack $j \in \mathcal{K}^{(t)}$, client $i$ encodes $\mathrm{pt}_{i,j}^{(t)} = \mathrm{Ecd}(\tilde{\mathbf{g}}_{i,j}^{(t)}, \Delta)$, derives $a_j^{(t)}$ and $b_j^{(t)} = \mathrm{HE.PRPG}(\sigma_b, t \parallel j \parallel 0)$, forms the effective key $\tilde{s}_{i,j}^{(t)}$, and generates the pack-$j$ ciphertext $\mathrm{ct}_{i,j}^{(t)}$:
+\begin{equation}
+\begin{aligned}
+\tilde{s}_{i,j}^{(t)} &= \Bigl[\, \lambda_i^{(t)} \bigl(S_i + b_j^{(t)} z_i\bigr) \,\Bigr]_q, \\
+\mathrm{ct}_{i,j}^{(t)} &= \mathrm{HE.Enc}\bigl(a_j^{(t)}, \tilde{s}_{i,j}^{(t)}, \mathrm{pt}_{i,j}^{(t)}\bigr) \\
+&= \Bigl[\, a_j^{(t)} \cdot \tilde{s}_{i,j}^{(t)} + \tilde{p} \cdot e_{i,j}^{(t)} + \mathrm{pt}_{i,j}^{(t)} \,\Bigr]_q.
+\end{aligned}
+\label{eq:effective-key-enc}
+\end{equation}
+
+\textbf{Role and Principle of the Pack-Specific Mask $b_j^{(t)} z_i$.} As shown in~\cite{colin2026tfhesd}, reusing an unmasked share $\lambda_i^{(t)} S_i$ across varying active sets allows an adversary to solve a linear system in the public weights $\lambda_i^{(t)}$ for $S_i$. Adding the zero-share $z_i$ prevents cross-round recovery because the weighted zero-shares cancel upon aggregation by Eq.~\eqref{eq:shamir_identities}. However, a static $z_i$ is identical across all packs within round $t$, allowing clients holding $\sigma_a$ to linearly eliminate $\lambda_i^{(t)}(S_i + z_i)$ between distinct packs $j_1 \neq j_2$. Scaling $z_i$ by the pack-specific polynomial $b_j^{(t)}$ makes $b_j^{(t)} z_i$ distinct for every pack and round to block cross-pack elimination, while $b_j^{(t)}$ factors out during server aggregation so the zero-share mask vanishes by Eq.~\eqref{eq:shamir_identities}.
+
+
+Finally, client $i$ updates its unweighted residual $\mathbf{r}_i^{(t)}$ to retain unselected packs from $\mathbf{x}_i^{(t)}$ using dual-decay compensation:
+\begin{equation}
+\mathbf{r}_i^{(t)} = \gamma_d \,\gamma_s^{\ell_i^{(t)}-1}\Bigl(\mathbf{x}_i^{(t)} \odot \bigl(\mathbf{1} - \mathbf{m}^{(t)}\bigr)\Bigr),
+\label{eq:dual-residual-update}
+\end{equation}
+where $\odot$ denotes the pack-wise Hadamard product, $\mathbf{1} \in \{1\}^J$ is the all-ones vector, $\gamma_d, \gamma_s \in (0, 1]$ are the per-round and cross-round decay factors, and $\ell_i^{(t)} = t - t_{\mathrm{last},i} \ge 1$ is the elapsed round count since $t_{\mathrm{last},i}$.
+
+\subsubsection{Global Homomorphic Aggregation}
+Following the synchronous and asynchronous threshold paradigms~\cite{colin2026tfhesd}, \cite{kim2026tfhead}, the server invokes $\mathrm{HE.Eval}$ in \textsc{ESP-Agg} under two settings:
+
+\textbf{Synchronous Setting ($\mathcal{D}^{(t)} = \emptyset$).} When all confirmed clients $i \in \mathcal{S}^{(t)}$ complete Phase-2 upload, the server sums $\{\mathrm{ct}_{i,j}^{(t)}\}_{i \in \mathcal{S}^{(t)}}$ over $\mathcal{S}^{(t)}$. Substituting Eq.~\eqref{eq:effective-key-enc} and Eq.~\eqref{eq:shamir_identities} yields:
+\begin{align}
+C_j^{(t)} &= \Bigl[\sum_{i} \mathrm{ct}_{i,j}^{(t)}\Bigr]_q
+= \Bigl[ \sum_{i} \bigl( a_j^{(t)} \tilde{s}_{i,j}^{(t)} + \tilde{p} e_{i,j}^{(t)} + \mathrm{pt}_{i,j}^{(t)} \bigr) \Bigr]_q \notag \\
+&= \Bigl[ a_j^{(t)} \bigl( \sum_{i} \lambda_i^{(t)} S_i + b_j^{(t)} \sum_{i} \lambda_i^{(t)} z_i \bigr) + \tilde{p} E_j^{(t)} + \mathrm{pt}_j^{(t)} \Bigr]_q \notag \\
+&= \Bigl[\, a_j^{(t)} S + \tilde{p} E_j^{(t)} + \mathrm{pt}_j^{(t)} \,\Bigr]_{q},
+\label{eq:spatial-agg}
+\end{align}
+where $E_j^{(t)} = \sum_{i} e_{i,j}^{(t)}$ and $\mathrm{pt}_j^{(t)} = \sum_{i} \mathrm{pt}_{i,j}^{(t)}$.
+
+\textbf{Asynchronous Setting ($\mathcal{D}^{(t)} \neq \emptyset$).} If upload-phase dropouts occur, only $\widehat{\mathcal{S}}^{(t)}$ ($|\widehat{\mathcal{S}}^{(t)}| \ge \tau$) completes the upload of $\{\mathrm{ct}_{i,j}^{(t)}\}_{i \in \widehat{\mathcal{S}}^{(t)}}$, so the stale weights $\lambda_i^{(t)}$ cannot reconstruct $S$. The server broadcasts $\widehat{\mathcal{S}}^{(t)}$, and each surviving client $i \in \widehat{\mathcal{S}}^{(t)}$ computes the updated weight $\widehat{\lambda}_i^{(t)}$ over $\widehat{\mathcal{S}}^{(t)}$ via Eq.~\eqref{eq:lagrange_weight} and masking polynomial $\hat{b}_j^{(t)} = \mathrm{HE.PRPG}(\sigma_b, t \parallel j \parallel 1)$ to upload the compensation ciphertext $\delta_{i,j}^{(t)}$ with fresh error $\hat{e}_{i,j}^{(t)} \leftarrow \chi_e$:
+\begin{equation}
+\begin{aligned}
+\kappa_{i,j}^{(t)} &= \Bigl[\, \bigl(\widehat{\lambda}_i^{(t)} - \lambda_i^{(t)}\bigr) S_i + \bigl(\widehat{\lambda}_i^{(t)} \hat{b}_j^{(t)} - \lambda_i^{(t)} b_j^{(t)}\bigr) z_i \,\Bigr]_q, \\
+\delta_{i,j}^{(t)} &= \Bigl[ a_j^{(t)} \cdot \kappa_{i,j}^{(t)} + \tilde{p} \cdot \hat{e}_{i,j}^{(t)} \Bigr]_q.
+\end{aligned}
+\label{eq:async-patch}
+\end{equation}
+Adding $\kappa_{i,j}^{(t)}$ to $\tilde{s}_{i,j}^{(t)}$ cancels the stale $\lambda_i^{(t)}$ terms:
+\begin{equation}
+\begin{aligned}
+\tilde{s}_{i,j}^{(t)} + \kappa_{i,j}^{(t)}
+&\equiv \lambda_i^{(t)}\bigl(S_i + b_j^{(t)} z_i\bigr) + \bigl(\widehat{\lambda}_i^{(t)} - \lambda_i^{(t)}\bigr) S_i \\[-2pt]
+&\quad + \bigl(\widehat{\lambda}_i^{(t)} \hat{b}_j^{(t)} - \lambda_i^{(t)} b_j^{(t)}\bigr) z_i \\[-2pt]
+&\equiv \widehat{\lambda}_i^{(t)}\bigl(S_i + \hat{b}_j^{(t)} z_i\bigr) \pmod q.
+\end{aligned}
+\label{eq:key-cancel-detail}
+\end{equation}
+Summing $\mathrm{ct}_{i,j}^{(t)} + \delta_{i,j}^{(t)}$ over all surviving clients $i \in \widehat{\mathcal{S}}^{(t)}$ and applying Eq.~\eqref{eq:shamir_identities} and Eq.~\eqref{eq:key-cancel-detail} restores $a_j^{(t)}S$:
+\begin{align}
+C_j^{(t)} &= \Bigl[ \sum_{i} \bigl( \mathrm{ct}_{i,j}^{(t)} + \delta_{i,j}^{(t)} \bigr) \Bigr]_q \notag \\
+&= \Bigl[ a_j^{(t)} \sum_{i} \bigl(\tilde{s}_{i,j}^{(t)} + \kappa_{i,j}^{(t)}\bigr) + \tilde{p} \widehat{E}_j^{(t)} + \mathrm{pt}_j^{(t)} \Bigr]_q \notag \\
+&= \Bigl[ a_j^{(t)} \bigl( \sum_{i} \widehat{\lambda}_i^{(t)} S_i + \hat{b}_j^{(t)} \sum_{i} \widehat{\lambda}_i^{(t)} z_i \bigr) + \tilde{p} \widehat{E}_j^{(t)} + \mathrm{pt}_j^{(t)} \Bigr]_q \notag \\
+&= \Bigl[\, a_j^{(t)} S + \tilde{p} \widehat{E}_j^{(t)} + \mathrm{pt}_j^{(t)} \,\Bigr]_q,
+\label{eq:async-agg}
+\end{align}
+where $\widehat{E}_j^{(t)} = \sum_{i} (e_{i,j}^{(t)} + \hat{e}_{i,j}^{(t)})$ and $\mathrm{pt}_j^{(t)} = \sum_{i} \mathrm{pt}_{i,j}^{(t)}$.
+
+
+\begin{figure}[t]
+ \centering
+ \includegraphics[width=0.95\linewidth]{../figures/ECP-BOX-6.pdf}
+ \caption{\textbf{ECP downstream module.} In the Prepare Phase (round $t$), the server presamples candidates for round $t^* = t + R$. During the Prefetch Phase, inactive clients asynchronously accumulate sparse global ciphertexts. In the Train Phase (round $t^* = t + R$), active clients fetch any remaining packs and execute one-step local decryption.}
+ \label{fig:cipherfetch}
+ 
+\end{figure}
+
+\subsection{ECP: Ciphertext Prefetching}
+\label{sec:cipherfetch}
+
+The ECP protocol resolves the \textbf{Sparsity and Prefetching Paradox (Q3)} by unifying the sparse update unit with the prefetching unit at the pack level. Concretely, each pack corresponds to one ciphertext that packs $4096$ update scalars into a single ring element.
+
+\subsubsection{Sparse Ciphertext Prefetching}
+\label{sec:prefetch-accumulation}
+The \textsc{ECP} module prefetches sparse, pack-level aggregated ciphertexts during idle rounds to synchronize intermittently available clients before they rejoin training. Its core idea is \emph{pack-level sparse prefetching driven by the consensus pack mask} $\mathcal{K}^{(r)}$: instead of downloading all $J$ packs synchronously, a rejoining client fetches only the selected consensus packs $\{C_j^{(r)}\}_{j\in\mathcal{K}^{(r)}}$ across missed rounds $\mathcal{M}_j = \{r \in (t_{\mathrm{last},i}, t) \mid j \in \mathcal{K}^{(r)}\}$, accumulates them homomorphically over $\mathcal{R}_q$, and decrypts each accumulated pack once upon resuming training. As illustrated in Fig.~\ref{fig:cipherfetch}, Alg.~\ref{alg:download} formalizes the \textsc{ECP} Downstream Module in three phases following the adaptive scheduling paradigm of FedFetch~\cite{yan2025fedfetch}:
+
+\textbf{Prepare Phase.} At round $t$, alongside confirming $\mathcal{S}^{(t)}$, the server selects a presampled candidate pool $\mathcal{P}^{(t^*)}$ of size $|\mathcal{P}^{(t^*)}| = \lceil \beta K \rceil$ targeting a future round $t^*=t+R$ across the prefetch window $R$. Each presampled client $i\in\mathcal{P}^{(t^*)}$ is scheduled to start prefetching at round $t_i^*\in\{t,\dots,t^*-1\}$ based on its downlink bandwidth and the exponential moving average (EMA) round duration estimate $\hat{d}^{(t)}=\rho d^{(t-1)}+(1-\rho)\hat{d}^{(t-1)}$. Meanwhile, the server invokes \textsc{ECP-Queue} to maintain a sliding queue $\mathcal{Q}$ of the most recent $R$ rounds' sparse aggregates $\{C_j^{(r)}\}_{j \in \mathcal{K}^{(r)}}$, acting as a pure ciphertext accumulator without maintaining an encrypted full model.
+
+\begingroup
+\RestyleAlgo{boxruled}
+\setlength{\fboxrule}{0.4pt}
+\setlength{\algomargin}{14pt}  
+\begin{algorithm}[!t]
+\small
+\caption{\textsc{ECP} Downstream Module}
+\label{alg:download}
+\KwParam{$R$, $J$, $\Delta$, $(S, \sigma_a)$}
+\SetKwProg{Fn}{Function}{}{}
+\Fn{\textsc{ECP-Queue}{$(t, \mathcal{K}^{(t)}, \{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}, \mathcal{Q})$}}{
+ Append $(t, \mathcal{K}^{(t)}, \{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}})$ to sliding queue $\mathcal{Q}$\;
+ Remove $r \le t-R$ from $\mathcal{Q}$\;
+ \Return{$\mathcal{Q}$}
+}
+\Fn{\textsc{ECP-Fetch}{$(i, t, \mathcal{Q}, \mathcal{L}_i)$}}{
+ \ForEach{$(r, \mathcal{K}^{(r)}, \{C_j^{(r)}\}) \in \mathcal{Q}$ $(t_{\mathrm{last},i} < r \le t)$}{
+  Download $\{C_j^{(r)}\}_{j \in \mathcal{K}^{(r)}}$ into $\mathcal{L}_i$\;
+ }
+ \Return{$\mathcal{L}_i$}
+}
+\Fn{\textsc{ECP-Sync}{$(i, t, \mathbf{w}_i, \mathcal{L}_i)$}}{
+ \lIf{$t - t_{\mathrm{last},i} \le 1$}{\textbf{return} $\mathbf{w}_i$}
+ Download unprefetched packs in $[t_{\mathrm{last},i}+1, t-1]$\;
+ Initialize prefetched update $\tilde{\mathbf{g}}_{\mathrm{pre}} \leftarrow \mathbf{0}$\;
+ \ForEach{$j \in [J]$ such that $\mathcal{M}_j \neq \emptyset$}{
+  Compute $A_{\mathrm{pre},j}$ and $C_{\mathrm{pre},j}$ as Eq.~\eqref{eq:prefetch-accumulation}\;
+  Decrypt $\mathrm{pt}_{\mathrm{pre},j}$ as Eq.~\eqref{eq:one-shot-dec}\;
+  Decode $\tilde{\mathbf{g}}_{\mathrm{pre},j} \leftarrow \mathrm{Dcd}(\mathrm{pt}_{\mathrm{pre},j}, \Delta)$\;
+ }
+ Clear $\mathcal{L}_i \leftarrow \emptyset$ and \textbf{return} $\mathbf{w}_i + \tilde{\mathbf{g}}_{\mathrm{pre}}$\;
+}
+\end{algorithm}
+\endgroup
+
+\textbf{Prefetch Phase.}
+At round $t$, each presampled client $i \in \mathcal{P}^{(t^*)}$ whose scheduled start round satisfies $t_i^* \le t < t^*$ invokes \textsc{ECP-Fetch} to scan the queue $\mathcal{Q}$.
+An aggregated ciphertext $C_j^{(r)}$ is downloaded only if three conditions hold:
+(i) client $i$ missed round $r$ ($t_{\mathrm{last},i} < r$);
+(ii) round $r$ has already been aggregated ($r \le t$);
+and (iii) pack $j$ belongs to the consensus pack mask ($j \in \mathcal{K}^{(r)}$).
+The downloaded ciphertexts are stored in the local pack buffer $\mathcal{L}_i$, indexed by $r$ to avoid duplicate downloads; any remaining packs are deferred to subsequent idle rounds.
+
+\textbf{Train Phase.}
+At the start of round $t$, each active client $i \in \mathcal{S}^{(t)}$ that has been absent for more than one round ($\ell_i^{(t)} > 1$) invokes \textsc{ECP-Sync}: it first fetches any remaining unprefetched packs from the missed rounds $r \in \{t_{\mathrm{last},i}+1, \dots, t-1\}$ (shown as ``Ciphertext Fetch'' in Fig.~\ref{fig:cipherfetch}), homomorphically merges its cached ciphertexts in $\mathcal{L}_i$ into the cross-round accumulated ciphertext $C_{\mathrm{pre},j}$, and synchronizes its local model in one local decryption per pack.
+Prefetching is advantageous when the total number of consensus packs across missed rounds is less than $J$, as it replaces a full-model download with sparse pack retrievals.
+However, if the absence span exceeds the queue capacity ($\ell_i^{(t)} > R$) or the total missed packs would exceed $J$, the server accumulates the missed updates per pack $j \in [J]$ in $\mathcal{R}_q$ so client $i$ downloads at most $J$ composite pack ciphertexts.
+
+\subsubsection{Client One-Step Decryption}
+\label{sec:prefetch-decrypt}
+\textsc{ECPFL} avoids per-round decryptions by letting clients accumulate missed updates into a single cross-round accumulated ciphertext $C_{\mathrm{pre},j}$ per pack. By Eq.~\eqref{eq:spatial-agg} and Eq.~\eqref{eq:async-agg}, every completed round $r$ yields an aggregated ciphertext $C_j^{(r)}$ encrypted under the identical aggregate decryption key $S$. Summing the cached ciphertexts in $\mathcal{L}_i$ over all missed rounds $r \in \mathcal{M}_j$ and factoring out the round-invariant key $S$ yields the cross-round accumulated ciphertext $C_{\mathrm{pre},j}$:
+\begin{align}
+ C_{\mathrm{pre},j} &= \Bigl[\sum_{r} C_{j}^{(r)}\Bigr]_q
+ = \Bigl[\, \sum_{r} \bigl( a_j^{(r)} S + \tilde{p} E_j^{(r)} + \mathrm{pt}_j^{(r)} \bigr) \,\Bigr]_q \notag \\
+ &= \Bigl[\, \bigl(\sum_{r} a_j^{(r)}\bigr) S + \tilde{p} \sum_{r} E_j^{(r)} + \sum_{r} \mathrm{pt}_j^{(r)} \,\Bigr]_q \notag \\
+ &= \Bigl[\, A_{\mathrm{pre},j} \cdot S + \tilde{p} \cdot E_{\mathrm{pre},j} + \mathrm{pt}_{\mathrm{pre},j} \,\Bigr]_{q},
+ \label{eq:prefetch-accumulation}
+\end{align}
+where $A_{\mathrm{pre},j} = \bigl[\sum_{r} a_j^{(r)}\bigr]_q$, $E_{\mathrm{pre},j} = \sum_{r} E_j^{(r)}$, and $\mathrm{pt}_{\mathrm{pre},j} = \sum_{r} \mathrm{pt}_j^{(r)}$ denote the accumulated public, noise, and plaintext polynomials over $r \in \mathcal{M}_j$. Notably, $C_{\mathrm{pre},j}$ has the same single-ring-element size as a single-round ciphertext regardless of $|\mathcal{M}_j|$.
+
+Unlike traditional multi-key decryption protocols that require interactive decryption-share uploads, \textsc{ECPFL} performs only one local decryption per pack. Using $(S, \sigma_a)$, the client extracts $\mathrm{pt}_{\mathrm{pre},j}$ via $\mathrm{HE.Dec}$:
+\begin{align}
+ \mathrm{pt}_{\mathrm{pre},j}
+ &= \mathrm{HE.Dec}\bigl(A_{\mathrm{pre},j}, S, C_{\mathrm{pre},j}\bigr) = \Bigl[\bigl[ C_{\mathrm{pre},j} - A_{\mathrm{pre},j} S \bigr]_{q}\Bigr]_{p} \notag \\
+ &= \Bigl[\bigl(A_{\mathrm{pre},j} S + \tilde{p} E_{\mathrm{pre},j} + \mathrm{pt}_{\mathrm{pre},j}\bigr) - A_{\mathrm{pre},j} S\Bigr]_{q,p} \notag \\
+ &= \Bigl[\bigl[\, \tilde{p} \cdot E_{\mathrm{pre},j} + \mathrm{pt}_{\mathrm{pre},j} \,\bigr]_{q}\Bigr]_p = \mathrm{pt}_{\mathrm{pre},j},
+\label{eq:one-shot-dec}
+\end{align}
+where subtracting $A_{\mathrm{pre},j} \cdot S$ cancels all accumulated public-key masks in a single step and reduction modulo $p$ removes $\tilde{p} \cdot E_{\mathrm{pre},j}$ whenever $\|\tilde{p} \cdot E_{\mathrm{pre},j} + \mathrm{pt}_{\mathrm{pre},j}\|_\infty < q/2$. By the linearity of $\mathrm{Dcd}(\cdot, \Delta)$, decoding $\mathrm{pt}_{\mathrm{pre},j}$ directly recovers the accumulated pack update $\tilde{\mathbf{g}}_{\mathrm{pre},j}$ to synchronize $\mathbf{w}_i$.
+

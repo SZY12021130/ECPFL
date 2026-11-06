@@ -1,0 +1,197 @@
+[
+  {
+    "timestamp": "20261102_140309",
+    "output_dir": "AAAAA_Rework/ESAFL/result/accuracy_n25_c1_smoke\\experiment_20261102_140309_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 25,
+      "num_rounds": 1,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": true,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 81.0,
+      "final_test_loss": 0.5707485358806172,
+      "total_time_sec": 26.834725379943848,
+      "total_communication_mb": 18.75,
+      "avg_round_time_sec": 26.834725379943848,
+      "avg_upload_kb": 9600.0,
+      "avg_download_kb": 9600.0,
+      "avg_expansion_ratio": 2.2127582946922972,
+      "avg_encryption_time_sec": 0.04578268051147461,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.9678888320923,
+      "total_ciphertext_blocks": 150,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261102_163033",
+    "output_dir": "AAAAA_Rework/ESAFL/result/accuracy_n25_c1\\experiment_20261102_163033_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "mnist",
+      "model": "lenet",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": true,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 99.03,
+      "final_test_loss": 0.038009686010207835,
+      "total_time_sec": 2283.67045044899,
+      "total_communication_mb": 937.5,
+      "avg_round_time_sec": 45.673409008979796,
+      "avg_upload_kb": 9600.0,
+      "avg_download_kb": 9600.0,
+      "avg_expansion_ratio": 2.212758294692297,
+      "avg_encryption_time_sec": 0.07105195064544678,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.7811117172241,
+      "total_ciphertext_blocks": 7500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261102_203351",
+    "output_dir": "AAAAA_Rework/ESAFL/result/accuracy_n25_c1\\experiment_20261102_203351_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": true,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 88.02,
+      "final_test_loss": 0.42895529210377653,
+      "total_time_sec": 1734.0867004394531,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 34.681734008789064,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.046619370460510255,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.777440071106,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261102_210302",
+    "output_dir": "AAAAA_Rework/ESAFL/result/accuracy_n25_c1\\experiment_20261102_210302_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": true,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 70.88,
+      "final_test_loss": 1.0639090247594627,
+      "total_time_sec": 4553.774829864502,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 91.07549659729004,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.4197843662261963,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.7070112228394,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261102_221916",
+    "output_dir": "AAAAA_Rework/ESAFL/result/accuracy_n25_c1\\experiment_20261102_221916_svhn",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "svhn",
+      "model": "resnet32",
+      "num_clients": 25,
+      "num_rounds": 50,
+      "client_sampling_rate": 1.0,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": true,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 93.06238475722188,
+      "final_test_loss": 0.27333196242744934,
+      "total_time_sec": 8697.633180379868,
+      "total_communication_mb": 8906.25,
+      "avg_round_time_sec": 173.95266360759734,
+      "avg_upload_kb": 91200.0,
+      "avg_download_kb": 91200.0,
+      "avg_expansion_ratio": 2.0001627736632215,
+      "avg_encryption_time_sec": 0.810302163696289,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 845.7501649856567,
+      "total_ciphertext_blocks": 71250,
+      "prefetch_enabled": false
+    }
+  }
+]

@@ -1,0 +1,46 @@
+data:
+  alpha: 1
+  data_dir: ./data
+  dataset: fashion_mnist
+  iid: true
+  num_classes: 10
+ecpfl:
+  ablation:
+    local_sparse: true
+  delta_scale: 1048576
+  dropout_rate: 0
+  eta: 4
+  gamma_d: 0.9
+  gamma_s: 0.8
+  logp: 50
+  max_abs_x: 1.0
+  n: 4096
+  prefetch:
+    bandwidth:
+      base_dl_bw: 8192.0
+      base_ul_bw: 4096.0
+      distribution: uniform
+      filter_low_bandwidth: false
+      max_dl_bw_kbps: 8192.0
+      max_ul_bw_kbps: 4096.0
+      min_dl_bw_kbps: 5120
+      min_ul_bw_kbps: 5120
+    enabled: true
+  sampling:
+    active_count: 25
+    overcommit: 1.5
+    prefetch_rounds: 3
+  sparsity_rate: 0.1
+  tau: 3
+  vote_rule: rk
+  vote_threshold: 0.3
+model:
+  name: cnn_fmnist
+system:
+  batch_size: 64
+  device: cuda
+  learning_rate: 0.001
+  num_clients: 50
+  num_epochs: 3
+  num_rounds: 4
+  random_seed: 42

@@ -396,45 +396,60 @@ class CKKSManager:
         # ESAFL NATIVE 多密钥后端（由 main.py 在 esafl.mode=NATIVE 时注入）
         self.eshe = None
         # ESAFL PUREPY 后端（esafl.mode=PUREPY 时在本管理器内直接创建，
-        # 纯 Python ESHE 复现，见 ckks_fed/eshe.py；
-        # 打包使用论文 §V-B2 EP 机制，见 ckks_fed/packing.py ESHEEPPacking）
+        # 纯 Python ESHE 复现，见 ckks_fed/eshe.py）。
+        # 消息编码两种模式（esafl.encoding，默认 "ep"）：
+        #   "ep"    = 论文 §V-B2 EP 位打包（ckks_fed/packing.py ESHEEPPacking）
+        #   "fixed" = CKKS 式定点编码（ESHEFixedPacking，ct = a·s_i + e + m）
         self.purepy_eshe = None
         self.ep_packing = None
+        self.fixed_packing = None
+        self.purepy_encoding = 'ep'
         _esafl_cfg = config.get('esafl', {})
         if (_esafl_cfg.get('enabled', False)
                 and _esafl_cfg.get('mode', 'SIMULATION') == 'PUREPY'):
             from ckks_fed.eshe import PurePyESHE
-            from ckks_fed.packing import ESHEEPPacking
+            self.purepy_encoding = _esafl_cfg.get('encoding', 'ep')
             self.purepy_eshe = PurePyESHE(
                 n=slot_count,
                 seed=_esafl_cfg.get('prpg_seed', 42),
                 logp=_esafl_cfg.get('logp', 50),
                 eta=_esafl_cfg.get('eta', 4),
+                encoding=self.purepy_encoding,
+                delta_scale=_esafl_cfg.get('delta_scale', 1 << 20),
             )
-            # EP 打包参数：logq0 复用 packing.quant_bits；slots2/pad_bits 不再使用
             _packing_cfg = config.get('packing', {})
-            _logq0 = _packing_cfg.get('quant_bits', 10)
-            _num_clients = int(_esafl_cfg.get('num_clients', 0))
-            if _num_clients < 1:
-                raise ValueError(
-                    "ESAFL PUREPY 模式需要 esafl.num_clients（或 system.num_clients，"
-                    "由 main.py 自动注入）以推导 EP 打包参数 pad=⌈logN⌉+1"
+            if self.purepy_encoding == 'ep':
+                from ckks_fed.packing import ESHEEPPacking
+                # EP 打包参数：logq0 复用 packing.quant_bits；slots2/pad_bits 不再使用
+                _logq0 = _packing_cfg.get('quant_bits', 10)
+                _num_clients = int(_esafl_cfg.get('num_clients', 0))
+                if _num_clients < 1:
+                    raise ValueError(
+                        "ESAFL PUREPY 模式需要 esafl.num_clients（或 system.num_clients，"
+                        "由 main.py 自动注入）以推导 EP 打包参数 pad=⌈logN⌉+1"
+                    )
+                if 'slots2' in _packing_cfg or 'pad_bits' in _packing_cfg:
+                    logger.warning(
+                        "[ESAFL-PUREPY] packing.slots2 / packing.pad_bits 在 EP 打包下"
+                        "不再使用（pad 由客户端数 N 推导，T 由 logp/(logq0+pad) 推导）"
+                    )
+                self.ep_packing = ESHEEPPacking(
+                    n=slot_count,
+                    logq0=_logq0,
+                    logp=self.purepy_eshe.params.logp,
+                    num_clients=_num_clients,
+                    quant_clip=_packing_cfg.get('quant_clip',
+                                                _esafl_cfg.get('quant_clip')),
                 )
-            if 'slots2' in _packing_cfg or 'pad_bits' in _packing_cfg:
-                logger.warning(
-                    "[ESAFL-PUREPY] packing.slots2 / packing.pad_bits 在 EP 打包下"
-                    "不再使用（pad 由客户端数 N 推导，T 由 logp/(logq0+pad) 推导）"
+            elif self.purepy_encoding == 'fixed':
+                from ckks_fed.packing import ESHEFixedPacking
+                self.fixed_packing = ESHEFixedPacking(
+                    n=slot_count,
+                    delta_scale=self.purepy_eshe.delta,
                 )
-            self.ep_packing = ESHEEPPacking(
-                n=slot_count,
-                logq0=_logq0,
-                logp=self.purepy_eshe.params.logp,
-                num_clients=_num_clients,
-                quant_clip=_packing_cfg.get('quant_clip',
-                                            _esafl_cfg.get('quant_clip')),
-            )
             logger.info(
                 f"ESAFL PUREPY 后端已初始化 | n={slot_count} | "
+                f"encoding={self.purepy_encoding} | "
                 f"logp={self.purepy_eshe.params.logp} | Q≈2^{self.purepy_eshe.Q.bit_length()-1}"
             )
         # 初始化可插拔打包策略
@@ -598,20 +613,37 @@ class CKKSManager:
                 logger.warning(
                     "[ESAFL-PUREPY] global_mask 投票与 PUREPY 全参与解密不兼容，已忽略掩码。"
                 )
-            # 客户端更新使用统一固定 scale（quant_clip）；服务器加密全局状态
-            # （skip_sparsification=True）用自适应 scale（仅 num_sum=1 解密）
-            _fixed = None if skip_sparsification else self.ep_packing.quant_clip
-            chunks, metadata = self.ep_packing.pack(model_update, fixed_scale=_fixed)
-            ciphertexts = []
-            for chunk in chunks:
-                # EP chunk 已是 int64 整数系数（β < p），直接加密
-                ct = self.purepy_eshe.encrypt_chunk(client_id, chunk, round_num)
-                ciphertexts.append(ct)
-            logger.info(
-                f"[ESAFL-PUREPY] Client {client_id} ESHE-EP encrypt | "
-                f"batches={len(ciphertexts)} | n={self.purepy_eshe.n} | "
-                f"values/ct={self.ep_packing.values_per_chunk} | round={round_num}"
-            )
+            if self.purepy_encoding == 'fixed':
+                # fixed 模式：flatten 切块 → 定点编码加密（round(x·Δ) 在 eshe 层）
+                chunks, metadata = self.fixed_packing.pack(model_update)
+                ciphertexts = []
+                for chunk in chunks:
+                    ct = self.purepy_eshe.encrypt_chunk_fixed(
+                        client_id, chunk, round_num)
+                    ciphertexts.append(ct)
+                logger.info(
+                    f"[ESAFL-PUREPY] Client {client_id} ESHE-FIXED encrypt | "
+                    f"batches={len(ciphertexts)} | n={self.purepy_eshe.n} | "
+                    f"values/ct={self.fixed_packing.values_per_chunk} | "
+                    f"delta=2^{self.purepy_eshe.delta.bit_length()-1} | round={round_num}"
+                )
+                _strategy = 'eshe_fixed'
+            else:
+                # 客户端更新使用统一固定 scale（quant_clip）；服务器加密全局状态
+                # （skip_sparsification=True）用自适应 scale（仅 num_sum=1 解密）
+                _fixed = None if skip_sparsification else self.ep_packing.quant_clip
+                chunks, metadata = self.ep_packing.pack(model_update, fixed_scale=_fixed)
+                ciphertexts = []
+                for chunk in chunks:
+                    # EP chunk 已是 int64 整数系数（β < p），直接加密
+                    ct = self.purepy_eshe.encrypt_chunk(client_id, chunk, round_num)
+                    ciphertexts.append(ct)
+                logger.info(
+                    f"[ESAFL-PUREPY] Client {client_id} ESHE-EP encrypt | "
+                    f"batches={len(ciphertexts)} | n={self.purepy_eshe.n} | "
+                    f"values/ct={self.ep_packing.values_per_chunk} | round={round_num}"
+                )
+                _strategy = 'eshe_ep'
             return {
                 '__sparse__': True,
                 '__purepy__': True,
@@ -621,7 +653,7 @@ class CKKSManager:
                 'total_elements': metadata.data['total_elements'],
                 'shapes': metadata.data['shapes'],
                 'offsets': metadata.data['offsets'],
-                'strategy': 'eshe_ep',
+                'strategy': _strategy,
                 'sparsity_rate': 1.0,
                 'packing_metadata': metadata.data,
             }
@@ -845,21 +877,31 @@ class CKKSManager:
         # 解密选中的 ciphertexts
         # 兼容序列化字节串（来自 TEE 路径或网络传输）
         if encrypted_update.get('__purepy__'):
-            # ESAFL PUREPY：one-shot 解密 [[ct − mask]_Q]_p 得整数系数。
-            # 单个密文（客户端上传 / 服务器加密的全局状态）：slot 内即编码值；
-            # 聚合密文（__num_sum__=N）：slot 内为 N 个客户端编码值的整数和
-            # （EP pad 保证位域不串位），unpack_average 减 N·max_q 后除 N 得平均。
-            decrypted_chunks = [
-                self.purepy_eshe.decrypt(ct)
-                for ct in ciphertexts
-            ]
+            # ESAFL PUREPY：one-shot 解密（ct − mask）得整数系数。
+            # 单个密文（客户端上传 / 服务器加密的全局状态）：系数即编码值；
+            # 聚合密文（__num_sum__=N）：系数为 N 个客户端编码值的整数和
+            # （EP pad 保证位域不串位；fixed 模式为定点和），unpack 时除 N 得平均。
+            if self.purepy_encoding != 'fixed':
+                decrypted_chunks = [
+                    self.purepy_eshe.decrypt(ct)
+                    for ct in ciphertexts
+                ]
             packing_metadata = encrypted_update.get('packing_metadata')
             if packing_metadata is None:
                 raise ValueError("[ESAFL-PUREPY] 缺少 packing_metadata，无法解包")
             num_sum = int(encrypted_update.get('__num_sum__', 1))
+            zero_point = encrypted_update.get('__zero_point__', None)
+            if self.purepy_encoding == 'fixed':
+                # fixed：定点和 ÷ (N·Δ)；decrypted_chunks 在此处生成
+                decrypted_chunks = [
+                    self.purepy_eshe.decrypt_fixed_ints(ct) for ct in ciphertexts
+                ]
+                metadata = PackingMetadata(
+                    packing_metadata.get('strategy', 'eshe_fixed'), packing_metadata)
+                return self.fixed_packing.unpack_average(
+                    decrypted_chunks, metadata, num_sum)
             metadata = PackingMetadata(
                 packing_metadata.get('strategy', 'eshe_ep'), packing_metadata)
-            zero_point = encrypted_update.get('__zero_point__', None)
             return self.ep_packing.unpack_average(
                 decrypted_chunks, metadata, num_sum, zero_point=zero_point)
         if ciphertexts and isinstance(ciphertexts[0], bytes):
@@ -1222,7 +1264,7 @@ class CKKSManager:
         # 注意：聚合密文解密需用 __num_sum__ 除 N（见 decrypt_model_update）。
         # ================================================================
         if encrypted_updates[0].get('__purepy__'):
-            if any(u.get('strategy') != 'eshe_ep' for u in encrypted_updates):
+            if any(u.get('strategy') not in ('eshe_ep', 'eshe_fixed') for u in encrypted_updates):
                 raise ValueError("[ESAFL-PUREPY] 客户端密文策略不一致")
             num = len(encrypted_updates)
             w_min, w_max = min(weights), max(weights)
@@ -1249,7 +1291,7 @@ class CKKSManager:
                 'total_elements': encrypted_updates[0]['total_elements'],
                 'shapes': encrypted_updates[0]['shapes'],
                 'offsets': encrypted_updates[0]['offsets'],
-                'strategy': 'eshe_ep',
+                'strategy': encrypted_updates[0].get('strategy', 'eshe_ep'),
                 'sparsity_rate': 1.0,
                 'packing_metadata': encrypted_updates[0].get('packing_metadata'),
                 '__num_sum__': num,
@@ -1411,10 +1453,11 @@ class CKKSManager:
                     except Exception:
                         total_size += 0
                 return total_size
-            # ESAFL PUREPY：ESHE 密文（CRT 表示的 numpy 数组）按实际字节数统计
+            # ESAFL PUREPY：按论文口径只计 coeffs 多项式——mask = a^t·s_i 中
+            # a^t 由 PRPG(t,B) 公开再生、s 为共享解密密钥，mask 无需传输。
             if encrypted_update.get('__purepy__'):
                 for ct in encrypted_update['ciphertexts']:
-                    total_size += ct.nbytes()
+                    total_size += ct.coeffs_nbytes()
                 return total_size
 
             # ESAFL NATIVE 多密钥：同样按 pickle 估算 xMK-CKKS Ciphertext 大小

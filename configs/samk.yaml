@@ -1,0 +1,58 @@
+# ============================================================================
+# SAMK（TDSC 2025）端到端配置：固定集合采样 + 加密上传掉线 + 多密钥 BFV 聚合
+# ----------------------------------------------------------------------------
+# 密码学参数（论文 Algorithm 1 的 PP）：
+#   n            BFV 环维度 N，同时是“单密文打包参数量”与插值点数
+#   t_bits       明文模数 t = 2^t_bits
+#   scale_bits   定点缩放 φ = 2^scale_bits（模型更新 -> 整数）
+#   paillier_bits Paillier 模数位宽（论文 1024；原型 512 已足够 66bit 打包明文）
+#   max_dim      原型裁剪的加密维度（<=0 表示全量，论文口径）
+# ============================================================================
+system:
+  num_clients: 12
+  num_rounds: 3
+  num_epochs: 1
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cpu"
+  random_seed: 42
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "mlp"
+  hidden_dims: [32]
+  dropout: 0.1
+
+samk:
+  mode: "synthetic"      # synthetic（随机更新，只跑密码学流程）| fl（真实联邦训练）
+  n: 1024
+  t_bits: 40
+  scale_bits: 16
+  paillier_bits: 512
+  max_dim: 1024          # <=0 表示全量加密（fl 模式下会明显更慢）
+  dim: 1024              # synthetic 模式的更新维度
+  update_std: 0.05       # synthetic 更新标准差
+  min_online: 2          # 上传阶段至少保留的在线客户端数
+
+# 先采样 -> 确定固定集合（预采样池 + 过承诺 OC 截断，与项目预取路径一致）
+sampling:
+  active_count: 8        # 固定集合大小 K
+  overcommit: 1.5        # 预采样过承诺倍数 OC（池大小 = ⌈OC·K⌉）
+  prefetch_rounds: 2     # 提前 R 轮预采样
+  dropout_rate: 0.25     # 上传阶段掉线概率
+
+# 客户端选择策略（复用项目实现）
+client_selection:
+  strategy: "sticky"
+  sticky:
+    score_decay: 0.9
+
+prefetch:
+  overcommitment: 1.5
+  sticky_change_num: 1

@@ -81,6 +81,10 @@ LINESTYLES = {
 
 ALPHAS = [0.1, 0.5, 1.0, 5.0, 10.0]
 
+# 纵轴：两个数据集共用同一区间与同一刻度间隔，避免一图稀疏一图密集
+Y_LIM = {"FMNIST": (30, 95), "CIFAR-10": (30, 95)}
+Y_TICK_STEP = 10
+
 # 热力图配色方案（SCI 风格，可自由增删）
 HEATMAP_CMAPS = [
     ("YlGnBu", "YlGnBu"),
@@ -208,6 +212,14 @@ def load_experiments():
 # ---------------------------------------------------------------------------
 # 绘图函数
 # ---------------------------------------------------------------------------
+def apply_yaxis(ax, dataset: str):
+    """把纵轴截断到该数据集的真实取值范围，并每 5% 打一个刻度。"""
+    lo, hi = Y_LIM.get(dataset, (0, 100))
+    ax.set_ylim(lo, hi)
+    ax.set_yticks(np.arange(lo, hi + 1e-9, Y_TICK_STEP))
+    return lo, hi
+
+
 def draw_line_subplot(ax, dataset: str, accuracy: dict, alphas: list = None):
     """绘制单个数据集的 Non-IID 准确率折线图，图例在右下角。"""
     if alphas is None:
@@ -222,19 +234,18 @@ def draw_line_subplot(ax, dataset: str, accuracy: dict, alphas: list = None):
             color=COLORS[method],
             marker=MARKERS[method],
             linestyle=LINESTYLES[method],
-            linewidth=5.0,
-            markersize=10,
+            linewidth=2.4,
+            markersize=7.0,
             markerfacecolor=COLORS[method],
             markeredgecolor="white",
-            markeredgewidth=1.0,
+            markeredgewidth=0.8,
             label=method,
             zorder=3,
         )
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(a) for a in alphas], fontsize=17)
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 20))
+    apply_yaxis(ax, dataset)
     ax.tick_params(axis="y", labelsize=17)
     ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=20)
     ax.set_ylabel("Test Accuracy (%)", fontsize=20)
@@ -273,20 +284,19 @@ def draw_line_elegant(ax, dataset: str, accuracy: dict, alphas: list = None):
             color=COLORS[method],
             marker=MARKERS[method],
             linestyle=LINESTYLES[method],
-            linewidth=3.6 if is_ours else 2.0,
+            linewidth=2.6 if is_ours else 1.5,
             alpha=1.0 if is_ours else 0.75,
-            markersize=12 if is_ours else 8,
+            markersize=8.5 if is_ours else 6.0,
             markerfacecolor="white",
             markeredgecolor=COLORS[method],
-            markeredgewidth=2.0 if is_ours else 1.4,
+            markeredgewidth=1.6 if is_ours else 1.0,
             label=method,
             zorder=5 if is_ours else 3,
         )
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(a) for a in alphas], fontsize=15)
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 20))
+    apply_yaxis(ax, dataset)
     ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=20)
     ax.set_ylabel("Test Accuracy (%)", fontsize=18)
     ax.grid(True, linestyle=":", alpha=0.35, zorder=1)
@@ -344,7 +354,7 @@ def draw_line_smooth_area(ax, dataset: str, accuracy: dict, alphas: list = None)
             y_fine,
             color=COLORS[method],
             linestyle=LINESTYLES[method],
-            linewidth=3.4 if is_ours else 2.2,
+            linewidth=2.4 if is_ours else 1.5,
             alpha=1.0 if is_ours else 0.85,
             label=method,
             zorder=4 if is_ours else 3,
@@ -354,16 +364,15 @@ def draw_line_smooth_area(ax, dataset: str, accuracy: dict, alphas: list = None)
             accs,
             color=COLORS[method],
             marker=MARKERS[method],
-            s=110 if is_ours else 70,
+            s=80 if is_ours else 55,
             edgecolors="white",
-            linewidths=1.0,
+            linewidths=0.9,
             zorder=6 if is_ours else 5,
         )
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(a) for a in alphas], fontsize=15)
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 20))
+    apply_yaxis(ax, dataset)
     ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=18)
     ax.set_ylabel("Test Accuracy (%)", fontsize=18)
     ax.grid(True, linestyle="--", alpha=0.3, zorder=1)
@@ -396,7 +405,7 @@ def draw_line_step(ax, dataset: str, accuracy: dict, alphas: list = None):
             where="mid",
             color=COLORS[method],
             linestyle=LINESTYLES[method],
-            linewidth=3.0 if is_ours else 2.0,
+            linewidth=2.4 if is_ours else 1.6,
             alpha=1.0 if is_ours else 0.8,
             label=method,
             zorder=3,
@@ -406,20 +415,20 @@ def draw_line_step(ax, dataset: str, accuracy: dict, alphas: list = None):
             accs,
             color=COLORS[method],
             marker=MARKERS[method],
-            s=130 if is_ours else 90,
+            s=85 if is_ours else 60,
             edgecolors="white",
-            linewidths=1.2,
+            linewidths=0.9,
             zorder=5 if is_ours else 4,
         )
 
-    # 添加横向参考线帮助读数
-    for y in np.arange(20, 101, 20):
+    # 添加横向参考线帮助读数（跟随截断后的纵轴，每 10% 一条）
+    lo, hi = Y_LIM.get(dataset, (0, 100))
+    for y in np.arange(lo, hi + 1e-9, 10):
         ax.axhline(y, color="gray", linestyle="-", linewidth=0.5, alpha=0.2, zorder=1)
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(a) for a in alphas], fontsize=15)
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 20))
+    apply_yaxis(ax, dataset)
     ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=18)
     ax.set_ylabel("Test Accuracy (%)", fontsize=18)
     ax.set_axisbelow(True)
@@ -454,23 +463,29 @@ def draw_line_labeled(ax, dataset: str, accuracy: dict, alphas: list = None):
             color=COLORS[method],
             marker=MARKERS[method],
             linestyle=LINESTYLES[method],
-            linewidth=3.4 if is_ours else 2.2,
-            markersize=10 if is_ours else 7,
+            linewidth=2.4 if is_ours else 1.5,
+            markersize=7.5 if is_ours else 5.5,
             markerfacecolor=COLORS[method],
             markeredgecolor="white",
-            markeredgewidth=0.9,
+            markeredgewidth=0.8,
             label=method,
             zorder=3,
         )
         labels_y.append((method, accs[-1], COLORS[method], is_ours))
 
-    # 右侧标注，按终点 y 排序后做最小防重叠
+    # 右侧标注，按终点 y 排序后做最小防重叠（间距与截断后的轴高成比例）
+    lo, hi = Y_LIM.get(dataset, (0, 100))
     labels_y.sort(key=lambda t: t[1])
-    min_gap = 6.0
+    min_gap = (hi - lo) * 0.058
     for i in range(1, len(labels_y)):
         if labels_y[i][1] - labels_y[i - 1][1] < min_gap:
             labels_y[i] = (labels_y[i][0], labels_y[i - 1][1] + min_gap,
                            labels_y[i][2], labels_y[i][3])
+
+    # 顶端越界时整体下移，保证标注不出框
+    overflow = labels_y[-1][1] - (hi - min_gap * 0.6)
+    if overflow > 0:
+        labels_y = [(m, y - overflow, c, o) for m, y, c, o in labels_y]
 
     x_last = x[-1] + 0.18
     for method, y, color, is_ours in labels_y:
@@ -487,8 +502,9 @@ def draw_line_labeled(ax, dataset: str, accuracy: dict, alphas: list = None):
 
     ax.set_xticks(x)
     ax.set_xticklabels([str(a) for a in alphas], fontsize=15)
-    ax.set_ylim(0, 100)
-    ax.set_yticks(np.arange(0, 101, 20))
+    apply_yaxis(ax, dataset)
+    # 给右侧标注留出空白，避免压在曲线上
+    ax.set_xlim(-0.35, len(alphas) - 1 + 1.45)
     ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=18)
     ax.set_ylabel("Test Accuracy (%)", fontsize=18)
     ax.grid(False)
@@ -560,5 +576,140 @@ def draw_alpha_heatmap(ax, dataset: str, accuracy: dict, alphas: list = None,
         cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
         cbar.set_label("Accuracy (%)", fontsize=18)
         cbar.ax.tick_params(labelsize=16)
+
+    return im
+
+
+# ---------------------------------------------------------------------------
+# 紧凑热力图面板（用于与 Fig.6 的 (a)(b) 等单栏图并列，作第 4 个面板）
+# ---------------------------------------------------------------------------
+# 行序与参考图一致：ECPFL 在最上、FedAvg-CKKS 在最下
+PANEL_CELL_FS = 8.2       # 单元格数值
+PANEL_TICK_FS = 8.5       # 轴刻度 / 方法名
+PANEL_LABEL_FS = 10.0     # 轴标题
+PANEL_CBAR_FS = 8.0       # 色条刻度与标签
+
+_TINT_CMAP = mcolors.LinearSegmentedColormap.from_list(
+    "noniid_tint", ["#8FA3B5", "#0B3D66"]
+)
+
+HEATMAP_PANEL_STYLES = {
+    "classic": {
+        "desc": "参考图同款：YlGnBu 反序（深蓝→青绿→黄）+ 白色网格 + 色条（0-100）",
+        "cmap": "YlGnBu_r", "colorbar": True, "border": "white",
+        "text": "auto", "vmin": 0.0, "vmax": 100.0,
+    },
+    "viridis": {
+        "desc": "Viridis 冷色渐变，色阶贴住数据 min-max，文字随底色自动反色",
+        "cmap": "viridis", "colorbar": True, "border": None,
+        "text": "auto", "vmin": None, "vmax": None,
+    },
+    "warm": {
+        "desc": "YlOrRd 暖色渐变 + 白色网格",
+        "cmap": "YlOrRd", "colorbar": True, "border": "white",
+        "text": "auto", "vmin": 0.0, "vmax": 100.0,
+    },
+    "diverging": {
+        "desc": "RdYlGn 双色，色阶贴住数据 min-max（对比最强）",
+        "cmap": "RdYlGn", "colorbar": True, "border": "white",
+        "text": "dark", "vmin": None, "vmax": None,
+    },
+    "minimal": {
+        "desc": "极简：无色条、无网格，只留数值与细边框",
+        "cmap": "YlGnBu_r", "colorbar": False, "border": None,
+        "text": "dark", "vmin": 0.0, "vmax": 100.0,
+    },
+    "table": {
+        "desc": "表格风：白底无底色块，数值按大小着色",
+        "cmap": None, "colorbar": False, "border": "#D9D9D9",
+        "text": "tint", "vmin": None, "vmax": None,
+    },
+}
+
+
+def _text_on_color(cmap, norm, value) -> str:
+    """按底色亮度选择黑/白文字，保证任何配色下都清晰。"""
+    r, g, b = cmap(norm(value))[:3]
+    return "white" if (0.299 * r + 0.587 * g + 0.114 * b) < 0.55 else "#111111"
+
+
+def draw_heatmap_panel(ax, dataset: str, accuracy: dict, alphas: list = None,
+                       style: str = "classic", add_colorbar=None,
+                       bold_ours: bool = True):
+    """单栏紧凑热力图：行为方法（ECPFL 在顶），列为 α，格内标准确率。
+
+    与 `draw_alpha_heatmap` 的区别：
+      * 行序正序（ECPFL 在最上），与论文参考图一致；
+      * 字号/边距按 3.5 in 单栏面板标定，可直接与 Fig.6 的 (a)(b) 并排；
+      * 提供多种风格（classic / viridis / warm / diverging / minimal / table）。
+    """
+    cfg = HEATMAP_PANEL_STYLES.get(style) or HEATMAP_PANEL_STYLES["classic"]
+    if alphas is None:
+        alphas = ALPHAS
+
+    methods = METHOD_ORDER
+    data = np.array(
+        [[accuracy[m][dataset].get(a, np.nan) for a in alphas] for m in methods],
+        dtype=float,
+    )
+    n_m, n_a = data.shape
+    show_cbar = cfg["colorbar"] if add_colorbar is None else add_colorbar
+    im = None
+    cmap = None
+
+    if cfg["cmap"] is None:
+        # 表格风：不画底色块，只有数值 + 细分隔线
+        norm = mcolors.Normalize(float(np.nanmin(data)), float(np.nanmax(data)))
+    else:
+        vmin = cfg["vmin"] if cfg["vmin"] is not None else float(np.nanmin(data))
+        vmax = cfg["vmax"] if cfg["vmax"] is not None else float(np.nanmax(data))
+        norm = mcolors.Normalize(vmin, vmax)
+        cmap = plt.get_cmap(cfg["cmap"])
+        im = ax.imshow(
+            data, cmap=cmap, norm=norm, aspect="auto", origin="upper",
+            extent=[-0.5, n_a - 0.5, n_m - 0.5, -0.5],
+        )
+
+    ax.set_xlim(-0.5, n_a - 0.5)
+    ax.set_ylim(n_m - 0.5, -0.5)
+
+    for i in range(n_m):
+        for j in range(n_a):
+            val = data[i, j]
+            if np.isnan(val):
+                continue
+            if cfg["text"] == "tint":
+                color = _TINT_CMAP(norm(val))
+            elif cfg["text"] == "auto":
+                color = _text_on_color(cmap, norm, val)
+            else:
+                color = "#111111"
+            ax.text(j, i, f"{val:.1f}", ha="center", va="center",
+                    fontsize=PANEL_CELL_FS, color=color, zorder=4,
+                    fontweight="bold" if (bold_ours and i == 0) else "normal")
+
+    if cfg["border"]:
+        for j in range(n_a + 1):
+            ax.axvline(j - 0.5, color=cfg["border"], linewidth=1.0, zorder=3)
+        for i in range(n_m + 1):
+            ax.axhline(i - 0.5, color=cfg["border"], linewidth=1.0, zorder=3)
+
+    ax.set_xticks(np.arange(n_a))
+    ax.set_xticklabels([str(a) for a in alphas], fontsize=PANEL_TICK_FS)
+    ax.set_yticks(np.arange(n_m))
+    ax.set_yticklabels(methods, fontsize=PANEL_TICK_FS)
+    ax.tick_params(axis="both", width=0.8, length=2.0, pad=2.5,
+                   top=False, right=False)
+    ax.grid(False)
+    for s in ax.spines.values():
+        s.set_linewidth(0.9)
+    ax.set_xlabel(r"Non-IID coefficient $\alpha$", fontsize=PANEL_LABEL_FS,
+                  labelpad=3)
+
+    if show_cbar and im is not None:
+        cbar = plt.colorbar(im, ax=ax, fraction=0.055, pad=0.025, aspect=16)
+        cbar.set_label("Accuracy (%)", fontsize=PANEL_CBAR_FS, labelpad=3)
+        cbar.ax.tick_params(labelsize=PANEL_CBAR_FS - 0.5, width=0.8, length=2)
+        cbar.outline.set_linewidth(0.8)
 
     return im

@@ -1,0 +1,10 @@
+component,mean_s,std_s,bytes_per_client
+kgc/keygen_N50,0.6661899000173435,0.0,3473408
+client/esp_vote,0.005936599976848811,0.0,
+client/esp_enc_per_pack,0.008762600016780198,0.0,
+client/esp_comp_per_pack,0.010565700009465218,0.0,
+client/dec_one_shot,0.00391589998616837,0.0,
+client/ecp_prefetch_R3,0.004258500004652888,0.0,
+server/esp_tally_K25,0.0022407999786082655,0.0,
+server/esp_agg_sync_K25,0.001184300024760887,0.0,
+server/esp_agg_dropout_K25,0.0022544000239577144,0.0,

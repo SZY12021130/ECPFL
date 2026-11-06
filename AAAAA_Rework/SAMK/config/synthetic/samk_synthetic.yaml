@@ -1,0 +1,56 @@
+# ============================================================================
+# SAMK（TDSC 2025）实验配置 —— synthetic 模式（只跑密码学流程，随机更新）
+# 复现命令：
+#   python main_samk.py --config AAAAA_Rework/SAMK/config/synthetic/samk_synthetic.yaml \
+#          --output-dir AAAAA_Rework/SAMK/result/synthetic
+# 说明：固定集合采样（预采样池 + OC 截断）→ 上传阶段按 dropout_rate 掉线 →
+#       MK-BFV + Paillier 聚合 → 在线客户端各自插值独立解密。
+# ============================================================================
+system:
+  num_clients: 12
+  num_rounds: 3
+  num_epochs: 1
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cpu"
+  random_seed: 42
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "mlp"
+  hidden_dims: [32]
+  dropout: 0.1
+
+# 论文 Algorithm 1 的 PP = {pp, κ, X}
+samk:
+  mode: "synthetic"      # synthetic（随机更新）| fl（真实联邦训练）
+  n: 1024                # BFV 环维度 N = 单密文打包参数量 = 插值点数
+  t_bits: 40             # 明文模数 t = 2^40
+  scale_bits: 16         # 定点缩放 φ = 2^16
+  paillier_bits: 512     # 论文 1024；原型 512 已覆盖 66bit 打包明文
+  max_dim: 1024          # 原型裁剪的加密维度（<=0 表示全量）
+  dim: 1024              # synthetic 模式的更新维度
+  update_std: 0.05
+  min_online: 2
+
+# 先采样 -> 确定固定集合（预采样池 + 过承诺 OC 截断）
+sampling:
+  active_count: 8        # 固定集合大小 K
+  overcommit: 1.5        # 过承诺倍数 OC
+  prefetch_rounds: 2     # 提前 R 轮预采样
+  dropout_rate: 0.25     # 上传阶段掉线概率
+
+client_selection:
+  strategy: "sticky"
+  sticky:
+    score_decay: 0.9
+
+prefetch:
+  overcommitment: 1.5
+  sticky_change_num: 1

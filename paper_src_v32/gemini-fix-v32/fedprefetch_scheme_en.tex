@@ -1,0 +1,149 @@
+\subsection{Overview}
+
+\begin{table}[!t]
+\centering
+\caption{\textsc{Phase~0 System Initialization Scaling and Empirical Cost ($N: 50 \to 10{,}000$)}}
+\label{tab:complexity}
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\columnwidth}{|c|c|>{\centering\arraybackslash}X|}
+\hline
+\textbf{Evaluation Metric} & \textbf{Complexity} & \textbf{Empirical Cost} \\
+\hline
+KGC initialization time & $\mathcal{O}(N)$ & $0.0540~\mathrm{s} \to 2.61~\mathrm{s}$ \\
+\hline
+Per-client key storage & $\mathcal{O}(1)$ & $0.19~\mathrm{MB}$ ($192~\mathrm{KB}$) \\
+\hline
+\end{tabularx}
+\end{table}
+
+Over $T$ rounds, following FedFetch~\cite{yan2025fedfetch}, the server presamples a candidate pool $\mathcal{P}^{(t)} \subseteq \mathcal{C}$ of size $\lceil \beta K \rceil$ ($\beta \ge 1$) $R$ rounds in advance to absorb pre-round stragglers. At round $t$, $K = |\mathcal{S}^{(t)}| \ge \tau$ responsive candidates form the confirmed active set $\mathcal{S}^{(t)}$ for Phase-1 voting, while $\widehat{\mathcal{S}}^{(t)}$ ($|\widehat{\mathcal{S}}^{(t)}| \ge \tau$) denotes the surviving uploader set that completes Phase-2 upload after upload-phase dropouts $\mathcal{D}^{(t)}$ (Section~\ref{sec:cdfl}). To coordinate sparse uploads and asynchronous synchronization, the server maintains a sliding prefetch queue $\mathcal{Q}$ of the latest $R$ rounds' sparse aggregates $\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ over the consensus pack set $\mathcal{K}^{(t)} \subseteq [J]$, while each client $i$ maintains its local residual $\mathbf{r}_i^{(t)}$, last active round index $t_{\mathrm{last},i}$, and prefetch cache $\mathcal{L}_i$.
+
+
+\vspace{0.4em}\noindent\textbf{Protocol Details.} Fig.~\ref{fig:architecture} illustrates the system architecture, and Alg.~\ref{alg:main} formalizes the main procedure of \textsc{ECPFL}, which invokes the \textsc{ESP} Upstream Module (Alg.~\ref{alg:upload}) and the \textsc{ECP} Downstream Module (Alg.~\ref{alg:download}) in chronological order:
+
+\begin{enumerate}[leftmargin=*,align=left,label=\textbf{Phase \arabic*:},start=0]
+ \item \textbf{System Initialization.} Before training starts, the KGC executes $\mathrm{HE.Setup}(1^\lambda)$, $\mathrm{HE.KeyGen}(\mathrm{pp})$, and $\mathrm{SS.ShareGen}(S, \tau)$ to generate the public parameters $\mathrm{pp}$ and distribute $(S, S_i, z_i, \sigma_a, \sigma_b)$ to each client $i \in \mathcal{C}$ over secure channels, erases all temporary polynomials, and remains offline thereafter. As shown in Table~\ref{tab:complexity}, the KGC initialization time scales linearly as $\mathcal{O}(N)$ from $0.0540~\mathrm{s}$ to $2.61~\mathrm{s}$ for $N$ ranging from $50$ to $10{,}000$. Each client stores a constant $\mathcal{O}(1)$ key state of $0.19~\mathrm{MB}$, ensuring negligible initialization overhead even for large client populations.
+
+ 
+ \item \textbf{Secure Consensus Voting.} Each active client $i \in \mathcal{S}^{(t)}$ synchronizes $\mathbf{w}_i$ via \textsc{ECP-Sync}, trains $\mathbf{w}_i^{(t)}$ to obtain $\Delta\mathbf{w}_i^{(t)}$, and invokes \textsc{ESP-Vote} to form $\mathbf{x}_i^{(t)}$ and upload the masked vote $\hat{v}_i^{(t)}$, from which the server derives and broadcasts the consensus pack mask $\mathcal{K}^{(t)}$ via \textsc{ESP-Tally}.
+ 
+ \item \textbf{Sparse Pack Upload.} Guided by $\mathcal{K}^{(t)}$, each surviving client $i \in \widehat{\mathcal{S}}^{(t)}$ invokes \textsc{ESP-Enc} to update its residual $\mathbf{r}_i^{(t)}$ and upload the encrypted consensus packs $\{\mathrm{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ under the effective key $\tilde{s}_{i,j}^{(t)}$.
+ 
+ \item \textbf{Homomorphic Aggregation.} The server sums $\{\mathrm{ct}_{i,j}^{(t)}\}_{i \in \mathcal{S}^{(t)}}$ directly via \textsc{ESP-Agg} if $\mathcal{D}^{(t)} = \emptyset$, or collects compensation ciphertexts $\{\delta_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ from $\widehat{\mathcal{S}}^{(t)}$ via \textsc{ESP-Comp} before aggregating if $\mathcal{D}^{(t)} \neq \emptyset$, restoring the aggregate key contribution $a_j^{(t)}S$ in both cases.
+ 
+ \item \textbf{Ciphertext Prefetching.} The server caches $\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ in the sliding queue $\mathcal{Q}$ via \textsc{ECP-Queue}, while presampled clients in $\mathcal{P}^{(t+R)}$ asynchronously fetch missed packs via \textsc{ECP-Fetch} during idle periods for one-step local decryption upon rejoining.
+\end{enumerate}
+
+\begin{figure}[!t]
+ \centering 
+ \includegraphics[width=0.95\linewidth]{../figures/MAIN_MAX_02.pdf}
+  \caption{\textbf{ECPFL system architecture.} The KGC distributes keys and Shamir shares once during Phase~0 initialization. Clients upload sparse ciphertexts via the ESP module and prefetch aggregated ciphertexts via the ECP module.}
+ \label{fig:architecture}
+ 
+\end{figure}
+
+\begingroup
+\RestyleAlgo{boxruled}
+\setlength{\fboxrule}{0.4pt}
+\setlength{\algomargin}{14pt}  
+\begin{algorithm}[!t]
+\small
+\caption{\textsc{ECPFL} Main Procedure}
+\label{alg:main}
+\KwInput{$\{\mathcal{D}_i\}_{i=1}^{N}$, $\mathbf{W}^{(0)}$, $T$, $R$, $\tau$, $1^\lambda$}
+\KwOutput{Synchronized global model across clients}
+\textcolor{gray}{\textbf{// System Initialization}}\;
+\textbf{KGC} computes $\mathrm{pp} \leftarrow \mathrm{HE.Setup}(1^\lambda)$\;
+\textbf{KGC} generates $(\{s_i\}_{i=1}^N, S, \sigma_a, \sigma_b) \leftarrow \mathrm{HE.KeyGen}(\mathrm{pp})$\;
+\textbf{KGC} generates $\{(S_i, z_i)\}_{i=1}^N \leftarrow \mathrm{SS.ShareGen}(S, \tau)$\;
+\textbf{KGC} sends $(\mathrm{pp}, S, S_i, z_i, \sigma_a, \sigma_b)$ to each client $i \in \mathcal{C}$\;
+Initialize $\mathbf{w}_i \leftarrow \mathbf{W}^{(0)}, \mathbf{r}_i^{(0)} \leftarrow \mathbf{0}, t_{\mathrm{last},i} \leftarrow 0, \mathcal{L}_i, \mathcal{Q} \leftarrow \emptyset$\;
+\textcolor{gray}{\textbf{// Iterative Federated Training}}\;
+\For{$t = 1, 2, \ldots, T$}{
+ Select $\mathcal{S}^{(t)} \subseteq \mathcal{P}^{(t)}$, $\bar{\mathcal{S}}^{(t)} \leftarrow \mathcal{C} \setminus \mathcal{S}^{(t)}$, and $\mathcal{P}^{(t+R)}$\;
+ Set $\omega_i^{(t)} \leftarrow n_i / \sum_{u \in \mathcal{S}^{(t)}} n_u$\;
+ Broadcast $(\mathcal{S}^{(t)}, \bar{\mathcal{S}}^{(t)}, \omega_i^{(t)})$\;
+ \ForEach{active client $i \in \mathcal{S}^{(t)}$ in parallel}{
+  $\mathbf{w}_i \leftarrow \textsc{ECP-Sync}(i, t, \mathbf{w}_i, \mathcal{L}_i)$\;
+  Train $\mathbf{w}_i^{(t)}$ on $\mathcal{D}_i$ and set $\Delta\mathbf{w}_i^{(t)} \leftarrow \mathbf{w}_i^{(t)} - \mathbf{w}_i$\;
+  $(\hat{v}_i^{(t)}, \mathbf{x}_i^{(t)}) \leftarrow \textsc{ESP-Vote}(i, t, \Delta\mathbf{w}_i^{(t)}, \mathbf{r}_i^{(t-1)})$\;
+  Upload masked vote $\hat{v}_i^{(t)}$ to Server\;
+ }
+ Receive $\{\hat{v}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}}$ from $\mathcal{S}^{(t)}$ at Server\;
+ Compute $\mathcal{K}^{(t)} \leftarrow \textsc{ESP-Tally}(\{\hat{v}_i^{(t)}\}_{i \in \mathcal{S}^{(t)}})$\;
+ Broadcast $\mathcal{K}^{(t)}$ to active clients $\mathcal{S}^{(t)}$\;
+ \ForEach{surviving client $i \in \widehat{\mathcal{S}}^{(t)}$ in parallel}{
+  Receive consensus mask $\mathcal{K}^{(t)}$ from Server\;
+  $\{\mathrm{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}} \leftarrow \textsc{ESP-Enc}(i, t, \mathbf{x}_i^{(t)}, \omega_i^{(t)}, \mathcal{K}^{(t)})$\;
+  Upload $\{\mathrm{ct}_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ to Server\;
+ }
+ \If{$\mathcal{D}^{(t)} = \mathcal{S}^{(t)} \setminus \widehat{\mathcal{S}}^{(t)} \neq \emptyset$}{
+  Broadcast surviving uploader set $\widehat{\mathcal{S}}^{(t)}$\;
+  \ForEach{surviving client $i \in \widehat{\mathcal{S}}^{(t)}$ in parallel}{
+   $\{\delta_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}} \leftarrow \textsc{ESP-Comp}(i, t, \widehat{\mathcal{S}}^{(t)}, \mathcal{K}^{(t)})$\;
+   Upload $\{\delta_{i,j}^{(t)}\}_{j \in \mathcal{K}^{(t)}}$ to Server\;
+  }
+ }
+ Compute $\{C_j^{(t)}\}_{j \in \mathcal{K}^{(t)}} \leftarrow \textsc{ESP-Agg}(t, \widehat{\mathcal{S}}^{(t)}, \mathcal{K}^{(t)})$\;
+ Update $\mathcal{Q} \leftarrow \textsc{ECP-Queue}(t, \mathcal{K}^{(t)}, \{C_j^{(t)}\}, \mathcal{Q})$\;
+ \ForEach{client $i \in \mathcal{P}^{(t+R)}$ in parallel}{
+  $\mathcal{L}_i \leftarrow \textsc{ECP-Fetch}(i, t, \mathcal{Q}, \mathcal{L}_i)$\;
+ }
+ }
+\end{algorithm}
+\endgroup
+
+\subsection{Threat Model and Security Goals}
+\label{sec:threat_model}
+\subsubsection{Threat Model}
+\textsc{ECPFL} consists of three entities with the following trust assumptions:
+\begin{itemize}
+\item \textbf{Key Generation Center (KGC).}
+The fully trusted KGC initializes client keys, Shamir shares,
+and pseudorandom seeds during Phase~0. It securely distributes
+$(S,S_i,z_i,\sigma_a,\sigma_b)$ to each client, and remains offline during training.
+
+\item \textbf{Honest-but-Curious Server.}
+The server follows the prescribed voting, aggregation, and
+prefetching procedures but may attempt to infer private
+model updates, vote bitmaps, or global model parameters
+from observed messages and metadata.
+
+\item \textbf{Honest-but-Curious Clients.}
+Clients follow the protocol but may collude to infer honest
+clients' private updates, secret key shares, or vote bitmaps.
+We consider at most $\kappa\le\tau-2$ colluding clients.
+\end{itemize}
+
+\subsubsection{Adversarial Capabilities}
+We consider a semi-honest adversary $\mathcal{A}$ that may
+corrupt the server ($\mathcal{A}_{\mathrm{srv}}$), up to
+$\kappa\le\tau-2$ clients ($\mathcal{A}_{\mathrm{cli}} \subset \mathcal{C}$),
+or passively eavesdrop on public communications.
+Following the standard non-colluding server--client threat model of symmetric aggregate-key AHE~\cite{wu2025esafl}, \cite{li2025fedphe}, we assume the aggregation server does not collude with registered clients (as every registered client holds $(S, \sigma_a)$ for non-interactive local decryption of global aggregates, whereas individual honest updates remain protected against up to $\kappa \le \tau - 2$ colluding clients).
+For any valid round with
+$|\widehat{\mathcal{S}}^{(t)}|\ge\tau$,
+the surviving honest uploader set $\mathcal{H}^{(t)} = \widehat{\mathcal{S}}^{(t)} \setminus \mathcal{A}_{\mathrm{cli}}$ satisfies $|\mathcal{H}^{(t)}| \ge \tau - \kappa \ge 2$, ensuring that at least two honest clients complete the upload.
+Secure channels are used only for KGC initialization;
+training communications are publicly observable.
+The server observes participation and consensus sets
+$(\mathcal{P}^{(t)},\mathcal{S}^{(t)},
+\bar{\mathcal{S}}^{(t)},\widehat{\mathcal{S}}^{(t)},
+\mathcal{K}^{(t)})$.
+
+
+\subsubsection{Security Goals}
+\textsc{ECPFL} is designed to achieve the following security guarantees (formally proved in Section~\ref{sec:security}):
+\begin{itemize}
+ \item \textbf{Individual ciphertext confidentiality (Theorem~\ref{thm:cpa}).} Each honest client's uploaded ciphertext $\mathrm{ct}_{h,j}^{(t)}$ computationally conceals its local plaintext $\mathrm{pt}_{h,j}^{(t)}$ against both $\mathcal{A}_{\mathrm{srv}}$ and any coalition $\mathcal{A}_{\mathrm{cli}}$ of $\kappa \le \tau - 2$ colluding clients.
+
+ \item \textbf{Server obliviousness (Theorem~\ref{thm:server}).} Without client--server collusion, the server $\mathcal{A}_{\mathrm{srv}}$ learns neither any individual plaintext $\mathrm{pt}_{i,j}^{(t)}$ nor the aggregated plaintext $\mathrm{pt}_j^{(t)}$.
+
+ \item \textbf{Collusion resistance (Theorem~\ref{thm:collusion}).} Any coalition $\mathcal{A}_{\mathrm{cli}}$ of $\kappa \le \tau - 2$ colluding clients cannot recover honest clients' key shares $\{S_h\}$, zero-shares $\{z_h\}$, or individual updates $\mathrm{pt}_{h,j}^{(t)}$, learning at most the honest sum $\sum_{h \in \mathcal{H}^{(t)}} \mathrm{pt}_{h,j}^{(t)}$.
+
+ \item \textbf{Voting and dropout compensation privacy (Lemma~\ref{lem:vote} and Theorem~\ref{thm:dropout}).} Masked votes $\hat{v}_h^{(t)}$ conceal individual vote bitmaps $\mathbf{v}_h^{(t)}$ beyond the global tally, while compensation ciphertexts $\delta_{h,j}^{(t)}$ restore $a_j^{(t)}S$ without leaking honest key shares or zero-shares.
+
+ \item \textbf{Cross-round prefetching privacy (Theorem~\ref{thm:prefetch}).} The accumulated ciphertext $C_{\mathrm{pre},j}$ exposes no plaintext to the server and reveals no single-client update beyond the aggregated round updates to rejoining clients.
+\end{itemize}
+

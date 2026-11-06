@@ -1,0 +1,1753 @@
+5448
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+FedPHE: A Secure and Efﬁcient Federated Learning
+via Packed Homomorphic Encryption
+Yuqing Li
+, Member, IEEE, Nan Yan
+, Jing Chen
+, Senior Member, IEEE, Xiong Wang
+, Member, IEEE,
+Jianan Hong
+, Member, IEEE, Kun He
+, Member, IEEE, Wei Wang
+, Member, IEEE, and Bo Li
+, Fellow, IEEE
+Abstract—Cross-silo federated learning (FL) enables multiple
+institutions (clients) to collaboratively build a global model without
+sharing private data. To prevent privacy leakage during aggre-
+gation, homomorphic encryption (HE) is widely used to encrypt
+model updates, yet incurs high computation and communication
+overheads. To reduce these overheads, packed HE (PHE) has been
+proposed to encrypt multiple plaintexts into a single ciphertext.
+However, the original design of PHE assumes all clients share
+a single private key, making the system vulnerable to security
+threats of ciphertexts being intercepted and decrypted by honest-
+but-curious clients. Also, it does not consider the heterogeneity
+among different clients, resulting in undermined training efﬁciency
+with slow convergence and stragglers. To address these challenges,
+we propose FedPHE, a secure and efﬁcient FL framework with
+PHE by jointly exploiting contribution-aware secure aggregation
+and straggler-resistant client selection. Using CKKS with spar-
+siﬁcation and obfuscating, FedPHE achieves efﬁcient secure ag-
+gregation that allows clients to only provide obscured encrypted
+Received 9 April 2024; revised 24 March 2025; accepted 27 April 2025. Date
+of publication 6 May 2025; date of current version 4 September 2025. This
+work was supported in part by the National Key R&D Program of China under
+Grant 2022YFB3102100, in part by the National Natural Science Foundation
+of China under Grant 62302343, Grant 62202185, Grant 62472323, and Grant
+62202290, in part by the Key R&D Program of Hubei Province under Grant
+2024BAB018, in part by Wuhan Scientiﬁc and Technical Achievements Project
+under Grant 2024030803010172, in part by the Wuhan City Joint Innovation
+Laboratory for Next-Generation Wireless Communication Industry Featuring
+Satellite-Terrestrial Integration under Grant 4050902040448, in part by the
+Hubei Province international Technology Science and Collaboration Program
+under Grant 2023EHA044, in part by the Key R&D Program of Shandong
+Province under Grant 2022CXPT055, in part by RGC RIF Grant under Contract
+R6021-20, in part by RGC TRS Grant under Contract T43-513/23N-2, and
+in part by RGC GRF Grants under Contract 16211123, Contract 16200221,
+Contract 16207922, and Contract 16207423. An earlier version of this paper
+was presented in the proceedings of INFOCOM 2024 [DOI: 10.1109/INFO-
+COM52122.2024.10621440]. (Corresponding author: Jing Chen.)
+Yuqing Li, Nan Yan, and Kun He are with the Key Laboratory of Aerospace
+Information Security and Trusted Computing, Ministry of Education, School
+of Cyber Science and Engineering, Wuhan University, Wuhan 430072, China
+(e-mail: li.yuqing@whu.edu.cn; nanyan@whu.edu.cn; hekun@whu.edu.cn).
+Jing Chen is with the Key Laboratory of Aerospace Information Security
+and Trusted Computing, Ministry of Education, School of Cyber Science and
+Engineering, Wuhan University, Wuhan 430072, China, and also with the
+RiZhao Information Technology Institute, Wuhan University, Rizhao 276800,
+China (e-mail: chenjing@whu.edu.cn).
+Xiong Wang is with the National Engineering Research Center for Big
+Data Technology and System, Services Computing Technology and System
+Lab/Cluster and Grid Computing Lab, School of Computer Science and Tech-
+nology, Huazhong University of Science and Technology, Wuhan 430074, China
+(e-mail: xiongwang@hust.edu.cn).
+Jianan Hong is with the School of Cyber Science and Engineering, Shanghai
+Jiao Tong University, Shanghai 200240, China (e-mail: hongjn@sjtu.edu.cn).
+Wei Wang and Bo Li are with the Department of Computer Science and
+Engineering, Hong Kong University of Science and Technology, Hong Kong,
+Hong Kong (e-mail: weiwa@cse.ust.hk; bli@cse.ust.hk).
+Digital Object Identiﬁer 10.1109/TDSC.2025.3567301
+updates while the server can perform aggregation by accounting
+for contributions of local updates. To mitigate the straggler ef-
+fect, we devise a perturbed sketch-based selection to cherry-pick
+representative clients with heterogeneous models and computing
+capabilities in a communication-efﬁcient and privacy-preserving
+manner. We show, through rigorous security analysis and exten-
+sive experiments, that FedPHE can efﬁciently safeguard clients’
+privacy, achieve 2.45 −6.56× training speedup, cut the commu-
+nication overhead by 1.32 −24.85×, and reduce straggler effects
+by 1.89 −2.78×.
+Index Terms—Federated learning (FL), packed homomorphic
+encryption (HE), secure aggregation, client heterogeneity, client
+selection.
+I. INTRODUCTION
+C
+ROSS-SILO federated learning (FL) [2], [3] is an emerg-
+ing distributed learning paradigm that enables multiple
+institutions (e.g., banks, companies), referred to as clients, to
+collaboratively train a global model without sharing their private
+data [4], [5]. In a typical cross-silo FL system, a central pa-
+rameter server (PS) orchestrates many clients to aggregate local
+updates (e.g., gradients, model parameters) in multiple rounds
+of synchronization. Although this system does not reveal the
+clients’ raw data in the clear, it has been shown that adversaries
+can still infer a client’s private information from its updates [6],
+[7], [8].
+To avoid privacy leakage during aggregation, many privacy-
+preserving techniques have been employed for FL [9], [10].
+Among them, homomorphic encryption (HE) is particularly
+attractive to cross-silo FL, as it provides stronger privacy guar-
+antees without compromising the learning accuracy [11], [12],
+[13]. With HE, aggregation can be performed directly on ci-
+phertexts, without decrypting them ﬁrst. However, HE incurs
+signiﬁcant computation and communication overheads as it
+performs computationally intensive cryptographic operations
+(e.g., modular multiplications and polynomial reductions) and
+generates ciphertexts that are much larger to transfer than the
+input plaintexts [14], [15]. A promising approach to address this
+problem is packed HE (PHE), which packs and encrypts multiple
+plaintext values into a single ciphertext [16]. By facilitating
+parallelencryption/decryptionoperationsonmultipleplaintexts,
+PHE dramatically reduces the encryption and communication
+overheads.
+Though effective, existing PHE solutions [1], [17] commonly
+adoptsingle-keyHElikePaillier andCKKS, withtheassumption
+that all clients share the same encryption and decryption keys.
+1545-5971 © 2025 IEEE. All rights reserved, including rights for text and data mining, and training of artiﬁcial intelligence and similar technologies.
+Personal use is permitted, but republication/redistribution requires IEEE permission. See https://www.ieee.org/publications/rights/index.html for more information.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5449
+Typically, each client encrypts local updates using the shared
+encryption key before submitting them to PS, ensuring that
+neitherthePSnorexternaladversariescanlearnanyinformation.
+Nevertheless, since all clients apply the same decryption key, an
+honest-but-curious client has the ability to intercept and decrypt
+the data from others. Hence, PHE can be secure when all clients
+fully trust each other, yet it is hard to guarantee in practice,
+particularly in cross-silo FL scenarios. Without addressing these
+security challenges, the potential of PHE cannot be fully un-
+leashed.
+Also, the original design of PHE largely ignores client hetero-
+geneity [18], [19], an intrinsic problem of cross-silo FL, making
+them hard to deploy in practice. On one hand, data are distributed
+in an unbalanced fashion across clients (i.e., statistical hetero-
+geneity), which often leads to discrepancies in local models and
+adversely impacts convergence behavior. This way, additional
+encrypted communications will be implemented, undermining
+the training efﬁciency of FL. On the other hand, clients may have
+varying computing capacities and communication bandwidth
+(i.e., system heterogeneity). This results in a prominent straggler
+problem, which can be further exacerbated by computationally
+intensive encryption/decryption operations, signiﬁcantly slow-
+ing down the training progress. A large body of works have been
+proposed to address the heterogeneity issues [20], [21]. One
+common approach is weighted aggregation [22]. As datasets
+held by clients may have different contributions to model per-
+formance, vanilla aggregation often causes serious bias to the
+global model that hinders convergence. It is thus desirable to
+differentiate between the contributions of local updates during
+aggregation. Another popular approach is to judiciously select
+a subset of clients to participate into training, as not all clients
+are equally important [18], [23]. By identifying fast clients with
+quality data and involving them in the training process, the strag-
+gler issue can be effectively addressed without compromising
+model accuracy. Although many efforts have been devoted to
+weighted aggregation and client selection, they were largely
+explored separately and designed for plaintext data without any
+encryption protection. In general, weighted aggregation is per-
+formed based on client selection to collect clients’ contributions,
+meanwhile, the aggregated global model also affects local model
+training and, in turn, determines the client selection. It is hence
+imperative to handle these problems to achieve efﬁcient PHE for
+heterogeneous FL.
+To build a secure and efﬁcient cross-silo FL system, we have
+to cope with three major challenges. First, existing privacy-
+preserving weighted aggregation studies primarily rely on
+single-key HE [24], where all clients share the same encryption
+key, making the system vulnerable to eavesdropping or collusion
+attacks by malicious clients. Although multi-key HE [25], [26]
+has been proposed to address this issue by allowing clients to
+encrypt their local updates with different encryption keys, it
+incurs excessive computation overheads, especially when de-
+ploying large-scale FL. Consequently, training efﬁciency will be
+severely impeded by cryptographic computations, underscoring
+the necessity for achieving secure and lightweight aggregation
+for FL. Second, existing HE solutions [17] often rely on ho-
+momorphic addition for secure weighted aggregation, where
+clients directly weigh their local updates based on data size
+and encrypt the weighted updates for aggregation. However,
+this approach becomes infeasible under client heterogeneity, as
+a client’s data quantity does not necessarily reﬂect its overall
+contribution to the global model. Additionally, since the aggre-
+gation weights are calculated by clients themselves, there is a
+risk that a client could misreport its weight to skew the global
+model towards its local training. As such, it is desired to employ
+homomorphic multiplication on ciphertext for weighted aggre-
+gation on the PS side. This introduces potential communication
+bottlenecks as homomorphic multiplication typically requires a
+large ciphertext space for encryption [27]. Third, existing client
+selection approaches [18] are mainly carried out in plaintext
+and require direct access to local model updates, raising privacy
+concerns in FL. Accurately measuring clients’ contributions
+to the global model is challenging due to client heterogeneity,
+which is further exacerbated by privacy protection requirements.
+Even if achieved, the selection efﬁciency will be signiﬁcantly
+compromised as data encryption demands many extra operations
+(e.g., communications and computations), which can be overly
+expensive. Thus, we have to carefully navigate the tradeoff
+between security and efﬁciency in client selection.
+In this paper, we propose FedPHE, a secure and efﬁcient
+PHE-based FL framework to tackle challenges associated with
+security threats and client heterogeneity. FedPHE develops a
+contribution-aware secure aggregation scheme using the packed
+CKKS techniques, which supports homomorphic multiplica-
+tion. In a nutshell, the PS aggregates the encrypted local updates
+from the selected clients with encrypted weights accounting for
+their contributions to the global model, facilitating the model
+to quickly incorporate new knowledge and thus accelerating
+training convergence. Given that vanilla CKKS often generates
+substantially enlarged ciphertexts, we use a pack-based spar-
+siﬁcation approach to optimize data transfer efﬁciency during
+periodical encrypted FL synchronizations. To enhance privacy
+against honest-but-curious adversaries, we employ a secret
+sharing-based obfuscating technique to obscure the individual
+updates with the random factor, later to be recovered and re-
+moved to obtain the correct aggregated result. This way, the
+encrypted local updates are transmitted and aggregated in the ob-
+fuscated form. To mitigate the straggler effect, FedPHE devises a
+sketch-based client selection scheme to judiciously select clients
+that host diverse models with fast training capability. The key
+insight is that different clients might send similar or redundant
+model updates to the PS, incurring unnecessary communication
+costs. We propose to measure the similarity of local updates
+using the sketching technique which maps high-dimensional
+model updates to a lower dimension through entry hashing.
+To further avoid potential privacy leakage from such sketching,
+clients perturb the computed sketches of their model updates
+before sending to PS. The PS then removes these perturbations
+in the received sketches, clusters clients with similar sketches
+together and only selects the fastest client from each cluster. This
+ensures that clients are selected in a communication-efﬁcient
+and privacy-preserving manner. We provide rigorous security
+analysis for FedPHE and also validate its efﬁciency through
+empirical studies.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5450
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+We summarize our main contributions as follows:
+r We propose FedPHE, a secure and efﬁcient cross-silo FL
+framework with PHE. To our knowledge, this is the ﬁrst
+attempt that enables both contribution-aware secure ag-
+gregation and sketch-based straggler-resistant client selec-
+tion to effectively address the security threats and hetero-
+geneity challenges, thus closing the gap between privacy-
+preserving FL and its practical implementation.
+r BuildinguponCKKS’shomomorphicencryption,FedPHE
+achieves efﬁcient encrypted weighted aggregation that ac-
+counts for contributions of local updates to the global
+model. To enhance both efﬁciency and security of data
+transfer, the pack-level sparsiﬁcation, and secret sharing-
+based obfuscating schemes are jointly implemented, ad-
+dressing the issues of increased ciphertext size using
+vanilla CKKS and ciphertext being decrypted by honest-
+but-curious clients.
+r FedPHE leverages perturbed sketches of local updates to
+facilitate a communication-efﬁcient client selection in a
+privacy-preserving manner. By jointly considering data
+distributions and resource availability, FedPHE clusters
+similar clients together and then cherry-picks the fastest
+client from each cluster, effectively mitigating the straggler
+problem without compromising model accuracy.
+r Rigorous security analysis demonstrates that FedPHE is
+secure against honest-but-curious adversaries. Extensive
+experiments on real-world datasets show that compared
+to the state-of-the-art approaches, FedPHE accelerates the
+training speed by 2.45-6.56×, cuts the communication
+overheadby1.32-24.85×,andmitigatesthestragglereffect
+by 1.89-2.78×, with a slight degradation of model accuracy
+(1.45% only).
+II. PRELIMINARIES AND MOTIVATION
+We start by introducing the basics of cross-silo FL and the
+HE technique. We then motivate the design of FedPHE.
+A. Cross-Silo Federated Learning
+Consider a cross-silo FL system consisting of a central PS
+and a set of N clients N = {1, . . . , N} that collaboratively
+train a machine learning model without sharing their raw data.
+Each client i holds a local dataset Di containing Di = |Di|
+data samples. Let fi(w, ξi) be the loss value computed from
+the training sample ξi ∈Di with parameters w. The local loss
+function of client i is computed as
+fi(w) ≜1
+Di
+
+ξi∈Di
+fi(w, ξi).
+(1)
+The goal of clients is to jointly solve the following optimization
+problem, under the coordination of the PS:
+min
+w L(w) ≜min
+w
+
+i∈N
+pifi(w),
+(2)
+where L(w) is the global loss function, and pi is client i’s
+aggregation weight, where pi ≥0 and 
+i∈N pi = 1. To solve
+(2), clients perform a synchronous update (gi = ∇fi(w)) that
+proceeds in rounds of communication.
+A key requirement for cross-silo FL is to provide a strong pri-
+vacy guarantee, as there is increasing evidence that adversaries
+can extract private information from client updates even when
+training data are kept locally [6], [8].
+B. Homomorphic Encryption
+HE is a powerful cryptographic primitive that enables com-
+putations to be performed directly on the encrypted data without
+decrypting them in advance [28], [29]. HE ensures that the
+calculations performed on ciphertexts, when decrypted, give
+identical results of that obtained by directly operating on the
+plaintexts. More formally, an encryption scheme E(·) is said to
+be an additive HE scheme if E(m1) ⊕E(m2) = E(m1 + m2)
+for any plaintext messages m1 and m2, where ⊕is an addition
+operation. Similarly, a scheme is a multiplicative HE scheme if
+E(m1) ⊙E(m2) = E(m1 · m2), where ⊙is a multiplication
+operation. Popular HE schemes include Paillier [30], BFV [31],
+and CKKS [32], where Paillier only allows the addition opera-
+tion to be performed on ciphertexts, whereas BFV and CKKS
+support both additions and multiplications.
+While HE allows the computation to be securely delegated to
+an untrusted third party, it suffers from critical inefﬁciency asso-
+ciated with encryption operations and ciphertext transmissions.
+Manyefforts havebeendevotedtoimprovingHEefﬁciency[14],
+[15], [33]. Among them, a promising approach is PHE which
+packs and encrypts multiple plaintext values into a single cipher-
+text, allowing for parallel encryption/decryption operations [17].
+However, current (packed) homomorphically encrypted FL so-
+lutions either often assume all clients use a single encryption key,
+or largely ignore the intrinsic client heterogeneity in a cross-silo
+FL, substantially limiting their practical applications.
+C. Motivation
+The need for weighted aggregation on ciphertexts: In real-
+world FL systems, the training datasets owned by clients often
+have different contributions to the global updates, a phenomenon
+known as the statistical heterogeneity. In this case, simply
+performing unweighted aggregation, i.e., gt+1 = 
+i∈N
+1
+N gt
+i
+where pi = 1
+N , results in an undesirable bias to the global
+updatesthathinderthetrainingconvergence. Amoreappropriate
+approach is to perform weighted aggregation, in which clients
+are assigned different weights for aggregation based on their
+contributions (e.g., data size or quality). Taking FedAvg [34]
+as an example, the weighted aggregation based on data size is
+performed to minimize the loss in (2), i.e.,
+gt+1 =
+
+i∈N
+pigt
+i =
+
+i∈N
+Di
+
+i∈N Di
+gt
+i,
+(3)
+where gt
+i and gt are the local and global updates. To illustrate
+the signiﬁcance of weighted aggregation, we refer to Fig. 1.
+Compared to the unweighted approach, weighted aggregation
+(weight set based on the data size) results in much-improved
+accuracy loss and faster convergence. However, existing HE
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5451
+Fig. 1.
+Comparisons of weighted and unweighted aggregation.
+TABLE I
+COMPARISONS OF DIFFERENT (PACKED) HE SCHEMES
+solutions [17] employ either unweighted aggregation or homo-
+morphic addition-based aggregation, making them infeasible to
+support general weighted aggregation. It is hence desired to
+employ homomorphic multiplication on ciphertext for secure
+weighted aggregation.
+The need for efﬁcient secure aggregation: HE-based FL meth-
+ods offer strong privacy guarantees, albeit at the expense of
+efﬁciency. Table I shows the comparison results of Paillier, BFV,
+and CKKS as well as their packed implementation with plaintext
+size 109.89 KB. Speciﬁcally, Paillier generates a ciphertext close
+to 205× larger than the plaintext, while consuming considerable
+computation time. BFV and CKKS produce larger ciphertexts
+than Paillier and even lead to memory overﬂow. Though the PHE
+technique can address these issues, the yielded communication
+overheads remain too high, resulting in an inﬂation of 2.4×
+for Paillier, 211.3× for BFV, and 42.3× for CKKS. Moreover,
+existing PHE solutions commonly adopt single-key HE like
+Paillier and CKKS, where all clients are assumed to share a
+single private key, making the system vulnerable to security
+threats of ciphertexts being intercepted and decrypted by honest-
+but-curious clients. Thus, it is imperative to jointly address these
+two issues for achieving efﬁcient secure aggregation for FL.
+The need for straggler resistance: In synchronous cross-silo
+FL systems, client heterogeneity inevitably results in strag-
+glers, i.e., slow clients. This problem is further exacerbated
+with computationally intensive HE operations. Waiting for these
+stragglers signiﬁcantly prolongs FL training. Although it seems
+feasible to set a staleness bound by directly ignoring stragglers,
+deriving the optimal bound is challenging. Table II illustrates
+the straggler effect, which extends the training time by 91.0%
+and the encryption/decryption time by 93.6%. Moreover, normal
+clients, except for stragglers, experience an extra 36.2% wait-
+ing time. Therefore, stragglers cause high latency and hinder
+TABLE II
+BREAKDOWN OF TRAINING ITERATION TIME FOR NORMAL CLIENTS AND
+STRAGGLERS
+Fig. 2.
+Comparisons of FullSelection and RandomSelection.
+synchronization efﬁciency, necessitating the straggler-resistant
+solutions for FL.
+The need for client selection. One possible remedy for strag-
+glers is to select a subset of clients to participate in FL. As shown
+inFig.2,asimpleapproachthatrandomlychooses80%ofclients
+can signiﬁcantly decrease the delay without sacriﬁcing model
+accuracy. Although random selection expedites convergence
+by reducing the selection probability of stragglers, it fails to
+tackle the straggler issue at its core. Moreover, existing client
+selection methods are carried out in plaintext, which is suscep-
+tible to privacy leakage [35]. Hence, how to achieve efﬁcient
+and privacy-preserving client selection remains challenging for
+mitigating the straggler effect.
+III. DESIGN OF FEDPHE
+In this section, we describe FedPHE, a secure and efﬁcient
+PHE-based FL framework designed to address challenges asso-
+ciated with security threats and client heterogeneity. We begin
+with a system overview and then elaborate on how FedPHE
+co-designs contribution-aware secure aggregation and sketch-
+based straggler-resistant client selection, followed by its security
+analysis.
+A. Overview
+Our proposed system consists of three types of entities: a key
+distributioncenter(KDC),acentralPSandasetofN clients.The
+KDC is widely adopted in current research for key distribution
+and management [24], [36], [37]. Its primary role is to generate
+and dispatch keys, vectors, and local obfuscating factors to
+clients and the PS via secure channels. These operations are
+computationally lightweight and can be pre-computed, making
+them well-suited for the KDC infrastructure. During collabo-
+rative model training, data exchanges are carried out between
+clients and PS through insecure channels.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5452
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+Fig. 3.
+A snapshot of FedPHE architecture.
+Threat model: In our system, the KDC is regarded as fully
+trusted.ThePSandclientsareassumedtobehonest-but-curious,
+which is commonly adopted in existing privacy-preserving FL
+works [26], [38]. That is, they will honestly follow the protocol
+design, yet are curious about the private data of each client.
+In our threat model settings, honest-but-curious clients may try
+to eavesdrop and decrypt encrypted local updates or collude
+to obtain a certain client’s private data, but they do not launch
+poisoning attacks. We consider a more practical threat model
+with insecure communication channels. While TLS/SSL proto-
+cols establish secure channels, they remain vulnerable to internal
+adversaries, compromised participants, or potential key leakage.
+Design goals: Our design goal is to develop a secure and
+efﬁcient FL framework with PHE. Speciﬁcally, the following
+desirable objectives should be achieved.
+r Privacy: It should protect the privacy of local datasets
+against honest-but-curious PS and clients. Speciﬁcally, the
+PS cannot access the private training data of any particular
+client, while clients cannot infer any private information
+about other clients’ datasets, even when eavesdropping
+attacks are launched.
+r Efﬁciency: It is expected to be efﬁcient for encrypting local
+updates and transferring ciphertexts since high computa-
+tion and communication overheads make PHE-based FL
+difﬁcult to implement in practice. Furthermore, it should
+effectively mitigate the negative impact of stragglers un-
+der client heterogeneity, accelerating the training process
+without sacriﬁcing model accuracy.
+Architecture: We propose FedPHE to attain the above two
+objectives by jointly designing contribution-aware secure ag-
+gregation and sketch-based straggler-resistant client selection.
+Fig. 3 shows the main architecture, where FedPHE proceeds in
+rounds of communication as described below.
+1⃝Key Distribution: KDC generates and dispatches keys and
+vectors to clients in secure channels every τ rounds.
+2⃝Local Training: At the beginning of each round t, every
+client i ∈N runs E steps of local stochastic gradient
+descent in (2) to compute local update gt
+i;
+3⃝Sketching Local Updates with Perturbation: Using vec-
+tors Vc, Vs,i received from KDC, client i ∈N computes
+and sends the perturbed sketch ht
+i of local update gt
+i to
+PS;
+4⃝Client Selection via Clustering Sketches: The PS recovers
+the original sketches by removing personalized perturba-
+tions and clusters them to select a subset of clients St
+as participants, where the aggregation weight pt
+i for each
+selected client is derived based on its contribution;
+5⃝Packed Encryption with Sparsiﬁcation and Obfuscating:
+KDC computes and dispatches local obfuscating factors
+{Δi}i∈St to selected clients. Each selected client i ∈St
+performs sparsiﬁcation by packing local updates gt
+i into
+{P1
+i , . . . , PK
+i }, and obfuscates the sparsely packed local
+updates with Δi; After that, it encrypts the obfuscated
+packed local updates and sends the ciphertext Ct
+i along
+with mask M t
+i to PS for aggregation; Finally, it collabo-
+rates with other selected clients to retrieve obfuscating
+factor R and sends it to unselected clients within the
+cluster.
+6⃝Encrypted Weighted Aggregation: The PS aggregates the
+received encrypted local updates along with encrypted
+weights, and then computes and dispatches the encrypted
+global updates Ct and mask M t to all clients;
+7⃝Decryption and Model Update: Every client decrypts,
+deobfuscates and unpacks the encrypted global updates,
+and then performs the local model updates.
+The details of FedPHE are shown in Algorithm 1. KDC
+ﬁrst distributes the updated keys and perturbation vectors to
+clients every τ rounds (lines 3–6). During each global round
+t, clients execute local training and send perturbed sketches of
+local updates to PS (lines 18–22). The PS then selects a subset of
+clients St as participants by clustering sketches (lines 11–12).
+Given local obfuscating factors received from KDC, the selected
+clients perform PHE with sparsiﬁcation and obfuscating, and
+transmit obfuscated encrypted model updates and masks to PS
+(line 25). Taking into account clients’ contributions, PS conducts
+secure aggregation and sends the results to all clients (lines
+13–14). Finally, clients decrypt encrypted global updates and
+update their local models (lines 29–31). Notice that the update
+frequency τ is critical for balancing security and efﬁciency.
+A lower τ triggers more frequent key and vector updates by
+the KDC, narrowing the window for adversaries to exploit but
+increasing communication and computation overhead, while a
+higher τ cuts these overheads yet may compromise security.
+B. Contribution-Aware Efﬁcient Secure Aggregation
+Building upon PHE with sparsiﬁcation and obfuscating, Fed-
+PHE conducts an efﬁcient secure aggregation on the ciphertexts
+received from selected clients as illustrated in Algorithm 2.
+In particular, the aggregation weights are adjusted based on
+the contributions of local updates to global updates so as to
+accommodate client heterogeneity.
+CKKS-based PHE: To improve the efﬁciency of general HE
+schemes, PHE [16] is proposed by packing and encrypting
+multiple plaintext values {g1, g2, . . . , gB} into a single cipher-
+text, where B is the packing size. By facilitating parallel en-
+cryption/decryption operations on multiple plaintexts, PHE can
+greatly reduce computation and communication overheads. In
+this work, we choose CKKS as the basis of PHE, providing
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5453
+Algorithm 1: FedPHE.
+several advantages over Paillier and BFV. On one hand, CKKS
+allows direct encryption of real numbers on vectors, while Pail-
+lier and BFV are limited to encrypting integer plaintexts, which
+requires quantizing ﬂoating-point numbers and introduces the
+risk of overﬂow or loss of precision. In contrast, CKKS im-
+proves the efﬁciency of encryption and decryption operations by
+packing multiple vector elements into a single polynomial di-
+rectly, thus enhancing the overall effectiveness of cryptographic
+procedures. Fig. 4 illustrates this packing process concisely. On
+the other hand, CKKS supports homomorphic multiplication,
+making it suitable for achieving secure weighted aggregation
+under heterogeneous cross-silo FL. On the contrary, Paillier
+only enables homomorphic addition, and BFV may encounter
+Fig. 4.
+Illustration of CKKS packing mode.
+Fig. 5.
+Top-k sparsiﬁcation. (a) shows the conventional packing method for
+HE, which is incompatible with sparsiﬁcation when applied to ciphertexts; (b)
+presents an alternative approach to resolving this issue by packing prior to
+sparsiﬁcation.
+overﬂow issues when multiplying the quantized integers after
+encryption. Hence, CKKS is deemed more viable to directly
+multiply the encrypted parameters with encrypted weights on
+the PS side during aggregation. This way, it is equivalent to
+performing weighted aggregation ﬁrst, followed by encryption
+of the aggregated result.
+Despite the potential advantages, CKKS-based PHE still in-
+curs high communication overheads and also suffers from the
+riskofciphertextsbeingdecryptedbyhonest-but-curiousclients.
+To further enhance its efﬁciency and security, the pack-level
+sparsiﬁcation and secret sharing-based obfuscating schemes are
+jointly implemented.
+Pack-level sparsiﬁcation: Sparsiﬁcation is a promising ap-
+proach for reducing the communication trafﬁc in FL train-
+ing [39]. In top-k sparsiﬁcation, each client can sparsify its
+model updates by only selecting the top-k model updates to send
+to the PS. However, sparsiﬁcation is mainly implemented at the
+scalar level, and becomes infeasible once the data is packed and
+encrypted. The reason is that if sparsiﬁcation is conducted before
+encryption, the PS cannot perform alignment on ciphertexts due
+to inconsistent coordinate masks [33], Fig. 5 provides a clear
+visualization of this process. An alternative method is packing
+ﬁrst and then sparsifying the packs. In this case, the PS can align
+the ciphertexts based on the packs’ masks, i.e., the sparsiﬁcation
+granularity is at the packing level.
+Each selected client starts by ﬂattening and packing the local
+model, and then determines the mask given the sparsiﬁcation
+ratio ζ. The mask will be set to 1 for those packs with the
+top ζ ratio largest L2-norm values, and the masked packs are
+obfuscated and encrypted accordingly. The ciphertext Ct
+i along
+with the corresponding mask M t
+i are sent to the PS. Notice that
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5454
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+such sparsiﬁcation techniques for CKKS can be further applied
+to enhance the efﬁciency of Paillier and BFV in heterogeneous
+scenarios, where clients’ model updates are weighted locally.
+Secret sharing-based obfuscating: While HE allows com-
+puting on encrypted data, it still suffers from security threats
+of ciphertexts being intercepted and decrypted by honest-but-
+curious clients. To address these security issues, we propose a
+Shamir secret sharing-based obfuscating mechanism that splits
+a secret obfuscating number into multiple shares and distributes
+these shares to clients, thereby securely obfuscating the sparsely
+packed local updates before sending to PS. When enough clients
+withobfuscatingsharesworktogether,thesecretcanbecorrectly
+reconstructed.
+To realize this, a Shamir (th, |St|) threshold secret sharing
+protocol is employed using polynomial interpolation. Speciﬁ-
+cally, each selected client i receives a obfuscating number ri
+(secret) and constructs a polynomial F i(x) of degree th −1
+whose constant term is ri (i.e. F i(0) = ri) and whose remaining
+coefﬁcients are randomly chosen from the ﬁnite ﬁeld p, denoted
+as a1, a2, . . . , ath. That is,
+F i(x) = ri + a1x + a2x2 + · · · + athxth−1 (mod p) ,
+(4)
+where th < |St| is called the threshold. Then the client splits
+ri into |St| shares {ri,j}j∈St according to F i(x), and ex-
+changes them with others. Upon decrypting global updates,
+each client performs an deobfuscating operation to compute
+ri = |St|
+j=1 rj,i, and then collaboratively recovering 
+i∈St ri
+as r through Lagrange interpolation, i.e.,
+r =
+
+i∈St
+ri =
+th
+
+i=1
+ri ·
+th
+
+j=1,j̸=i
+x −xj
+xj −xi
+(mod p) .
+(5)
+This allows clients to construct the original polynomial and
+cumulative obfuscating values r provided at least th shares
+are known, all without disclosing their individual obfuscating
+numbers to each other.
+To mitigate the risk of privacy leakage when exchanging
+secret shares among clients, KDC further generates a unique
+obfuscating number rd and employs a lightweight additive
+secret sharing protocol to securely dispatch local obfuscating
+factors {Δi}i∈St to clients. When preparing to obfuscate data,
+client i combines its unique obfuscating factor Δi provided
+by KDC. After decrypting the global updates, it subtracts the
+global obfuscating factor R = r + rd to deobfuscate the result.
+This dual-layer obfuscating scheme provides a strong safeguard
+against unauthorized data access and enhances the privacy of the
+distributed secret sharing system.
+Contribution-aware weighted aggregation: To accommodate
+client heterogeneity, the PS aggregates encrypted local updates
+from selected clients with encrypted weights accounting for their
+contributions to the global model. Here the contribution of client
+i is quantiﬁed based on the similarity of its sketches in the last
+round and current round, {ht−1
+i
+, ht
+i}. Locality-Sensitive Hashing
+(LSH) [40] has been widely employed in many applications to
+approximate Jaccard Similarity, i.e.,
+PrH(ht−1
+i
+= ht
+i) = JS(gt−1
+i
+, gt
+i).
+(6)
+Algorithm 2: Efﬁcient Secure Aggregation.
+The PS calculates the probability of sketch collision to esti-
+mate the Jaccard similarity of two local updates denoted by
+JS(gt−1
+i
+, gt
+i), i.e., PrH(ht−1
+i
+= ht
+i) = JS(gt−1
+i
+, gt
+i). According
+to [41], lower similarity implying higher inference loss is likely
+to achieve better performance and thus should be assigned a
+larger aggregation weight pt
+i. That is,
+pt
+i =
+exp(−β · JS(gt−1
+i
+, gt
+i))
+
+j∈St exp(−β · JS(gt−1
+j
+, gt
+j)),
+(7)
+where β is a positive number used to modify the exponential
+function’s curve.
+After
+receiving
+ciphertexts
+{Ct
+1, . . . , Ct
+|St|}
+and
+masks
+{M t
+1, . . . , M t
+|St|} from selected clients St, the PS performs
+encrypted weighted aggregation to get global updates, i.e.,
+E(gt+1) =
+
+i∈St
+E
+
+pt
+i
+
+× E
+
+gt
+i + Δi
+
+=
+
+i∈St
+E
+
+pt
+i
+
+× E
+
+gt
+i + (ri + rd,i)/pt
+i
+
+(8)
+which E(pt
+i) is the encrypted weight assigned to client i. Build-
+ing upon CKKS’s homomorphic multiplication, the aggregation
+in (8) is equivalent to performing weighted aggregation on
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5455
+Algorithm 3: Sketch-Based Client Selection.
+Input: Clients N, round t, cluster threshold γ, seed s,
+dimension k, random vectors Vc, Vs,i
+Output: Selected clients St
+// PS
+1:
+Receive perturbed sketches {ht
+i}i∈N from clients;
+2:
+ht
+i ←ht
+i −Vs,i, ∀i ∈N;
+3:
+C ←min(G({ht
+1, . . . , ht
+N}), γN);
+4:
+Cluster {ht
+i}i∈N into classes At := {At
+1 · · · At
+C};
+5:
+St ←Select clients from At by Eq. (12);
+6:
+Send St to all clients;
+7:
+Send weights {pt
+i}i∈St to KDC based on Eq. (7);
+// Client i ∈N
+8:
+gt
+i ←Flatten local updates gt
+i;
+9:
+M ←Generate mapping matrix G(s, k);
+10:
+ht
+i ←Sketching H(gt
+i, M);
+11:
+ht
+i ←ht
+i + Vc + Vs,i;
+12:
+Send perturbed sketch ht
+i to the PS;
+plaintexts and encrypting the result, i.e.,
+E(gt+1) = E
+
+i∈St
+pt
+i × gt
+i +
+
+i∈St
+ri +
+
+i∈St
+rd,i
+	
+= E
+
+
+i∈St pt
+i × gt
+i + r + rd
+
+= E
+
+
+i∈St pt
+i × gt
+i + R
+
+(9)
+where R = r + rd is referred to as global obfuscating factor.
+The encrypted global updates Ct = 
+i∈St E(pt
+i) · Ct
+i and mask
+M t = 
+i∈St pt
+i · M t
+i are subsequently dispatched to all clients
+for decryption and model update. We summarize how Fed-
+PHE conducts contribution-aware efﬁcient secure aggregation in
+Algorithm 2.
+C. Sketch-Based Straggler-Resistant Client Selection
+We employ client selection to address the straggler issue aris-
+ing from client heterogeneity. In practice, different clients might
+have similar or redundant model updates, causing unnecessary
+communication costs. Existing client selection approaches are
+largely conducted on plaintext, which contradicts the principles
+of privacy-preserving FL. To this end, we leverage the similarity
+of local updates to facilitate a sketch-based client selection in a
+privacy-preserving manner. Speciﬁcally, in each round, clients
+compute and send perturbed sketches of their model updates
+to the PS. After removing the personalized perturbations from
+sketches, the PS clusters similar sketches together and selects the
+fastest client from each cluster. The main steps are summarized
+in Algorithm 3.
+Sketching local updates with perturbation: After decryption
+and model updates, each client i ﬁrst ﬂattens the local model
+updates gt
+i to a d element tensor gt
+i and then generates a k × d
+matrix called M, which is made up of k d-dimensional vectors,
+using the shared seed s. By leveraging the LSH technique, the
+client achieves dimensionality reduction on gt
+i and obtains a
+sketch ht
+i. In particular, LSH is a family F of functions H:
+Rd →S, with the property that if two inputs are similar in the
+original data space, they will also have a high similarity after
+being converted by the hash [42], [43]. For any two clients’
+modelupdates, gm andgn, anyhashfunctionhchosenuniformly
+at random from F should satisfy
+r If d(gm, gn) < R, then PrH(h(gm) = h(gn)) ≥p1;
+r If d(gm, gn) ≥cR, then PrH(h(gm) = h(gn)) ≤p2.
+Here, c is an approximation ratio for the nearest neighbor
+search, R is the distance from the nearest neighbor, and p1,
+p2 denote the probabilities such that p1 > p2. This deﬁnition
+ensures that if gm and gn are close, they are hashed to the same
+bucket (collision) with a high probability (≥p1), whereas they
+are hashed to the same bucket with a low probability (≤p2).
+We exploit the properties of LSH functions to signify higher
+similarity during collisions when two inputs’ hash codes are
+highly similar.
+Accordingly, the ﬂattened local update gt
+i are quantized into
+a binary matrix M{0,1}, where each element is assigned a value
+of 1 if it exceeds a threshold ϵ, and 0 otherwise. To compute
+the m-th element of sketch ht
+i, we iterate through each element
+in m-th row of Mk×d and use each element’s value as an
+index in M{0,1} to locate the ﬁrst occurrence of 1.If a 1 is
+found, the corresponding value is recorded in ht
+i. Despite the
+limitedinformationinvolvedinsketches,thereisariskofprivacy
+leakage when sketches are transferred to the PS or intercepted
+by honest-but-curious clients. To prevent the PS from deducing
+sketches, each client adds a shared vector Vc to its sketch ht
+i,
+yielding a perturbed sketch h
+t
+i. The addition of Vc is carefully
+calibrated to be minimal, ensuring that it does not interfere with
+the accuracy of operations such as Jaccard Similarity or cluster-
+ing. Moreover, the security of ht
+i is maintained since the PS is
+not privy to Vc. To further shield against potential interception
+of sketches, a personalized vector Vs,i, exclusively known to the
+PS and client i, is also added into the sketch before transmission.
+The addition of perturbation terms is conducted within the ﬁnite
+cyclic additive group Zd. Consequently, even if the perturbed
+sketch h
+t
+i + Vs,i is intercepted by honest-but-curious clients,
+they won’t be able to learn any meaningful information in the
+absence of Vs,i. An illustrative example of this secure perturbed
+sketching process is depicted in Fig. 6 and in practice d ≫k.
+Clustering sketches: After receiving the sketches of local
+updates from clients, the PS removes personalized perturba-
+tions {Vs,i}i∈St and computes the number of clusters C =
+min(G({h
+t
+1, . . . , h
+t
+N}), γN), where G(·) denotes the gap statis-
+tic, a standard technique to determine the optimal cluster num-
+ber [44]. Gap statistic compares the actual intra-cluster variation
+to the expected values based on a null reference distribution,
+which is generated using Monte Carlo simulations. Here, γ is
+the threshold that limits the maximum number of clusters. For
+any given k = 1, . . . , kmax, the gap statistic is deﬁned as
+Gn(k) = E∗
+n(log Wk) −log Wk,
+(10)
+where Wk denotes the dispersion within the cluster, by com-
+paring to its expectation E∗
+n under a sample size n from
+the reference distribution. To correct the error in Monte
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5456
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+Fig. 6.
+A toy example of perturbed sketching with ϵ = 0.1.
+Carlo sampling, the correction factor sk can be calcu-
+lated from B copies of the reference datasets. Let w =
+1
+B
+B
+b=1 log (Wkb∗). The standard deviation denoted by sd(k)
+can be derived, i.e., sd(k) =
+
+1
+B
+B
+b=1(log Wkb∗−w)2. De-
+ﬁnesk = sd(k) ×
+
+(1 + B)/B.Weﬁnallychoosethesmallest
+k as the number of clusters such that
+Gk ≥Gk+1 −sk+1.
+(11)
+Following that, clients can be clustered into C classes
+{At
+1 · · · At
+C} by K-means, where those clients in the same class
+share similar sketches. Based on the assumption that LSH hashes
+similar input items into the same buckets with a high likelihood,
+similar sketches mean similar local updates.
+Selecting clients: Instead of randomly selecting a client from
+a cluster, the PS prioritizes selecting one representative client
+having the ability to train quickly. Denote T t
+i as the order of
+client i’s local update received by the PS in round t. Given
+the participation history T 0
+i , . . . , T j−1
+i
+, the priority Ft
+i of being
+selected can be determined by
+Ft
+i =
+1
+αδt−1
+i
++ (1 −α) × T t
+i
+,
+(12)
+where α ∈(0, 1) is the inﬂuencing factor, and δt−1
+i
+=
+1
+t
+t
+j=0 T j
+i represents the historical engagement performance
+of client i. If the cluster consists of only one client, we directly
+add this client to the selection set St.
+Compared to traditional similarity determination techniques
+like cosine similarity, adopting the perturbed sketches of local
+updates as a cluster feature is not only communication-efﬁcient
+but also privacy-preserving. This advantage becomes particu-
+larly pronounced when applied to more sophisticated machine
+learning models.
+D. Security Analysis
+In this section, we analyze the security of FedPHE. Our analy-
+sis is based on the assumption that KDC is completely trustwor-
+thy and dispatches keys/obfuscating factors to clients via secure
+channels. Generally, there are two main threats to clients’ data.
+First, data leakage can occur on honest-but-curious PS during
+aggregation and client selection. Second, an honest-but-curious
+client may launch eavesdropping or collusion attacks. We next
+show that FedPHE is secure against both honest-but-curious PS
+and clients.
+Theorem 1: Security against the honest-but-curious PS: In
+FedPHE, the honest-but-curious PS cannot infer any private
+information about clients’ datasets.
+Proof: In FedPHE, the PS is responsible for aggregation and
+client selection in FedPHE. In the aggregation phase, the PS can
+only have access to ciphertexts since the local updates received
+from selected clients are encrypted via PHE before transmission.
+This prevents the PS from accessing any individual client’s
+update during aggregation.
+Whileinclientselectionphase,theperturbedsketchtechnique
+is employed for communication efﬁciency and privacy preser-
+vation. Speciﬁcally, the sketches are dependent on a seed s or
+mapping matrix M, both of which are opaque to PS. Without
+the seed s, PS can only infer the matrix M through guesswork,
+which yet is ineffectual for launching model inversion attacks
+or deducing updates since guessing cannot reliably create a
+collision with a client’s sketch. Additionally, PS cannot obtain
+any client’s random vector Vc, which is transmitted from KDC
+via a secure channel. Hence, the low-information nature of
+the sketches and the perturbation of shared vectors impede the
+reconstruction of local updates, thereby establishing a dual-layer
+protection mechanism. Although PS can learn the similarity of
+client sketches, it cannot recover any individual client’s speciﬁc
+sketch or data distribution. Consequently, any reverse engineer-
+ing attempts to extract information from sketches are destined
+to fail.
+Therefore, the honest-but-curious PS cannot infer any partic-
+ular client’s dataset information.
+□
+Theorem 2. Security against honest-but-curious clients: In
+FedPHE, an honest-but-curious client capable of launching
+eavesdropping attacks or colluding with up to |St| −2 other
+clients cannot infer any private information about other clients’
+datasets.
+Proof. An honest-but-curious client j may attempt to eaves-
+drop and decrypt the ciphertexts of any other client i’s up-
+dates, denoted as Ct
+i = E(Pi[l] + Δi, pk) = E(Pi[l] + (ri +
+rd,i)/pt
+i, pk). However, the adversary cannot have access to
+client i’s local updates due to the unawareness of the per-
+sonalized obfuscating number ri, obfuscating share rd,i and
+aggregation weight pt
+i. In particular, the aggregation weights
+pt
+i, i ∈St are dynamically updated by PS in each round and
+remain undisclosed to the clients. As a result, even with ac-
+cess to the global model, the adversary cannot infer individual
+contributions or local updates. Moreover, even if the adver-
+sary can recover the obfuscating number ri by intercepting all
+shares ri,k, k ∈St distributed to selected clients, the critical
+obfuscating share rd,i is securely stored in the KDC and is
+kept inaccessible. This ensures that clients cannot extract any
+other client’s private data through eavesdropping on ciphertexts,
+thereby signiﬁcantly reducing the risk of membership inference
+attacks. Similarly, if an honest-but-curious client attempts to
+eavesdrop on the sketch ht
+i = ht
+i + Vc + Vs,i during the client
+selection phase, although the client possesses Vc, he is unaware
+of the personalized perturbation vector Vs,i, which is securely
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5457
+Fig. 7.
+Client data distributions under the non-IID setting (α = 1), where color intensity indicates the data volume of each class.
+transmitted via the KDC. Thus, the client is unable to obtain any
+private information by intercepting others’ sketches.
+Furthermore, consider a collusion attack scenario involving
+up to |St| −2 clients and the PS. Without loss of generality,
+assume that two selected clients i and j do not collude, while
+the remaining |St| −2 clients collude to try to deduce the
+local updates of i and j. During aggregation, these colluding
+clients can only obtain the sum of obfuscating numbers, i.e.,
+ri + rj = r −
+k∈St\{i,j} rk, and the sum of shares, i.e., rd −
+
+k∈St\{i,j} rd,k, pertaining to the two non-colluding clients.
+Even if these adversaries further gain access to the secret key
+sk and collude with the PS to learn the aggregation weights pt
+i
+and pt
+j, they still cannot determine the individual obfuscating
+numbers ri or rj and the corresponding shares rd,i or rd,j.
+Without these speciﬁcs, the local updates for clients i and j
+remain securely protected. Consequently, the collusion attacks
+between the PS and up to |St| −2 clients are ineffective in
+FedPHE. Therefore, an honest-but-curious client cannot infer
+any private training data of other clients.
+□
+IV. PERFORMANCE EVALUATION
+In this section, we evaluate the performance of FedPHE,
+including contribution-aware efﬁcient secure aggregation and
+sketch-based straggler-resistant client selection.
+A. Evaluation Setup
+Platform and parameters. Evaluations are conducted with
+3 NVIDIA GeForce RTX 4090 GPUs using Pytorch. Con-
+sider a cross-silo FL scenario where N = 10 clients collab-
+oratively train a model. We implement BFV and CKKS with
+TenSEAL [45], and their poly modulus degrees are set to 8192.
+To mimic the presence of stragglers, we randomly select 25%
+of clients as stragglers and introduce an artiﬁcial delay of 3 −5
+rounds’ training time. The batch size is B = 64 and the learning
+rate is η = 1e −3 (1e −2 for CIFAR-100). The packing size
+and the number of LSH hash functions are set to 4096 and 200,
+respectively.
+Datasets and models: We evaluate the results on four real
+datasets: MNIST [46], FMNIST [47], CIFAR-10 and CIFAR-
+100 [48]. In particular, we partition MNIST and FMNIST into
+60,000 training data and 10,000 test data. For CIFAR-10 and
+CIFAR-100, we use 50,000 and 10,000 images as the training
+data and test samples, respectively. We study the client hetero-
+geneity of the Dirichlet Non-IID data setting (α=1), similar
+to [49]. The client data distributions under such non-iid set-
+ting are visualized in Fig. 7. We see that datasets are highly
+imbalanced with different clients holding unequal amounts of
+samples, which closely mirrors real-world data distributions.
+A straightforward LeNet-5 neural network architecture [46]
+is employed for MNIST. For FMNIST, a CNN model with
+2 convolutional layers and 1 fully connected layer is utilized.
+The ResNet-20 and ResNet-32 models [50] are applied respec-
+tively to conduct experiments on the CIFAR-10 and CIFAR-100
+datasets.
+Baselines: To validate the proposed FedPHE, we introduce
+the following FL algorithms for comparison.
+r Plaintext: an ideal upper bound for computation and com-
+munication overheads, where parameter transmission and
+aggregation are conducted in plaintext.
+r BatchCrypt: Paillier-based PHE [17], where clients quan-
+tize ﬁrst, then pack and encrypt the model updates, while
+the PS performs aggregation on the ciphertext.
+r PackedBFV: BFV-based PHE [31], where model updates
+are quantized and weighted on the client side before en-
+cryption, as BFV only supports integer operations.
+r PackedCKKS: CKKS-based PHE [32], which leverages the
+ciphertext multiplication of CKKS to facilitate encrypted
+weighted aggregation on the PS side.
+r FedAvg: federated averaging [34], where the PS randomly
+selects the subset of clients for aggregation.
+r FLANP: straggler-resilient FL with adaptive client selec-
+tion [51], which starts the training process with faster
+clients and gradually involves slower clients once the ac-
+curacy of current participants’ data is reached.
+B. Evaluations on Efﬁcient Secure Aggregation
+We evaluate the efﬁciency of the proposed FedPHE by ex-
+amining the test accuracy, network trafﬁc and training time
+under different datasets, compared to the baselines, including
+plaintext training (no encryption), BatchCrypt, PackedBFV, and
+PackedCKKS. The experiments were conducted until reaching
+convergence.
+Accuracy: Fig. 8 illustrates the training process of the global
+model on different datasets, i.e., MNIST, FMNIST, CIFAR-10
+and CIFAR-100. Basically, the accuracy curves of the plaintext
+and other baselines almost overlap with each other, signifying
+that the PHE technique does not lead to a reduction in accuracy.
+While for FedPHE, the accuracy ﬂuctuates within an acceptable
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5458
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+Fig. 8.
+Accuracy versus global rounds of FedPHE and the baselines on different datasets.
+TABLE III
+NETWORK TRAFFIC, TEST ACCURACY, AND TRAINING TIME OF FEDPHE AND THE BASELINES ON DIFFERENT DATASETS
+range of 0.26%–1.45%, which arises from pack-level sparsiﬁ-
+cation and client selection.
+Network trafﬁc and training time: We present the network
+trafﬁc and training time of FedPHE and the baselines on different
+datasets in Table III. We observe that FedPHE reduces the net-
+workfootprintforMNIST,FMNIST,CIFAR-10andCIFAR-100
+by up to 11.75×, 17.58×, 2.56×, and 2.06×, respectively, com-
+pared to PackedCKKS. Moreover, it outperforms PackedBFV
+for 2.66 −24.85× across four datasets. It is worth noting that
+the ciphertext size is only 1.13×, 0.76×, 6.16×, and 6.25×
+compared to the BatchCrypt. This indicates the efﬁciency of
+FedPHE in reducing the ciphertext generated by CKKS to the
+level of BatchCrypt encryption with Paillier. This achievement
+is truly remarkable. Additionally, the ciphertext size, which was
+previously in a ”memory out” state as shown in Table I, has been
+reducedtoonly1.47 −10.99×largerthantheplaintextbaseline,
+making FedPHE applicable to FL in practice. In conclusion,
+FedPHE achieves communication overhead reduction ranging
+from 1.32× to 24.85× compared to these baselines.
+As shown in Table III, BatchCrypt requires 2.65 −11.21×
+more training time compared to plaintext. In contrast, FedPHE
+incurs only 1.00 −2.46× training time of the plaintext baseline,
+greatly enhancing the efﬁciency of model training. Furthermore,
+leveraging sparsiﬁcation and client selection, FedPHE achieves
+a training acceleration of 2.45 −6.56×. With an apt sparsi-
+ﬁcation ratio, FedPHE does not adversely affect the trained
+TABLE IV
+CONVERGENCE ROUNDS, ACCURACY, TRAINING TIME, AND NETWORK
+TRAFFIC OF DIFFERENT SPARSIFICATION POLICIES UNDER VARYING LEVELS OF
+NON-IIDNESS
+model quality. Instead, it achieves signiﬁcant compression while
+maintaining high performance.
+Sparsiﬁcation policies: Table IV presents a comparison of
+three commonly used sparsiﬁcation policies under varying non-
+IIDness levels for the MNIST dataset, provided sparsiﬁca-
+tion ratio ζ = 70%. Obviously, FedPHE without sparsiﬁcation
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5459
+Fig. 9.
+Impact of sparsiﬁcation ratios and non-IIDness levels on test accuracy
+across the CIFAR-100 dataset.
+achieves the slowest convergence and highest network trafﬁc.
+By randomly selecting ζ of packed updates, random sparsiﬁ-
+cation reduces convergence time and communication volume
+by 1.06 −1.10× and 1.30 −1.35×. This, however, results in
+a drastic accuracy drop of 6.65%, since essential data may be
+discarded indiscriminately. Average-based sparsiﬁcation, which
+chooses the top-ζ packed updates by mean value, outperforms
+random sparsiﬁcation in terms of reducing convergence time and
+network trafﬁc, yet it still fails to precisely select crucial data, re-
+sulting in a 2.41% accuracy decline. In contrast, L2 norm-based
+sparsiﬁcation, targeting the top-ζ packed updates by L2 norm
+magnitude, cuts down convergence time by 2.33 −2.75× and
+network trafﬁc by 2.10 −2.17×, while keeping the accuracy
+ﬂuctuation within a modest 1.45%. By considering the cumu-
+lative impact of packed updates, especially the smaller ones,
+on model performance, this approach offers a more promising
+strategy to navigate the trade-off between convergence and
+accuracy, compared to solely relying on average values.
+Impact of sparsiﬁcation ratios and non-IIDness levels: Fig. 9
+provides a visual analysis of how sparsiﬁcation ratios and non-
+IIDness levels impact the test accuracy. For a given sparsiﬁcation
+ratio ζ, the accuracy tends to increase as the sample distribution
+becomes more uniform (i.e., larger α). As expected, under a
+speciﬁc non-IID setting, an increase in sparsiﬁcation ratio is
+consistently associated with improved accuracy. It is worth
+noting that setting ζ too low may lead to a drastic reduction
+in model accuracy, particularly when the sample distribution is
+highly imbalanced. This highlights the necessity of carefully
+calibrating the sparsiﬁcation ratio to strike a balance between
+enhancing communication efﬁciency and maintaining satisfac-
+tory accuracy.
+C. Evaluations on Sketch-Based Client Selection
+We show FedPHE with client selection alone has superior
+performance over two baselines, i.e., FedAvg and FLANP.
+Accuracy: Fig. 10 shows that FedPHE consistently outper-
+forms the baselines in terms of test accuracy. FLANP exhibits
+faster convergence compared to FedAvg since it selects fewer
+stragglers to participate. Moreover, FedPHE achieves accel-
+erated convergence compared to FedAvg and FLANP. This
+is because FedPHE employs sketch-based client selection to
+TABLE V
+CONVERGENCE ROUNDS, ACCURACY, TRAINING TIME, AND NETWORK
+TRAFFIC OF DIFFERENT SELECTION POLICIES UNDER VARYING LEVELS OF
+NON-IIDNESS
+cherry-pick representative clients hosting diverse models and
+having the capability to train quickly.
+Selection policies: After clustering similar sketches together,
+PS selects a representative client from each cluster. We evaluate
+different selection policies under varying non-IIDness levels
+for the MNIST dataset, as shown in Table V. Compared to the
+baseline (no selection), random selection reduces convergence
+time and network trafﬁc by 1.44 −2.15× and 1.44 −1.50×,
+respectively. However, randomly choosing clients may still in-
+volve some stragglers as participants. Weighted selection, which
+prioritizes clients with higher aggregation weights, achieves
+superior performance in reducing convergence time and com-
+munication overhead. Yet, indiscriminately selecting a client
+with the maximum weight may potentially select less responsive
+clientsduetoalackofawarenessofstragglers.Incontrast,fastest
+selection cherry-picks the fastest client, effectively mitigating
+the straggler effect. This accelerates training by 2.06 −2.96×
+and reduces network trafﬁc by 1.64 −1.76× compared to the
+baseline. Hence, it is effective for FedPHE to select the fastest
+client from each cluster to participate in the training.
+Number of clusters: From Fig. 11(a), we can see that the
+cluster number ﬂuctuates between 1 and 10, where the cluster
+threshold is set to γ = 1. A decrease in the cluster number
+suggests a higher similarity between local models. This means
+that similar sketches of local models are clustered together,
+resulting in a reduction in the cluster number. Throughout the
+process, the cluster number is dynamically determined based on
+the similarity of sketches sent by clients. There is no need for the
+PS to specify the exact number of clusters, making the model
+more robust.
+Client selection efﬁciency: We record the number of normal
+clients and stragglers of FedPHE and the baselines. As depicted
+in Fig. 11(b) with γ = 0.625, we observed that the proportions
+of selected stragglers are 25%, 17%, 12% for FedAvg, FLANP
+and FedPHE, respectively. FedAvg randomly selects a subset
+of clients to participate, which reduces the overall number of
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5460
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+Fig. 10.
+Accuracy versus clock time of FedPHE and the baselines on different datasets.
+Fig. 11.
+Number of clusters in each round and number of selected clients of
+FedPHE and the baselines.
+clients. However, many stragglers are still involved in the selec-
+tion process. FLANP initially selects normal clients, but strag-
+glers will join in the ﬁnal rounds of training. In contrast, FedPHE
+can efﬁciently ensure the minimal inclusion of stragglers and
+decrease the overall number of clients without accuracy loss. It
+can reduce the straggler effect by up to 1.89 −2.78× compared
+to baselines. Our client selection scheme does not compromise
+model accuracy. That is, selecting a subset of representative
+clients to participate during aggregation can dramatically miti-
+gate the straggler effect caused by client heterogeneity.
+D. Ablation Study
+We continue to validate FedPHE through the ablation study.
+Sparsiﬁcation ratios: Table VI illustrates the test accuracy,
+convergence time and network trafﬁc with varying sparsiﬁcation
+ratios across four different datasets. For MNIST and FMNIST
+datasets, employing a sparsiﬁcation ratio of 10% is desirable as
+it reduces the network footprint by 8.48× and 10.39×, respec-
+tively, with only negligible impact on model accuracy. While for
+CIFAR-10 and CIFAR-100 datasets, a 50% sparsiﬁcation ratio
+leads to unacceptable accuracy losses of 12.62% and 13.06%,
+despite achieving high communication efﬁciency. In contrast, a
+more moderate 70% sparsiﬁcation ratio appears to be feasible,
+reducing network trafﬁc by 1.49× and 1.43×, while maintaining
+a tolerable accuracy reduction of only 1.45%. These suggest that
+more complex datasets typically require a less aggressive spar-
+siﬁcation approach to preserve satisfactory accuracy. Hence, the
+sparsiﬁcationratioshouldbecarefullydeterminedbyaccounting
+for dataset characteristics in order to strike a balance between
+efﬁciency and model performance.
+TABLE VI
+ABLATION RESULTS FOR VARYING SPARSIFICATION RATIOS
+TABLE VII
+ABLATION RESULTS FOR CLIENT SELECTION
+Client selection: Table VII presents the performance com-
+parisons with or without client selection across four differ-
+ent datasets. Notably, our client selection scheme enables a
+1.38 −3.07× faster convergence while incurring a negligible
+maximum accuracy decline of only 0.7%. Also, by excluding
+stragglers during aggregation, it achieves a remarkable reduction
+in network trafﬁc by 1.28 −1.85×. These results corroborate
+the effectiveness of our proposed selection scheme in mitigating
+the negative effects caused by stragglers, making it a favorable
+choice for efﬁcient PHE-based FL training.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5461
+V. RELATED WORK
+We brieﬂy survey the related works below.
+HE-based FL: HE is a widely used privacy-preserving tech-
+nique for FL to avoid privacy leakage during aggregation [10],
+[52], yet leads to signiﬁcant inefﬁciency in computation and
+communication. To address this, Zhang et al. design BatchCrypt
+to achieve a substantial decrease in encryption overhead and ci-
+phertext volume by packing multiple plaintexts into a long inte-
+ger [17]. Jiang et al. propose FLASHE, an additively symmetric
+HE in double masking to address the compatibility issues with
+sparsiﬁcation [33]. Nevertheless, these methods rely on Paillier
+and fail to support weighted aggregation on ciphertexts. There is
+still ample scope for improving communication efﬁciency. In a
+similar vein, Smart et al. design a ciphertext-packing technique
+based on polynomial-CRT [15], and Brakerski et al. further
+extend SIMD to the standard LWE to achieve nearly optimal
+homomorphic evaluation [14]. However, existing HE solutions
+either suffer from the risk of ciphertexts being decrypted by
+honest-but-curious clients, or largely neglect the intrinsic client
+heterogeneity in a cross-silo FL.
+HE-based secure aggregation: Traditional HE schemes
+mostly assume all clients share a secret key, making the sys-
+tem suffering from the risk of ciphertexts being intercepted
+and decrypted by honest-but-curious clients. To mitigate these
+security issues, various approaches have been proposed. Zheng
+et al. present a lightweight encryption and aggregation protocol
+that enables clients to submit obfuscated updates [24]. Cai et al.
+propose SecFed, which adopts multi-key HE to preserve client
+privacy and delegates some operations to TEE [26]. Shi et al. de-
+velop a secure aggregation framework built upon cryptographic
+schemes, ensuring aggregator obliviousness [25]. Despite these
+advances, current solutions remain resource-intensive for prac-
+tical FL applications.
+Weighted aggregation: A key challenge posed to FL is het-
+erogeneity in the clients’ local datasets and computation speeds,
+which drastically slows down the training process. Many efforts
+have been devoted to addressing such challenge. Among them,
+weighted aggregation is a promising technique to accelerate
+convergence. Zeng et al. present a contribution-aware aggre-
+gation scheme, considering higher loss values are indicative
+of more substantial performance improvements [41]. Wu et al.
+adaptively assign aggregation weights based on clients’ con-
+tributions, measured by the angle between local and global
+gradient vectors [53]. Deng et al. propose FAIR to quantify each
+client’s learning quality and automatically determine the optimal
+weights to enhance the global model quality [22]. Nonetheless,
+existing aggregation solutions are mainly conducted on plain-
+texts, rendering them inapplicable in HE-based FL scenarios.
+Client selection: Client selection is widely adopted to ac-
+celerate convergence and mitigate the straggler effect [10].
+FedAvg [34] employs random selection, acting as a common and
+general setting in FL. Reisizadeh et al. propose FLANP to start
+training by exchanging models with fast clients and gradually
+include slower clients over time [51]. Fraboni et al. introduce
+clustered sampling based on similarity for client selection. How-
+ever, directly transmitting gradients to the PS raises privacy
+concerns and substantial communication overheads [35]. Kollias
+et al. utilize the sketches of local models to select clients that
+are similar to ours at a high level [54]. However, it can not
+be applied to HE-based FL since after encrypting with HE,
+the PS cannot calculate the sketch of the global model based
+on the ciphertext. In contrast, FedPHE conducts sketch-based
+client selection to cherry-pick representative clients that host
+diverse models with fast training capability, greatly reducing the
+communication overheads, without sacriﬁcing model accuracy.
+Differences from the prior work: Our prior work [1] primarily
+addresses client heterogeneity, a challenge largely overlooked in
+existing PHE-based FL methods. In contrast, FedPHE develops
+a more secure PHE-based FL framework that mitigates security
+threats from ciphertexts being intercepted and decrypted by
+honest-but-curious clients. Speciﬁcally, it adopts a more realistic
+threat model that accounts not only for privacy leakage during
+aggregation but also for clients eavesdropping or colluding to
+access speciﬁc local updates. A secret sharing–based obfus-
+cating technique is designed to ensure encrypted local updates
+are transmitted and aggregated in the obfuscated form, thereby
+enhancing privacy. Additionally, FedPHE adopts a perturbed
+sketch-based client selection to further mitigate the potential
+privacy leakage from sketching process. Furthermore, a rigorous
+security analysis is provided to demonstrate that neither the
+honest-but-curious PS nor an honest-but-curious client capable
+of launching eavesdropping or collusion attacks can deduce
+private information about other clients’ datasets.
+VI. CONCLUSION
+In this paper, we present FedPHE, a secure and efﬁcient PHE-
+based FL framework to tackle challenges associated with secu-
+rity threats and client heterogeneity. By adopting CKKS-based
+PHE with sparsiﬁcation and obfuscating, FedPHE achieves ef-
+ﬁcient secure aggregation that allows clients to only provide
+obscured encrypted updates while PS can still perform the
+aggregation by accounting for contributions of local updates
+to the global model. To mitigate the straggler effect posed by
+client heterogeneity, a perturbed sketch-based client selection is
+conducted to cluster similar clients together and then cherry-pick
+the fastest client from each cluster in a communication-efﬁcient
+and privacy-preserving manner. We provide rigorous security
+analysis for FedPHE and verify its efﬁciency through extensive
+experiments.
+Although FedPHE is proven secure against honest-but-
+curious adversaries, our method relies on a trusted KDC, which
+is widely adopted but may be difﬁcult to guarantee in practical
+applications. In future work, we will focus on exploring dis-
+tributed key generation methods that eliminate the need of KDC
+while improving communication and computation efﬁciency.
+REFERENCES
+[1] N. Yan et al., “Efﬁcient and straggler-resistant homomorphic encryption
+for heterogeneous federated learning,” in Proc. IEEE Conf. Comput.
+Commun., 2024, pp. 791–800.
+[2] Q. Yang, Y. Liu, T. Chen, and Y. Tong, “Federated machine learning:
+Concept and applications,” ACM Trans. Intell. Syst. Technol., vol. 10, no. 2,
+pp. 1–19, 2019.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+5462
+IEEE TRANSACTIONS ON DEPENDABLE AND SECURE COMPUTING, VOL. 22, NO. 5, SEPTEMBER/OCTOBER 2025
+[3] Y. Huang et al., “Personalized cross-silo federated learning on non-IID
+data,” in Proc. AAAI Conf. Artif. Intell., 2021, pp. 7865–7873.
+[4] P. Kairouz et al., “Advances and open problems in federated learning,”
+Found. Trends Mach. Learn., vol. 14, no. 1/2, pp. 1–210, 2021.
+[5] Y. Aono et al., “Privacy-preserving deep learning via additively homo-
+morphic encryption,” IEEE Trans. Inf. Forensics Secur., vol. 13, no. 5,
+pp. 1333–1345, May 2018.
+[6] L. Zhu, Z. Liu, and S. Han, “Deep leakage from gradients,” in Proc. Int.
+Conf. Neural Inf. Process. Syst., 2019, pp. 14774–14784.
+[7] H. Yin, A. Mallya, A. Vahdat, J. M. Alvarez, J. Kautz, and P. Molchanov,
+“See through gradients: Image batch recovery via gradinversion,” in Proc.
+IEEE/CVF Conf. Comput. Vis. Pattern Recognit., 2021, pp. 16337–16346.
+[8] J. Geiping, H. Bauermeister, H. Dröge, and M. Moeller, “Inverting
+gradients-how easy is it to break privacy in federated learning?,” in Proc.
+Int. Conf. Neural Inf. Process. Syst., 2020, pp. 16937–16947.
+[9] K. Wei et al., “Federated learning with differential privacy: Algorithms
+and performance analysis,” IEEE Trans. Inf. Forensics Secur., vol. 15,
+pp. 3454–3469, 2020.
+[10] S.Zhang,Z.Li,Q.Chen,W.Zheng,J.Leng,andM.Guo,“Dubhe:Towards
+data unbiasedness with homomorphic encryption in federated learning
+client selection,” in Proc. Int. Conf. Parallel Process., 2021, pp. 1–10.
+[11] A. Li et al., “FedSDG-FS: Efﬁcient and secure feature selection for
+vertical federated learning,” in Proc. IEEE Conf. Comput. Commun., 2023,
+pp. 1–10.
+[12] N. Jovanovic, M. Fischer, S. Steffen, and M. Vechev, “Private and reliable
+neuralnetworkinference,”inProc.ACMSIGSACConf.Comput.Commun.
+Secur., 2022, pp. 1663–1677.
+[13] X. Yang, J. Chen, K. He, H. Bai, C. Wu, and R. Du, “Efﬁcient privacy-
+preservinginferenceoutsourcingforconvolutionalneuralnetworks,”IEEE
+Trans. Inf. Forensics Secur., vol. 18, pp. 4815–4829, 2023.
+[14] Z. Brakerski, C. Gentry, and S. Halevi, “Packed ciphertexts in LWE-based
+homomorphic encryption,” in Proc. Int. Workshop Public Key Cryptogra-
+phy, 2013, pp. 1–13.
+[15] N. P. Smart and F. Vercauteren, “Fully homomorphic SIMD operations,”
+Des. Codes Cryptography, vol. 71, pp. 57–81, 2014.
+[16] T. Ge and S. Zdonik, “Answering aggregation queries in a secure system
+model,” in Proc. Int. Conf. Very Large Data Bases, 2007, pp. 519–530.
+[17] C. Zhang, S. Li, J. Xia, W. Wang, F. Yan, and Y. Liu, “BatchCrypt:
+Efﬁcient homomorphic encryption for cross-silo federated learning,” in
+Proc. USENIX Conf. Usenix Annu. Tech. Conf., Jul. 2020, pp. 493–506.
+[18] B. Luo, W. Xiao, S. Wang, J. Huang, and L. Tassiulas, “Tackling system
+and statistical heterogeneity for federated learning with adaptive client
+sampling,” in Proc. IEEE Conf. Comput. Commun., 2022, pp. 1739–1748.
+[19] X. Wang, Y. Chen, Y. Li, X. Liao, H. Jin, and B. Li, “FedMoS: Taming
+client drift in federated learning with double momentum and adaptive
+selection,” in Proc. IEEE Conf. Comput. Commun., 2023, pp. 1–10.
+[20] C. Chen, W. Wang, and B. Li, “Round-robin synchronization: Mitigating
+communication bottlenecks in parameter servers,” in Proc. IEEE Conf.
+Comput. Commun., 2019, pp. 532–540.
+[21] C. Chen et al., “Communication-efﬁcient federated learning with adaptive
+parameter freezing,” in Proc. IEEE Int. Conf. Distrib. Comput. Syst., 2021,
+pp. 1–11.
+[22] Y. Deng et al., “Improving federated learning with quality-aware user
+incentive and auto-weighted model aggregation,” IEEE Trans. Parallel
+Distrib. Syst., vol. 33, no. 12, pp. 4515–4529, Dec. 2022.
+[23] F. Lai, X. Zhu, H. V. Madhyastha, and M. Chowdhury, “Oort: Efﬁcient
+federated learning via guided participant selection,” in Proc. USENIX
+Symp. Operating Syst. Des. Implementation, 2021, pp. 19–35.
+[24] Y.Zheng,S.Lai,Y.Liu,X.Yuan,X.Yi,andC.Wang,“Aggregationservice
+for federated learning: An efﬁcient, secure, and more resilient realization,”
+IEEE Trans. Dependable Secure Comput., vol. 20, no. 2, pp. 988–1001,
+Mar./Apr. 2023.
+[25] E. Shi, H. Chan, E. Rieffel, R. Chow, and D. Song, “Privacy-preserving
+aggregation of time-series data,” in Proc. Netw. Distrib. Syst. Secur. Symp.,
+2011, pp. 1–17.
+[26] Y.Cai,W.Ding,Y.Xiao,Z.Yan,X.Liu,andZ.Wan,“SecFed:Asecureand
+efﬁcient federated learning based on multi-key homomorphic encryption,”
+IEEE Trans. Dependable Secure Comput., vol. 21, no. 4, pp. 3817–3833,
+Jul./Aug. 2024.
+[27] A. Ali et al., “Communication–computation trade-offs in PIR,” in Proc.
+USENIX Secur. Symp., 2021, pp. 1811–1828.
+[28] C. Fontaine and F. Galand, “A survey of homomorphic encryption for
+nonspecialists,” EURASIP J. Inf. Secur., vol. 2007, pp. 1–10, 2007.
+[29] A.Acar,H.Aksu,A.S.Uluagac,andM.Conti,“Asurveyonhomomorphic
+encryption schemes: Theory and implementation,” ACM Comput. Surv.,
+vol. 51, no. 4, pp. 1–35, 2018.
+[30] P. Paillier, “Public-key cryptosystems based on composite degree resid-
+uosity classes,” in Proc. Int. Conf. Theory Appl. Cryptographic Techn.,
+1999, pp. 223–238.
+[31] J. Fan and F. Vercauteren, “Somewhat practical fully homomorphic en-
+cryption,” Cryptol. ePrint Arch., 2012.
+[32] J. H. Cheon, A. Kim, M. Kim, and Y. Song, “Homomorphic encryption
+for arithmetic of approximate numbers,” in Proc. Int. Conf. Theory Appl.
+Cryptol. Inf. Secur., 2017, pp. 409–437.
+[33] Z. Jiang, W. Wang, and Y. Liu, “FLASHE: Additively symmet-
+ric homomorphic encryption for cross-silo federated learning,” 2021,
+arXiv:2109.00675.
+[34] B. McMahan, E. Moore, D. Ramage, S. Hampson, and B. A. y Arcas,
+“Communication-efﬁcient learning of deep networks from decentralized
+data,” in Proc. Int. Conf. Artif. Intell. Statist., 2017, pp. 1273–1282.
+[35] Y. Fraboni, R. Vidal, L. Kameni, and M. Lorenzi, “Clustered sampling:
+Low-variance and improved representativity for clients selection in feder-
+ated learning,” in Proc. Int. Conf. Mach. Learn., 2021, pp. 3407–3416.
+[36] X. Hu et al., “STYX: A hierarchical key management system for elastic
+content delivery networks on public clouds,” IEEE Trans. Dependable
+Secure Comput., vol. 18, no. 2, pp. 843–857, Mar./Apr. 2021.
+[37] J. Wang, R. Zhang, J. Li, Y. Xiao, and H. Ma, “SeUpdate: Secure encrypted
+data update for multi-user environments,” IEEE Trans. Dependable Secure
+Comput., vol. 19, no. 6, pp. 3592–3606, Nov./Dec. 2022.
+[38] J. Wu, W. Zhang, and F. Luo, “ESAFL: Efﬁcient secure addi-
+tively homomorphic encryption for cross-silo federated learning,”
+IEEE Trans. Dependable Secure Comput., early access, Feb. 2025,
+doi: 10.1109/TDSC.2025.3541612.
+[39] F. Sattler, S. Wiedemann, K.-R. Müller, and W. Samek, “Robust and
+communication-efﬁcient federated learning from non-IID data,” IEEE
+Trans. Neural Netw. Learn. Syst., vol. 31, no. 9, pp. 3400–3413, Sep. 2020.
+[40] B. Neyshabur and N. Srebro, “On symmetric and asymmetric LSHs for in-
+nerproductsearch,”inProc.Int.Conf.Mach.Learn.,2015,pp.1926–1934.
+[41] H. Zeng, T. Zhou, Y. Guo, Z. Cai, and F. Liu, “FedCav: Contribution-
+aware model aggregation on distributed heterogeneous data in federated
+learning,” in Proc. Int. Conf. Parallel Process., 2021, pp. 1–10.
+[42] M. Slaney and M. Casey, “Locality-sensitive hashing for ﬁnding nearest
+neighbors [lecture notes],” IEEE Signal Process. Mag., vol. 25, no. 2,
+pp. 128–131, Mar. 2008.
+[43] B. Kulis and K. Grauman, “Kernelized locality-sensitive hashing for
+scalable image search,” in Proc. IEEE Int. Conf. Comput. Vis., 2009,
+pp. 2130–2137.
+[44] R.Tibshirani,G.Walther,andT.Hastie,“Estimatingthenumberofclusters
+in a data set via the gap statistic,” J. Roy. Stat. Soc.: Ser. B (Statist.
+Methodol.), vol. 63, no. 2, pp. 411–423, 2001.
+[45] A. Benaissa, B. Retiat, B. Cebere, and A. E. Belfedhal, “TenSEAL: A
+library for encrypted tensor operations using homomorphic encryption,” in
+Proc. Int. Conf. Learn. Representations Workshop Distrib. Private Mach.
+Learn., 2021, arXiv:2104.03152.
+[46] Y. LeCun, L. Bottou, Y. Bengio, and P. Haffner, “Gradient-based learn-
+ing applied to document recognition,” Proc. IEEE, vol. 86, no. 11,
+pp. 2278–2324, Nov. 1998.
+[47] H. Xiao, K. Rasul, and R. Vollgraf, “Fashion-MNIST: A novel im-
+age dataset for benchmarking machine learning algorithms,” 2017,
+arXiv:1708.07747.
+[48] A. Krizhevsky et al., “Learning multiple layers of features from tiny
+images,” Tech. Rep., Univ. Toronto, 2009.
+[49] T.-M. H. Hsu, H. Qi, and M. Brown, “Measuring the effects of non-
+identical data distribution for federated visual classiﬁcation,” in NeurIPS
+Workshop Federated Learn., 2019.
+[50] K. He, X. Zhang, S. Ren, and J. Sun, “Deep residual learning for image
+recognition,” in Proc. IEEE Conf. Comput. Vis. Pattern Recognit., 2016,
+pp. 770–778.
+[51] A. Reisizadeh, I. Tziotis, H. Hassani, A. Mokhtari, and R. Pedarsani,
+“Straggler-resilient federated learning: Leveraging the interplay between
+statistical accuracy and system heterogeneity,” IEEE J. Sel. Areas Inf.
+Theory, vol. 3, no. 2, pp. 197–205, Jun. 2022.
+[52] X. Feng, H. Liu, H. Yang, Q. Xie, and L. Wang, “Batch-aggregate:
+Efﬁcient aggregation for private federated learning in VANETs,” IEEE
+Trans. Dependable Secure Comput., vol. 21, no. 5, pp. 4939–4952,
+Sep./Oct. 2024.
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 
+
+LI et al.: FEDPHE: A SECURE AND EFFICIENT FEDERATED LEARNING VIA PACKED HOMOMORPHIC ENCRYPTION
+5463
+[53] H. Wu and P. Wang, “Fast-convergent federated learning with adap-
+tive weighting,” IEEE Trans. Cogn. Commun. Netw., vol. 7, no. 4,
+pp. 1078–1088, Dec. 2021.
+[54] G. Kollias, T. Salonidis, and S. Wang, “Sketch to skip and select: Com-
+munication efﬁcient federated learning using locality sensitive hashing,”
+in Proc. Int. Joint Conf. Artif. Intell., 2022, pp. 72–83.
+Yuqing Li (Member, IEEE) received the PhD degree
+in electronic engineering from Shanghai Jiao Tong
+University, Shanghai, China, in 2019. She is cur-
+rently an associate professor with the School of Cyber
+Science and Engineering, Wuhan University, Wuhan,
+China. From 2019 to 2020, she was a postdoctoral
+fellow with the Hong Kong University of Science
+and Technology. From 2020 to 2022, she was a re-
+searcher with Huawei Hong Kong Research Center.
+Her research interests include AI security and privacy
+protection.
+Nan Yan received the BS degree from the School of
+Cyber Science and Engineering, Shandong Univer-
+sity, Jinan, China, in 2023. He is currently working to-
+ward the MS degree with the School of Cyber Science
+and Engineering, Wuhan University, Wuhan, China.
+His research interests include federated learning, and
+privacy-preserving computing.
+Jing Chen (Senior Member, IEEE) received the PhD
+degree in computer science from the Huazhong Uni-
+versity of Science and Technology, Wuhan, China.
+Since 2015, he has been a full professor with Wuhan
+University. He has authored or coauthored more than
+100 research papers in many international journals
+and conferences, such as IEEE Transactions on De-
+pendable and Secure Computing, IEEE Transactions
+on Information Forensics and Security, IEEE Trans-
+actions on Parallel and Distributed Systems, USENIX
+Security, ACM CCS, and IEEE INFOCOM. His re-
+search interests include computer science, network security, and cloud security.
+Xiong Wang (Member, IEEE) received the PhD de-
+gree in electronic engineering from Shanghai Jiao
+Tong University, Shanghai, China, in 2019. From
+2019 to 2021, he was a postdoctoral fellow with
+the Department of Computer Science and Engineer-
+ing, The Chinese University of Hong Kong, Hong
+Kong. He is currently an associate professor with
+the School of Computer Science and Technology,
+Huazhong University of Science and Technology,
+Wuhan,China.Hisresearchinterestsincludemachine
+learning system, LLM training, and inference.
+Jianan Hong (Member, IEEE) received the PhD de-
+gree from the Department of Electronic Engineering
+and Information Science, University of Science and
+Technology of China (USTC), Hefei, China, in 2018.
+From 2018 to 2021, he was a research engineer with
+Huawei Shanghai Research Institute, China. He is
+currently an associated researcher with The School of
+Cyber Science and Engineering, Shanghai Jiao Tong
+University, Shanghai, China. His research interests
+include secure cloud computing and privacy preserv-
+ing authentication.
+Kun He (Member, IEEE) received the PhD degree in
+computer science from the Computer School, Wuhan
+University, Wuhan, China. He is currently an asso-
+ciate professor with Wuhan University, Wuhan. He
+has authored or coauthred more than 30 research
+papers in many international journals and confer-
+ences, such as IEEE Transactions on Dependable and
+Secure Computing, IEEE Transactions on Informa-
+tion Forensics and Security, USENIX Security, ACM
+CCS, and IEEE S&P. His research interests include
+cryptography, network security, mobile computing,
+and cloud computing.
+Wei Wang (Member, IEEE) received the BEng and
+MEng degrees from the Department of Electrical En-
+gineering, Shanghai Jiao Tong University, Shanghai,
+China, in 2007 and 2010, respectively, and the PhD
+degree from the Department of Electrical and Com-
+puter Engineering, University of Toronto, Toronto,
+ON, Canada, in 2015. Since 2015, he has been with
+the Department of Computer Science and Engineer-
+ing, Hong Kong University of Science and Technol-
+ogy (HKUST), where he is currently an associate
+professor. He is also afﬁliated with the HKUST Big
+Data Institute. His research interests include the broad area of distributed
+systems, with focus on serverless computing, machine learning systems, and
+cloud resource management. His research was the recipient of the Best Paper
+Runner Up awards of IEEE ICDCS 2021 and USENIX ICAC 2013.
+Bo Li (Fellow, IEEE) received the BEng degree
+(summa cum laude) in computer science from Ts-
+inghuaUniversity,Beijing,China,andthePhDdegree
+in electrical and computer engineering from the Uni-
+versity of Massachusetts at Amherst, Amherst, MA,
+USA. From 2010 to 2016, he has held a Cheung Kong
+visiting chair professor with Shanghai Jiao Tong Uni-
+versity, and was the chief technical advisor with Chi-
+naCache Corporation (NASDAQ:CCIH), one of the
+world leading CDN service providers. He is currently
+a chair professor with the Department of Computer
+Science and Engineering, Hong Kong University of Science and Technology,
+Hong Kong. He has also made pioneering contributions in multimedia commu-
+nications and the Internet video broadcast, in particular Coolstreaming system,
+whichwascreditedasﬁrstlargescalePeer-to-Peerlivevideostreamingsystemin
+the world. It attracted signiﬁcant attention from both industry and academia and
+was the recipient of the Test-of-Time Best Paper Award from IEEE INFOCOM
+(2015). He was also the recipient of the eight Best Paper awards including IEEE
+INFOCOM (2021).
+Authorized licensed use limited to: Wuhan University. Downloaded on November 06,2025 at 11:51:26 UTC from IEEE Xplore.  Restrictions apply. 

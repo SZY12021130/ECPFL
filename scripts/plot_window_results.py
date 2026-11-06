@@ -158,7 +158,8 @@ def plot_accuracy_curves(exps: List[Tuple[int, dict, dict]], save_dir: Path):
 
         ax.set_xlabel("Communication Round", fontsize=plotter.font_size)
         ax.set_ylabel("Test Accuracy (%)", fontsize=plotter.font_size)
-        ax.set_title("Fashion-MNIST — Accuracy under Different Prefetch Windows", pad=10, fontsize=plotter.font_size)
+        # 标题字号与 client_selection 系列保持一致（25.2/8.4in = 3.0 pt/in → 6in 画布对应 18pt）
+        ax.set_title("FMNIST — Prefetch Windows", pad=12, fontsize=18)
         ax.grid(True, linestyle="--", alpha=0.5)
         ax.legend(
             loc="lower right",

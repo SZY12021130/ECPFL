@@ -1,0 +1,144 @@
+\section{Preliminaries and Motivation}
+\label{sec:preliminaries}
+
+\subsection{Notations}
+Table~\ref{tab:notations} summarizes the primary notations used to formalize the \textsc{ECPFL} architecture. In the context of our SIMD homomorphic operations, we use the terms \textit{pack} and \textit{batch} interchangeably to represent a vector of scalars embedded into a single polynomial ring element.
+
+\begin{table*}[!t]
+\centering
+\caption{\textsc{Summary of Core Notations}}
+\label{tab:notations}
+\scriptsize
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}>{\centering\arraybackslash}m{52pt} !{\vrule} >{\raggedright\arraybackslash}m{188pt} !{\vrule\hspace{2.5pt}\vrule} >{\centering\arraybackslash}m{52pt} !{\vrule} >{\raggedright\arraybackslash}m{188pt}@{}}
+\hline
+\multicolumn{1}{@{}>{\centering\arraybackslash}m{52pt}!{\vrule}}{\textbf{Notation}} &
+\multicolumn{1}{>{\centering\arraybackslash}m{188pt}!{\vrule\hspace{2.5pt}\vrule}}{\textbf{Description}} &
+\multicolumn{1}{>{\centering\arraybackslash}m{52pt}!{\vrule}}{\textbf{Notation}} &
+\multicolumn{1}{>{\centering\arraybackslash}m{188pt}@{}} {\textbf{Description}} \\
+\hline
+$\mathcal{C}, N$ & Registered client set $[N]$ and total client count & $\mathbf{W}^{(t)}, \mathbf{w}_i^{(t)}$ & Global model and local model of client $i$ \\
+$\mathcal{D}_i, n_i$ & Local dataset of client $i$ and sample size $|\mathcal{D}_i|$ & $\Delta\mathbf{w}_i^{(t)}, \mathbf{r}_i^{(t)}$ & Local model increment and unweighted residual buffer \\
+$\mathcal{P}^{(t)}, \mathcal{S}^{(t)}$ & Presampled candidate pool and confirmed active set & $\mathbf{x}_i^{(t)}, \tilde{\mathbf{g}}_i^{(t)}$ & Unweighted compensated update and weighted update \\
+$\bar{\mathcal{S}}^{(t)}, \mathcal{D}^{(t)}$ & Unselected inactive set and upload-phase dropout set & $\omega_i^{(t)}, J$ & Normalized aggregation weight and total pack count \\
+$\widehat{\mathcal{S}}^{(t)}, \tau$ & Surviving uploader set and Shamir threshold & $\zeta, \theta$ & Local retention ratio and global consensus parameter \\
+$\lambda, \mathrm{pp}$ & Security parameter and AHE public parameters & $\gamma_d, \gamma_s$ & Per-round and cross-round residual decay factors \\
+$\mathcal{R}_q, \Delta$ & Ciphertext polynomial ring and CKKS scaling factor & $\mathbf{v}_i^{(t)}, v_i^{(t)}$ & Binary vote bitmap and plaintext vote polynomial \\
+$s_i, S$ & Secret key of client $i$ and aggregate decryption key & $\hat{v}_i^{(t)}, v^{(t)}$ & Masked vote polynomial and aggregated vote polynomial \\
+$S_i, z_i$ & Shamir key share and zero-share of client $i$ & $\nu_j^{(t)}, \mathcal{K}^{(t)}$ & Global vote score of pack $j$ and consensus pack set \\
+$\sigma_a, \sigma_b$ & Client-shared seeds for public and masking polynomials & $\mathbf{m}^{(t)}, \mathrm{pt}_{i,j}^{(t)}$ & Binary consensus pack mask and plaintext polynomial \\
+$a_j^{(t)}, a_0^{(t)}$ & Pack-$j$ public polynomial and voting mask polynomial & $\tilde{s}_{i,j}^{(t)}, \mathrm{ct}_{i,j}^{(t)}$ & Effective encryption key and pack-$j$ ciphertext \\
+$b_j^{(t)}, \hat{b}_j^{(t)}$ & Primary and compensation pack-$j$ masking polynomials & $\kappa_{i,j}^{(t)}, \delta_{i,j}^{(t)}$ & Dropout compensation key and compensation ciphertext \\
+$\lambda_i^{(t)}, \widehat{\lambda}_i^{(t)}$ & Lagrange interpolation weights over $\mathcal{S}^{(t)}$ and $\widehat{\mathcal{S}}^{(t)}$ & $C_j^{(t)}, \mathrm{pt}_j^{(t)}$ & Aggregated ciphertext and plaintext polynomial of pack $j$ \\
+$\mathcal{Q}, \mathcal{L}_i$ & Server sliding prefetch queue and client-$i$ prefetch cache & $C_{\mathrm{pre},j}, \tilde{\mathbf{g}}_{\mathrm{pre}}$ & Cross-round accumulated ciphertext and prefetched update \\
+\hline
+\end{tabular}
+\end{table*}
+
+
+\subsection{Cross-Device Federated Learning}
+\label{sec:cdfl}
+Consider a cross-device FL system where a central server coordinates $N$ registered clients $\mathcal{C} = [N]$ to collaboratively train a global model $\mathbf{W} \in \mathbb{R}^d$ over $T$ rounds~\cite{mcmahan2017communication}, with each client $i \in \mathcal{C}$ holding a private dataset $\mathcal{D}_i$ of $n_i = |\mathcal{D}_i|$ samples. Because edge devices participate intermittently, at each round $t$ the server presamples a candidate pool $\mathcal{P}^{(t)} \subseteq \mathcal{C}$~\cite{yan2025fedfetch}, from which $K = |\mathcal{S}^{(t)}|$ responsive clients form the confirmed active set $\mathcal{S}^{(t)} \subseteq \mathcal{P}^{(t)}$ (with inactive set $\bar{\mathcal{S}}^{(t)} = \mathcal{C} \setminus \mathcal{S}^{(t)}$) and receive aggregation weights $\omega_i^{(t)} = n_i / \sum_{u \in \mathcal{S}^{(t)}} n_u$. Each active client $i \in \mathcal{S}^{(t)}$ synchronizes its local model $\mathbf{w}_i$ with $\mathbf{W}^{(t)}$, performs $\mathcal{E}$ local training epochs on $\mathcal{D}_i$ to obtain $\mathbf{w}_i^{(t)}$, and computes its model increment $\Delta\mathbf{w}_i^{(t)} = \mathbf{w}_i^{(t)} - \mathbf{w}_i$. If a subset $\mathcal{D}^{(t)} \subset \mathcal{S}^{(t)}$ drops out during upload, the server aggregates the updates over the surviving uploader set $\widehat{\mathcal{S}}^{(t)} = \mathcal{S}^{(t)} \setminus \mathcal{D}^{(t)}$:
+\begin{equation}
+\mathbf{W}^{(t+1)} = \mathbf{W}^{(t)} + \sum_{i \in \widehat{\mathcal{S}}^{(t)}} \omega_i^{(t)} \Delta\mathbf{w}_i^{(t)}.
+\end{equation}
+
+
+
+\subsection{CKKS Encoding and Additive Encryption}
+\label{sec:ckks}
+
+\subsubsection{Ring Learning With Errors (RLWE)}
+Let $\mathcal{R} = \mathbb{Z}[X]/(X^n + 1)$ denote the cyclotomic ring of power-of-two degree $n$, and let $\mathcal{R}_q = \mathbb{Z}_q[X]/(X^n + 1)$ be the residue ring modulo $q$. Let $\chi_s$ and $\chi_e$ denote error distributions over $\mathcal{R}$ bounded in infinity norm by $B_s$ and $B_e$, respectively, and let $\mathcal{U}(X)$ denote the uniform distribution over a finite set $X$. Under the decisional RLWE (dRLWE) assumption~\cite{lyubashevsky2010ideal}, paired samples $(b, a) \in \mathcal{R}_q^2$ where $a \leftarrow \mathcal{U}(\mathcal{R}_q)$, $s \leftarrow \chi_s$, $e \leftarrow \chi_e$, and $b = [-a \cdot s + e]_q$ are computationally indistinguishable from uniform samples in $\mathcal{U}(\mathcal{R}_q^2)$.
+
+\subsubsection{CKKS Encoding and Slot Packing}
+CKKS~\cite{cheon2017homomorphic} employs the canonical embedding $\varphi: \mathbb{R}[X]/(X^n+1) \rightarrow \mathbb{C}^{n/2}$ to pack $n/2$ scalars into a single ring polynomial, partitioning a $d$-dimensional model into $J = \lceil 2d/n \rceil$ packs while supporting coefficient-wise embedding for binary vote bitmaps. Given a scaling factor $\Delta > 1$, the encoding function $\mathrm{Ecd}(\cdot, \Delta)$ maps a vector $\mathbf{z} \in \mathbb{C}^{n/2}$ into a plaintext polynomial $\mathrm{pt} \in \mathcal{R}_q$:
+\begin{equation}
+\mathrm{pt} = \mathrm{Ecd}(\mathbf{z}, \Delta) = \lfloor \Delta \cdot \varphi^{-1}(\mathbf{z}) \rceil \in \mathcal{R}_q,
+\end{equation}
+and the decoding function $\mathrm{Dcd}(\cdot, \Delta)$ approximately recovers $\mathbf{z}$ via:
+\begin{equation}
+\mathbf{z} = \mathrm{Dcd}(\mathrm{pt}, \Delta) = \Delta^{-1} \cdot \varphi(\mathrm{pt}).
+\end{equation}
+
+\subsubsection{Additive Encryption}
+\textsc{ECPFL} builds upon an RLWE-based multi-key additively homomorphic encryption (AHE) scheme~\cite{wu2025esafl} consisting of five core algorithms:
+\begin{itemize}[leftmargin=*]
+\item  \textbf{HE.Setup}$(1^\lambda) \to \mathrm{pp}$: Given the security parameter $1^\lambda$, generates the public parameters $\mathrm{pp} = (n, q, p, \tilde{p}, \Delta, \chi_e)$, where $\gcd(p, q) = 1$ and $\tilde{p}$ is a multiple of the plaintext modulus $p$.
+
+\item  \textbf{HE.KeyGen}$(\mathrm{pp}) \to (\{s_i\}_{i \in [N]}, S, \sigma_a, \sigma_b)$: Samples $N$ client secret keys $s_i \leftarrow \mathcal{U}(\mathcal{R}_q)$, computes the aggregate decryption key $S = \bigl[\sum_{i=1}^{N} s_i\bigr]_q$, and generates client-shared seeds $\sigma_a, \sigma_b$ for public and masking polynomials.
+
+\item  \textbf{HE.Enc}$\bigl(a_j^{(t)}, s_i, \mathrm{pt}_{i,j}^{(t)}\bigr) \to \mathrm{ct}_{i,j}^{(t)}$: At round $t$, client $i$ encrypts the $j$-th plaintext polynomial $\mathrm{pt}_{i,j}^{(t)}$ using its secret key $s_i$ and the pack-$j$ public polynomial $a_j^{(t)} = \mathrm{HE.PRPG}(\sigma_a, t \parallel j)$:
+\begin{equation}
+\label{eq:mkhe_enc}
+\mathrm{ct}_{i,j}^{(t)} = \Bigl[a_j^{(t)} \cdot s_i + \tilde{p} \cdot e_{i,j}^{(t)} + \mathrm{pt}_{i,j}^{(t)}\Bigr]_q,
+\end{equation}
+where $e_{i,j}^{(t)} \leftarrow \chi_e$ and $[\cdot]_q$ denotes centered reduction into $(-q/2, q/2]$.
+
+\item  \textbf{HE.Eval}$\bigl(\{\mathrm{ct}_{i,j}^{(t)}\}_{i \in [N]}\bigr) \to C_j^{(t)}$: Sums the $N$ pack-$j$ ciphertexts over $i \in [N]$ in $\mathcal{R}_q$:
+\begin{equation}
+\label{eq:mkhe_eval}
+C_j^{(t)} = \Biggl[\sum_{i=1}^{N} \mathrm{ct}_{i,j}^{(t)}\Biggr]_q.
+\end{equation}
+Substituting Eq.~\eqref{eq:mkhe_enc} into Eq.~\eqref{eq:mkhe_eval} yields:
+\begin{align}
+C_j^{(t)} &= \Biggl[\sum_{i=1}^{N} \Bigl(a_j^{(t)} \cdot s_i + \tilde{p} \cdot e_{i,j}^{(t)} + \mathrm{pt}_{i,j}^{(t)}\Bigr)\Biggr]_q \notag \\
+&= \Bigl[a_j^{(t)} \cdot S + \tilde{p} \cdot E_j^{(t)} + \mathrm{pt}_j^{(t)}\Bigr]_q,
+\label{eq:mkhe_agg}
+\end{align}
+where $E_j^{(t)} = \sum_{i=1}^{N} e_{i,j}^{(t)}$ and $\mathrm{pt}_j^{(t)} = \sum_{i=1}^{N} \mathrm{pt}_{i,j}^{(t)}$ denote the aggregated error and plaintext polynomial for pack $j$.
+
+\item  \textbf{HE.Dec}$\bigl(a_j^{(t)}, S, C_j^{(t)}\bigr) \to \mathrm{pt}_j^{(t)}$: Each registered client holding $(S, \sigma_a)$ performs one-step decryption to recover $\mathrm{pt}_j^{(t)}$ locally without uploading decryption shares:
+\begin{align}
+\mathrm{pt}_j^{(t)} &= \Bigl[\bigl[C_j^{(t)} - a_j^{(t)} \cdot S\bigr]_q\Bigr]_p \notag \\
+&= \Bigl[\bigl[\tilde{p} \cdot E_j^{(t)} + \mathrm{pt}_j^{(t)}\bigr]_q\Bigr]_p = \mathrm{pt}_j^{(t)},
+\label{eq:mkhe_dec}
+\end{align}
+where $[\cdot]_{q,p} = [[\cdot]_q]_p$. Whenever $\|\tilde{p} \cdot E_j^{(t)} + \mathrm{pt}_j^{(t)}\|_\infty < q/2$, reduction modulo $q$ causes no wrap-around and reduction modulo $p$ removes $\tilde{p} \cdot E_j^{(t)}$, after which $\tilde{\mathbf{g}}_j^{(t)} = \mathrm{Dcd}(\mathrm{pt}_j^{(t)}, \Delta)$ recovers the aggregated update.
+\end{itemize}
+
+\textbf{Cross-Pack Vulnerability.} Extending ESAFL~\cite{wu2025esafl} to multiple ciphertext packs with a shared polynomial $a^{(t)}$ risks exposing plaintext differences: subtracting two ciphertexts encrypted under the same secret key cancels the common masking term and reveals their plaintext difference modulo $p$. To address this risk, \textsc{ECPFL} derives a distinct polynomial $a_j^{(t)}$ for each pack, preventing direct mask cancellation. Although cross-multiplication can still eliminate the secret-key term, it amplifies the noise beyond $q/2$, and the resulting modulo-$q$ wrap-around prevents recovering the plaintext difference modulo $p$.
+
+\subsection{Shamir Secret Sharing}
+\label{sec:shamir}
+Full-participation AHE~\cite{wu2025esafl} fails under client subsampling ($\mathcal{S}^{(t)} \subset \mathcal{C}$) and upload-phase dropouts ($\mathcal{D}^{(t)} \neq \emptyset$): if any client is absent, the uploaded keys no longer sum to $S$ and one-step decryption in Eq.~\eqref{eq:mkhe_dec} fails. Rather than using Shamir secret sharing~\cite{shamir1979how} for interactive threshold decryption, \textsc{ECPFL} shares $S$ directly over $\mathcal{R}_q$~\cite{mouchet2023threshold}, \cite{colin2026tfhesd} so that any active subset of size at least $\tau$ can non-interactively reconstruct the upstream encryption mask $a_j^{(t)}S$ while keeping individual updates confidential against up to $\tau-2$ colluding clients. Following~\cite{mouchet2023threshold}, we set constant evaluation points $\alpha_i = i \in \mathcal{R}_q$ ($i \in [N]$) under a modulus $q$ whose prime factors exceed $N$, ensuring that $\alpha_i - \alpha_u$ is invertible in $\mathcal{R}_q$ for all $i \neq u$. During initialization, the KGC executes the share-generation algorithm:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{SS.ShareGen}$(S, \tau) \to \{(S_i, z_i)\}_{i \in [N]}$: Samples degree-$(\tau-1)$ polynomials $F_S(x), Z(x) \in \mathcal{R}_q[x]$ with $F_S(0) = S$ and $Z(0) = 0$ to output aggregate-key shares $S_i = F_S(\alpha_i)$ and zero-shares $z_i = Z(\alpha_i)$ for $i \in [N]$.
+\end{itemize}
+For any subset $\mathcal{S}^{(t)} \subseteq \mathcal{C}$ with $|\mathcal{S}^{(t)}| \ge \tau$, the Lagrange weights $\lambda_i^{(t)}$ over $\mathcal{S}^{(t)}$ are:
+\begin{equation}
+\label{eq:lagrange_weight}
+\lambda_i^{(t)} = \prod_{u \in \mathcal{S}^{(t)} \setminus \{i\}} (-\alpha_u)(\alpha_i - \alpha_u)^{-1} \pmod q,
+\end{equation}
+satisfying the exact ring interpolation identities at $x = 0$:
+\begin{equation}
+\label{eq:shamir_identities}
+\begin{aligned}
+&\Bigl[\sum_{i \in \mathcal{S}^{(t)}} \lambda_i^{(t)} S_i\Bigr]_q = S, \qquad 
+&\Bigl[\sum_{i \in \mathcal{S}^{(t)}} \lambda_i^{(t)} z_i\Bigr]_q = 0.
+\end{aligned}
+\end{equation}
+
+\subsection{Gradient Prefetching in FL}
+Prefetching mitigates communication latency in FL by strategically shifting downstream payload transfers to idle bandwidth periods. FedFetch~\cite{yan2025fedfetch} introduces a plaintext prefetching framework where an inactive client scheduled to re-participate after $R$ rounds downloads the plaintext global model updates $\Delta\mathbf{W}^{(t+r)} = \mathbf{W}^{(t+r+1)} - \mathbf{W}^{(t+r)}$ during idle periods. Extending this paradigm to the ciphertext domain requires inactive clients to prefetch and homomorphically accumulate the aggregated ciphertexts $C^{(t+r)}$ over the ciphertext polynomial ring $\mathcal{R}_q$:
+\begin{equation}
+\label{eq:ciphertext_prefetch}
+C_{\mathrm{pre}} = \Biggl[\sum_{r=0}^{R-1} C^{(t+r)}\Biggr]_q.
+\end{equation}
+The additive closure of $\mathcal{R}_q$ enables bounded-dimension homomorphic summation, avoiding ciphertext expansion.
+
+\subsection{Motivation and Challenges}
+\label{sec:motivation}
+While plaintext frameworks like FedFetch~\cite{yan2025fedfetch} mitigate downstream latency by allowing clients to asynchronously prefetch compressed server updates, transmitting these unencrypted payloads inherently compromises privacy guarantees. Furthermore, attempting to realize end-to-end bidirectional efficiency in the MKHE domain through the pairing of upstream update sparsification and downstream ciphertext prefetching poses three structural challenges:
+
+\begin{itemize}
+\item \textbf{Q1 (Alignment Dilemma):} \emph{Heterogeneous clients tend to select different important parameters, resulting in misaligned sparse indices. How can we align their selections to enable correct pack-wise ciphertext aggregation without leaking individual selection profiles?}
+
+\item \textbf{Q2 (Dropout Dilemma):} \emph{Partial client sampling and upload-phase client dropouts leave missing key shares in multi-key aggregation, while unmasked Lagrange interpolation across varying participant subsets leaks secret keys. How can we restore the exact aggregate key contribution $a_j^{(t)}S$ across both synchronous and asynchronous participation settings without interactive decryption rounds?}
+
+\item \textbf{Q3 (Sparsity and Prefetching Paradox):} \emph{CKKS ciphertext size is independent of plaintext sparsity, so sparse updates still incur full communication cost. How can we redesign pack-level packing and prefetching to turn algorithmic sparsity into real bandwidth savings with one-step local decryption?}
+\end{itemize}
+
+To address these challenges, we present \textsc{ECPFL}, combining ESP and ECP. ESP tackles Q1 and Q2 through a Shamir zero-sharing-based secure voting mechanism and a dropout-resilient and secure pack-level sparse ciphertext upload mechanism (Section~\ref{sec:vptopk}), and ECP tackles Q3 via pack-level prefetching and cross-round homomorphic accumulation (Section~\ref{sec:cipherfetch}).

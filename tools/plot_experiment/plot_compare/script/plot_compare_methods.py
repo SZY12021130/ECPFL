@@ -82,8 +82,14 @@ TICK_LENGTH = 5
 FONT_SIZE_BASE = 18
 FONT_SIZE_TITLE = 18
 FONT_SIZE_LABEL = 18
-FONT_SIZE_TICK = 15
-FONT_SIZE_LEGEND = 10
+FONT_SIZE_TICK = 15.5  # 与 noniid_step_1x2 系列刻度字号一致
+
+# 字体回退链：与 noniid_step_1x2 / comm_volume_clients 完全一致（Times serif）
+FONT_FALLBACKS = [
+    "Times New Roman", "Times", "Nimbus Roman", "Nimbus Roman No9 L",
+    "TeX Gyre Termes", "Liberation Serif", "FreeSerif", "DejaVu Serif",
+]
+FONT_SIZE_LEGEND = 12   # 与 noniid_step_1x2 系列图例字号一致
 
 # 基础绘图参数
 ROUNDS = np.arange(1, 51)
@@ -234,9 +240,10 @@ DATASET_PARAMS = {
     # },
 }
 
-# 子图标题与 Y 轴范围
+# 子图标题与 Y 轴范围（准确率为百分数，0--100）
 SUBTITLES = ["(a) MNIST", "(b) FMNIST", "(c) CIFAR-10", "(d) SVHN"]
-YLIMS = [(0, 1.0), (0, 1.0), (0, 1.0), (0, 1.0)]
+YLIMS = [(0, 100.0), (0, 100.0), (0, 100.0), (0, 100.0)]
+Y_TICK_STEP = 20
 
 # ---------------------------------------------------------------------------
 # 2. 自动对齐与校验
@@ -274,6 +281,8 @@ def build_data_from_real(params_dict):
             # 如果数据不足 ROUNDS 长度，用最后一个值填充
             while len(y) < n:
                 y.append(y[-1] if y else 0.0)
+            # 原始数据是 0--1 比例，统一换算成百分数（与 Y 轴 "Test Accuracy (%)" 一致）
+            y = [v * 100.0 for v in y]
             data[ds][method] = {
                 "x": ROUNDS.tolist(),
                 "y": y,
@@ -298,7 +307,20 @@ def _draw_one_theme(theme_name, colors, data, plotter):
             method_colors.append(matplotlib.colors.to_hex(cmap(i)))
     color_dict = dict(zip(METHODS, method_colors))
 
-    with plt.style.context(plotter.style):
+    # font.weight=bold 让刻度数字加粗（与 noniid_step_1x2 一致）；
+    # 轴标题/子图标题再单独显式压回 normal；
+    # 字体链与 noniid_step_1x2 完全一致（science 样式默认 DejaVu Serif，
+    # 必须覆盖成 Times 才能与 noniid 系列图例/文字字形一致）
+    _style = [*plotter.style, {
+        "font.weight": "bold",
+        "axes.labelweight": "normal",
+        "xtick.labelsize": FONT_SIZE_TICK,
+        "ytick.labelsize": FONT_SIZE_TICK,
+        "font.family": "serif",
+        "font.serif": FONT_FALLBACKS,
+        "mathtext.fontset": "stix",
+    }]
+    with plt.style.context(_style):
         fig, axes = plt.subplots(1, len(DATASETS), figsize=(18, 4))
         if len(DATASETS) == 1:
             axes = [axes]
@@ -326,11 +348,15 @@ def _draw_one_theme(theme_name, colors, data, plotter):
                     legend_handles.append(line)
                     legend_labels.append(method)
 
-            ax.set_xlabel("Number of Rounds", fontsize=FONT_SIZE_LABEL)
-            ax.set_ylabel("Test Accuracy (%)", fontsize=FONT_SIZE_LABEL)
-            ax.set_title(subtitle, fontsize=FONT_SIZE_TITLE)
+            ax.set_xlabel("Number of Rounds", fontsize=FONT_SIZE_LABEL,
+                          fontweight="normal")
+            ax.set_ylabel("Test Accuracy (%)", fontsize=FONT_SIZE_LABEL,
+                          fontweight="normal")
+            ax.set_title(subtitle, fontsize=FONT_SIZE_TITLE, fontweight="normal")
             ax.set_xlim(0, 50)
             ax.set_ylim(ylim)
+            # 刻度按百分数整数显示（0/20/40/60/80/100），不要小数比例
+            ax.set_yticks(np.arange(ylim[0], ylim[1] + 1e-9, Y_TICK_STEP))
             ax.grid(True, linestyle="--", alpha=0.5)
 
             # 轴线与刻度线加粗
@@ -339,10 +365,19 @@ def _draw_one_theme(theme_name, colors, data, plotter):
             ax.tick_params(axis="both", width=TICK_WIDTH, length=TICK_LENGTH,
                            labelsize=FONT_SIZE_TICK)
 
-            # 子图内部图例
+            # 子图内部图例（文字常规粗细；几何参数与 noniid_step_1x2 完全一致）
             if not use_outside:
                 loc_str = LEGEND_CONFIG.replace("_", " ")
-                ax.legend(loc=loc_str, fontsize=FONT_SIZE_LEGEND, frameon=True, ncol=LEGEND_NCOL)
+                leg = ax.legend(loc=loc_str, fontsize=FONT_SIZE_LEGEND,
+                                ncol=LEGEND_NCOL,
+                                frameon=True, fancybox=False, framealpha=0.95,
+                                edgecolor="#888888", facecolor="white",
+                                borderpad=0.30, labelspacing=0.28,
+                                handlelength=1.9, handletextpad=0.55,
+                                borderaxespad=0.35)
+                leg.get_frame().set_linewidth(0.7)
+                for t in leg.get_texts():
+                    t.set_fontweight("normal")
 
         # 全局图例（图外）
         if use_outside:
@@ -392,7 +427,7 @@ def main():
         style=["science", "grid"],
         output_dir=os.path.join(os.path.dirname(os.path.dirname(__file__)), "pic"),
         figsize=(6, 4),
-        dpi=300,
+        dpi=600,   # 与 noniid_step_1x2 / comm_volume_clients 输出同分辨率，笔画粗细一致
         use_latex=False,
         font_size=FONT_SIZE_BASE,
     )

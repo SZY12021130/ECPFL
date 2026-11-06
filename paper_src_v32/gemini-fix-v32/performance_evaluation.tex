@@ -1,0 +1,398 @@
+\section{Performance Evaluation}
+\label{sec:evaluation}
+
+\begin{table*}[!t]
+ \centering
+ \caption{\textsc{Comparison of Test Accuracy, Total Communication Volume, and Training Time Across Four Datasets}}
+ \label{tab:comm-comparison}
+ \footnotesize
+ \setlength{\tabcolsep}{3.2pt}
+ \renewcommand{\arraystretch}{1.08}
+ \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l rrr rrr rrr rrr@{}}
+ \toprule
+ \multirow{3}{*}{\textbf{Method}} &
+ \multicolumn{3}{c}{\textbf{MNIST (LeNet)}} &
+ \multicolumn{3}{c}{\textbf{FMNIST (CNN)}} &
+ \multicolumn{3}{c}{\textbf{CIFAR-10 (ResNet-20)}} &
+ \multicolumn{3}{c}{\textbf{SVHN (ResNet-32)}} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(l){11-13}
+& \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.1, \zeta=0.1)$} 
+& \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.3, \zeta=0.1)$} 
+& \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.7, \zeta=0.5)$} 
+& \multicolumn{3}{c}{\scriptsize $(\alpha=1.0, \theta=0.7, \zeta=0.5)$} \\
+ \cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-10} \cmidrule(l){11-13}
+ & \multicolumn{1}{c}{\scriptsize \textbf{AC} (\%)} & \multicolumn{1}{c}{\scriptsize \textbf{TV} ($\mathrm{GB}$)} & \multicolumn{1}{c}{\scriptsize \textbf{TT} ($\mathrm{s}$)}
+ & \multicolumn{1}{c}{\scriptsize \textbf{AC} (\%)} & \multicolumn{1}{c}{\scriptsize \textbf{TV} ($\mathrm{GB}$)} & \multicolumn{1}{c}{\scriptsize \textbf{TT} ($\mathrm{s}$)}
+ & \multicolumn{1}{c}{\scriptsize \textbf{AC} (\%)} & \multicolumn{1}{c}{\scriptsize \textbf{TV} ($\mathrm{GB}$)} & \multicolumn{1}{c}{\scriptsize \textbf{TT} ($\mathrm{s}$)}
+ & \multicolumn{1}{c}{\scriptsize \textbf{AC} (\%)} & \multicolumn{1}{c}{\scriptsize \textbf{TV} ($\mathrm{GB}$)} & \multicolumn{1}{c}{\scriptsize \textbf{TT} ($\mathrm{s}$)} \\
+ \midrule
+FedAvg+CKKS & \textbf{99.23} & 8.56 & 315.0 & \textbf{91.46} & 7.78 & 285.4 & \textbf{84.41} & 52.15 & 1756.3 & \textbf{95.73} & 89.60 & 3141.6 \\
+FedPHE (Top-$\zeta$) & 99.10 & \underline{3.84} & \underline{201.5} & 87.00 & 3.95 & \underline{179.4} & 75.77 & 31.75 & \underline{1221.5} & 94.44 & 54.38 & 2445.1 \\
+ESAFL & 99.11 & 4.67 & 240.0 & 89.51 & 3.89 & 244.4 & 77.51 & 26.46 & 1402.6 & 95.54 & 45.14 & 2363.5 \\
+MASER & 99.13 & 8.31 & 466.7 & 90.66 & 7.17 & 427.8 & 81.91 & 40.92 & 1927.9 & \underline{95.63} & 71.02 & 3308.4 \\
+ \midrule
+\textbf{ECPFL-UN (Ours)} & \underline{99.19} & 4.21 & 439.9 & \underline{91.20} & 2.86 & 323.2 & \underline{82.77} & 20.03 & 1564.9 & 95.11 & 34.89 & 986.5 \\
+\textbf{ECPFL-TH-$\theta$ (Ours)} & 99.10 & 4.06 & 422.5 & 90.74 & \underline{2.15} & 259.8 & 81.58 & \textbf{7.60} & \textbf{689.2} & 94.17 & \textbf{19.10} & \textbf{577.6} \\
+\textbf{ECPFL-RK-$\theta$ (Ours)} & 99.15 & \textbf{0.80} & \textbf{129.9} & 90.14 & \textbf{1.19} & \textbf{95.8} & 82.24 & \underline{18.66} & 1441.4 & 95.11 & \underline{31.68} & \underline{923.2} \\
+ \bottomrule
+ \multicolumn{13}{@{}l}{\scriptsize \textit{Note:} Bold values indicate the best result in each column, and underlined values indicate the second-best result.}
+ \end{tabular*}
+\end{table*}
+
+\subsection{Experimental Setup}
+\label{sec:setup}
+
+\subsubsection{Basic Configuration}
+All experiments run on a workstation with an Intel Core i7-14700, 32~$\mathrm{GB}$ RAM, and an NVIDIA RTX 3050 GPU, with PyTorch used for local model training.
+
+\begin{figure}[!t]
+ \centering
+ \includegraphics[width=\linewidth]{../figures/fig5_npg-3.pdf}
+ \caption{Dataset batch partitions and client bandwidth profiles: (a) batch counts and encrypted model sizes across four datasets, and (b) CDF of client download and upload bandwidths.}
+ \label{fig:dataset}
+ 
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{../figures/fig6_batches_ciphertext.pdf}
+\caption{Comparison of (a) batch counts per update and (b) full-model ciphertext sizes (log scale) across four datasets.}
+\label{fig:profiles}
+
+\end{figure}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{../figures/method_comparison_contrast.pdf}
+\caption{Test accuracy convergence trajectories across four datasets ($\alpha=1.0, T=50$).}
+\label{fig:accuracy_compare}
+\end{figure*}
+
+\subsubsection{Datasets and Models}
+Fig.~\ref{fig:dataset}(a) illustrates our evaluation of ECPFL across four diverse datasets~\cite{deng2012mnist}, \cite{xiao2017fashion}, \cite{krizhevsky2009learning}, \cite{netzer2011reading} varying in data scales, model parameters, and SIMD batch sizes:
+
+\begin{itemize}
+ \item \textbf{MNIST} (LeNet, 11 packs): 10-class handwritten digits; 60,000 training and 10,000 test samples.
+ \item \textbf{Fashion-MNIST} (CNN, 10 packs): 10-class grayscale clothing images; 60,000 training and 10,000 test samples.
+ \item \textbf{CIFAR-10} (ResNet-20, 67 packs): 10-class color images; 50,000 training and 10,000 test samples.
+ \item \textbf{SVHN} (ResNet-32, 113 packs): real-world RGB digits; 73,257 training and 26,032 test samples.
+\end{itemize}
+
+In addition, we use the bandwidth measurements of~\cite{clark2021measurement}, collected from heterogeneous devices such as smartphones and PCs. The lowest upload and download bandwidths on this dataset are 0.03~$\mathrm{Mbps}$ and 0.01~$\mathrm{Mbps}$, respectively. As shown in Fig.~\ref{fig:dataset}(b), the median download bandwidth is 81.29~$\mathrm{Mbps}$, significantly higher than the median upload bandwidth of 18.42~$\mathrm{Mbps}$.
+
+\subsubsection{Baselines for Comparison} To comprehensively evaluate the efficiency of \textsc{ECPFL}, we compare it with four representative state-of-the-art protocols:
+\begin{itemize}
+\item \textbf{FedAvg+CKKS}: a naive integration of single-key CKKS with standard FedAvg.
+\item \textbf{FedPHE}~\cite{li2025fedphe}: a single-key CKKS framework with pack-level Top-$k$ sparsification.
+\item \textbf{ESAFL}~\cite{wu2025esafl}: a multi-key secure aggregation protocol that improves ciphertext efficiency via SIMD slot packing.
+\item \textbf{MASER}~\cite{al2025maser}: a multi-key HE framework that reduces computation and communication overhead through consensus-based model pruning and parameter slicing.
+\end{itemize}
+
+We implement FedAvg+CKKS and FedPHE with the TenSEAL library~\cite{benaissa2021tenseal}, MASER with the xMK-CKKS library with partial-decryption upload, ESAFL with a bit-packing scheme that packs two quantized parameters into one CKKS slot, and \textsc{ECPFL} with a custom Python single-ciphertext RLWE structure. We further benchmark three voting variants: \textsc{ECPFL-UN} retains every pack receiving at least one vote; \textsc{ECPFL-RK-}$\theta$ retains the top $\theta$ proportion of packs by global vote tally; and \textsc{ECPFL-TH-}$\theta$ retains packs voted by at least a $\theta$ fraction of the active clients. As shown in Fig.~\ref{fig:profiles}, across MNIST, FMNIST, CIFAR-10, and SVHN with $44{,}426$ to $460{,}618$ parameters, FedAvg+CKKS, FedPHE, and MASER partition each update into $11$, $10$, $67$, and $113$ batches totaling $1.311$ to $13.463~\mathrm{MB}$, whereas \textsc{ECPFL} keeps the same batch counts while reducing full-model ciphertexts to $0.328$--$3.366~\mathrm{MB}$ via single-ring-element packing, and \textsc{ESAFL} halves the batch counts to $6$, $5$, $34$, and $57$ totaling $0.179$--$1.698~\mathrm{MB}$ by packing two quantized parameters per slot.
+
+\subsubsection{Hyperparameters}
+All methods utilize the Adam optimizer with learning rate $\eta = 0.001$, a batch size of 64, and $\mathcal{E} = 3$ local epochs. The client sampling rate is 0.5, and the over-commitment parameter is $\beta = 1.3$~\cite{yan2025fedfetch} to avoid stragglers. The default settings for \textsc{ECPFL} are as follows: pack-level sparsification is $\zeta = 0.1$ for MNIST and FMNIST, and $\zeta = 0.5$ for CIFAR-10 and SVHN. The prefetch window is set to $R = 3$, and dual-decay parameters are $\gamma_{d} = 0.3$ and $\gamma_{s} = 0.5$. EMA smoothing with $\rho = 0.125$ is used to predict the training time for the prefetch round. For cryptographic parameters, all evaluated schemes are configured to achieve the standard $\lambda = 128$-bit security level: FedAvg+CKKS, FedPHE, and MASER use a CKKS polynomial modulus degree of $n=8192$ with a $\{60, 40, 40, 60\}$-bit modulus chain, whereas \textsc{ESAFL} and \textsc{ECPFL} set the RLWE polynomial degree to $n=4096$ so that all methods pack $4096$ slots per batch.
+
+
+\subsubsection{Metrics}
+We report \textit{Test Accuracy} (AC), \textit{Upload Volume} (UV), \textit{Prefetch Volume} (PV), \textit{Downstream Fetch Volume} (FV), \textit{Total Volume} ($\mathrm{TV} = \mathrm{UV} + \mathrm{FV}$), and \textit{Physical Downstream Volume} ($\mathrm{PDV} = \mathrm{PV} + \mathrm{FV}$), where PV is reported separately from online synchronous fetch volume (FV) on the training critical path~\cite{yan2025fedfetch}. Latency is measured by \textit{Upload Time} (UT), \textit{Downstream Fetch Time} (DT), and \textit{Total Training Time} (TT). Unless otherwise specified (see Section~\ref{sec:sensitivity} for scalability across $N \in \{50, 100, 500, 1000\}$), we adopt $N=50$ ($K=25, \tau=13$) as the default configuration for the comparative experiments.
+
+
+\subsection{Overall Performance}
+\label{sec:accuracy}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{../figures/noniid_step_1x2_set1.pdf}
+\caption{Test accuracy under varying non-IID degrees ($\alpha \in \{0.1, 0.5, 1, 5, 10\}$) on FMNIST and CIFAR-10.}
+\label{fig:niid_compare}
+\end{figure}
+
+Fig.~\ref{fig:accuracy_compare} and Table~\ref{tab:comm-comparison} compare convergence trajectories, test accuracy (AC), total communication volume (TV), and training time (TT) across the four datasets. All three \textsc{ECPFL} variants converge smoothly and track the dense FedAvg+CKKS baseline within $0.04$--$1.74$ percentage points, whereas \textsc{ECPFL-UN} surpasses the sparse baseline FedPHE by $4.20\%$ on FMNIST and $7.00\%$ on CIFAR-10 because consensus voting and dual-decay residual feedback prevent isolated client pruning from discarding informative gradient packs.
+
+In communication and runtime efficiency, \textsc{ECPFL-RK} reduces TV by $90.7\%$ ($10.7\times$) on MNIST and $84.7\%$ ($6.5\times$) on FMNIST relative to FedAvg+CKKS, accelerating TT by $2.4\times$ ($58.8\%$ reduction) and $3.0\times$ ($66.4\%$ reduction), respectively. On the larger ResNet-20 (CIFAR-10) and ResNet-32 (SVHN) models, \textsc{ECPFL-TH} cuts TV by $85.6\%$ ($6.9\times$) and $78.7\%$ ($4.7\times$) over FedAvg+CKKS ($73.2\%$ and $73.1\%$, or $3.7\times$, over MASER) while accelerating TT by $2.5\times$ and $5.4\times$ over FedAvg+CKKS ($2.8\times$ and $5.7\times$ over MASER).
+
+Fig.~\ref{fig:niid_compare} further evaluates statistical heterogeneity across Dirichlet parameters $\alpha \in \{0.1, 0.5, 1, 5, 10\}$. Across all non-IID regimes, \textsc{ECPFL} remains within $0.5\%$--$1.1\%$ of the dense FedAvg+CKKS upper bound. Under extreme heterogeneity ($\alpha = 0.1$), \textsc{ECPFL} outperforms FedPHE, ESAFL, and MASER by up to $5.1\%$ on FMNIST and $5.5\%$ on CIFAR-10, confirming that pack-level consensus and residual compensation preserve divergent class-specific updates.
+
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{../figures/faceted_log_vibrant_red_blue.pdf}
+\caption{Cumulative 50-round upstream and synchronous downstream communication volume (log scale).}
+\label{fig:communication_bar}
+
+\end{figure*}
+
+\begin{table}[!t]
+\centering
+\caption{\textsc{Per-Round Batch Count, Communication Volume, and Latency Breakdown Across Datasets}}
+\label{tab:perf_evaluation}
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.10}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}ll rr rr rr@{}}
+\toprule
+\multirow{2}{*}{\textbf{Dataset}} &
+\multirow{2}{*}{\textbf{Algorithm}} &
+\multicolumn{2}{c}{\textbf{Batches}} &
+\multicolumn{2}{c}{\textbf{Volume ($\mathrm{MB}$)}} & 
+\multicolumn{2}{c}{\textbf{Latency ($\mathrm{s}$)}} \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(l){7-8}
+& & \multicolumn{1}{c}{$N_{\mathrm{up}}$} & \multicolumn{1}{c}{$N_{\mathrm{agg}}$}
+ & \multicolumn{1}{c}{\textbf{UV}} & \multicolumn{1}{c}{\textbf{FV}}
+ & \multicolumn{1}{c}{\textbf{UT}} & \multicolumn{1}{c}{\textbf{DT}} \\
+\midrule
+\multirow{5}{*}{\textbf{MNIST}}
+& FedAvg+CKKS & 275 & 11 & 87.7 & 87.7 & 269.1 & 182.6 \\
+& FedPHE & 50 & 2 & 15.9 & 62.7 & \textbf{48.9} & 130.5 \\
+& ESAFL & 150 & 6 & 47.8 & 47.8 & 146.8 & 99.6 \\
+& MASER & 173 & 7 & 110.6 & 59.5 & 339.5 & 124.0 \\
+& \textbf{ECPFL-RK} & \textbf{50} & \textbf{2} & \textbf{15.9} & \textbf{0.3} & 78.6 & \textbf{2.3} \\
+\midrule
+\multirow{5}{*}{\textbf{FMNIST}}
+& FedAvg+CKKS & 250 & 10 & 79.7 & 79.7 & 244.6 & 166.0 \\
+& FedPHE & \textbf{25} & \textbf{1} & \textbf{8.0} & 72.9 & \textbf{24.5} & 151.8 \\
+& ESAFL & 125 & 5 & 39.9 & 39.9 & 122.3 & 83.0 \\
+& MASER & 150 & 6 & 95.3 & 51.5 & 292.5 & 107.2 \\
+& \textbf{ECPFL-RK} & 75 & 3 & 23.9 & \textbf{0.4} & 52.7 & \textbf{0.8} \\
+\midrule
+\multirow{5}{*}{\textbf{CIFAR-10}}
+& FedAvg+CKKS & 1675 & 67 & 534.0 & 534.0 & 1638.7 & 1111.9 \\
+& FedPHE & 850 & 34 & 271.0 & 379.2 & 831.6 & 789.6 \\
+& ESAFL & 850 & 34 & 271.0 & 271.0 & 831.6 & 564.3 \\
+& MASER & 849 & 34 & 541.3 & 296.8 & 1661.2 & 618.0 \\
+& \textbf{ECPFL-TH} & \textbf{476} & \textbf{19} & \textbf{151.8} & \textbf{3.8} & \textbf{598.0} & \textbf{15.0} \\
+\midrule
+\multirow{5}{*}{\textbf{SVHN}}
+& FedAvg+CKKS & 2875 & 114 & 916.6 & 916.6 & 2522.7 & 1137.7 \\
+& FedPHE & 1450 & 58 & 462.3 & 651.3 & 1418.6 & 1356.3 \\
+& ESAFL & 1450 & 58 & 462.3 & 462.3 & 1418.6 & 962.6 \\
+& MASER & 1474 & 59 & 939.8 & 514.7 & 2884.1 & 1071.7 \\
+& \textbf{ECPFL-TH} & \textbf{1208} & \textbf{48} & \textbf{385.3} & \textbf{6.0} & \textbf{477.9} & \textbf{11.0} \\
+\bottomrule
+\end{tabular}%
+}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\linewidth]{../figures/PV.png}
+\caption{Comparison of online fetch, upstream upload, and background prefetch transmission volumes across FL compression schemes.}
+\label{fig:pv}
+
+\end{figure}
+
+\subsection{Overhead and Efficiency Evaluation}
+\label{sec:communication}
+
+\subsubsection{Communication Overhead}
+Fig.~\ref{fig:communication_bar} and Table~\ref{tab:perf_evaluation} detail the upstream upload volume (UV) and synchronous downstream fetch volume (FV). Compared with FedAvg+CKKS, \textsc{ECPFL} reduces per-round UV by $81.9\%$ ($5.5\times$), $70.0\%$ ($3.3\times$), $71.6\%$ ($3.5\times$), and $58.0\%$ ($2.4\times$) on MNIST, FMNIST, CIFAR-10, and SVHN by restricting uploads to $k \in \{2, 3, 19, 48\}$ consensus packs. On the downstream critical path, \textsc{ECPFL} slashes synchronous FV by $99.2\%$--$99.7\%$ ($124\times$--$399\times$ in Fig.~\ref{fig:communication_bar}), reducing per-round online downloads to $0.3$--$6.0~\mathrm{MB}$ and cutting downstream latency (DT) by $74.1\times$--$207.5\times$. In contrast, because FedPHE lacks consensus alignment across clients, its aggregated ciphertexts expand across heterogeneous client selections, causing its per-round FV ($62.7$--$651.3~\mathrm{MB}$) to exceed its UV by $1.4\times$--$9.1\times$. As further illustrated in Fig.~\ref{fig:pv}, prefetching shifts over $97\%$ of downstream synchronization off the blocking training critical path (BW Fetch) into idle background windows (BW Prefetch)~\cite{yan2025fedfetch}.
+
+\subsubsection{End-to-End Training Time}
+As shown in Table~\ref{tab:comm-comparison} and Table~\ref{tab:perf_evaluation}, \textsc{ECPFL-RK} accelerates end-to-end training by $2.4\times$, $3.0\times$, $1.2\times$, and $3.4\times$ over FedAvg+CKKS across the four datasets, while \textsc{ECPFL-TH} achieves $2.5\times$ ($59.5\%$ reduction) and $5.4\times$ ($81.6\%$ reduction) speedups on the larger CIFAR-10 ($67$-pack) and SVHN ($113$-pack) models. On compact architectures such as MNIST ($J=11$) and FMNIST ($J=10$), \textsc{ECPFL-RK} provides the highest speedup by fixing a small pack budget ($2$--$3$ packs), whereas \textsc{ECPFL-TH} scales more effectively on deep ResNet architectures where adaptive consensus pruning eliminates $58.0\%$--$71.6\%$ of upstream encryption and transmission overhead.
+
+
+\begin{table*}[!t]
+\centering
+\caption{\textsc{Comparison of Per-Round Client-Side Cryptographic Complexity and Protocol Characteristics}}
+\label{tab:encryption-complexity}
+\footnotesize
+\setlength{\tabcolsep}{5.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c c c@{}}
+\toprule
+\textbf{Scheme} & \textbf{Key Model} & \textbf{Upstream Packs} & \textbf{Downstream Packs} & \textbf{Share Upload} & \textbf{Upstream Complexity} & \textbf{Total Client Complexity} \\
+\midrule
+FedAvg+CKKS & Single-Key & $J$ & $J$ & Not Required & $\mathcal{O}(d\log n)$ & $\mathcal{O}(d\log n)$ \\
+FedPHE~\cite{li2025fedphe} & Single-Key & $\lceil\zeta J\rceil$ & $\mathcal{O}(J)$ & Not Required & $\mathcal{O}(\zeta d\log n)$ & $\mathcal{O}(d\log n)$ \\
+ESAFL~\cite{wu2025esafl} & Multi-Key & $\lceil J/2\rceil$ & $\lceil J/2\rceil$ & Not Required & $\mathcal{O}(d\log n)$ & $\mathcal{O}(d\log n)$ \\
+MASER~\cite{al2025maser} & Multi-Key & $\lceil\zeta J\rceil$ & $\lceil\zeta J\rceil$ & Required & $\mathcal{O}(\zeta d\log n)$ & $\mathcal{O}(\zeta d\log n)$ \\
+\midrule
+\textbf{ECPFL (Ours)} & \textbf{Multi-Key} & $\bm{1{+}k}$ & $\bm{\le k}$ & \textbf{Not Required} & $\bm{\mathcal{O}(kn\log n)}$ & $\bm{\mathcal{O}(kn\log n)}\ (\bm{k\ll J})$ \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\begin{table*}[!t]
+\centering
+\caption{\textsc{Comparison With Dropout-Resilient Multi-Key and Threshold HE Schemes}}
+\label{tab:dropout-comparison}
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}l c c c c c c c@{}}
+\toprule
+\textbf{Scheme} & \textbf{Underlying HE} & \textbf{Extra Trust} & \textbf{Initialization} & \textbf{Client Storage} & \textbf{One-Step Dec.} & \textbf{Dropout Recovery} & \textbf{Downstream Packs} \\
+\midrule
+SecFed~\cite{cai2023secfed} & MK-BFV & Hardware TEE & $\mathcal{O}(Nn)$ & $\mathcal{O}(n)$ & No & $\mathcal{O}(|\mathcal{D}^{(t)}|d)$ & $J$ \\
+FedOut~\cite{yuan2026fedout} & MK-CKKS & Dual Servers & $\mathcal{O}(Nn)$ & $\mathcal{O}(n)$ & No & $\mathcal{O}(d)$ & $J$ \\
+SAMK~\cite{li2025samk} & AHE + Paillier & Offline KGC & $\mathcal{O}(N^2)$ & $\mathcal{O}(N)$ & Yes & $\mathcal{O}(|\mathcal{D}^{(t)}|d)$ & $J$ \\
+ATASSES~\cite{chang2025atasses} & Threshold FHE & Offline KGC & $\mathcal{O}(N^2)$ & $\mathcal{O}(Nn)$ & No & $\mathcal{O}(d)$ & $J$ \\
+$\Pi_{\mathrm{StThFHE}}$~\cite{kim2026tfhead} & Threshold FHE & Offline KGC & $\mathcal{O}(Nn)$ & $\mathcal{O}(n)$ & No & $\mathcal{O}(d)$ & $J$ \\
+\midrule
+\textbf{ECPFL (Ours)} & \textbf{AHE + Shamir} & \textbf{Offline KGC} & $\bm{\mathcal{O}(Nn)}$ & $\bm{\mathcal{O}(n)}$ & \textbf{Yes} & $\bm{\mathcal{O}(kn\log n)}$ & $\bm{\le k\ (k\ll J)}$ \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\subsubsection{Client-Side Cryptographic Complexity}
+Table~\ref{tab:encryption-complexity} compares the per-round client-side cryptographic overhead across the five evaluated schemes, where each degree-$n$ polynomial multiplication via NTT costs $\mathcal{O}(n\log n)$ and $J = \lceil 2d/n \rceil = \Theta(d/n)$. In single-key CKKS~\cite{cheon2017homomorphic}, encrypting one pack into a dual-element ciphertext $(c_0, c_1) \in \mathcal{R}_q^2$ requires $2$ ring multiplications and decryption requires $1$ ring multiplication: FedAvg+CKKS processes all $J$ packs bidirectionally ($3J \cdot \mathcal{O}(n\log n) = \mathcal{O}(d\log n)$), whereas FedPHE~\cite{li2025fedphe} encrypts $\lceil \zeta J \rceil$ sparse packs upstream ($\mathcal{O}(\zeta d\log n)$) but must still decrypt $\mathcal{O}(J)$ union packs downstream ($\mathcal{O}(d\log n)$) due to unaligned client selections. ESAFL~\cite{wu2025esafl} bit-packs pairs of encoded polynomials into $\lceil J/2 \rceil$ single-element ciphertexts in $\mathcal{R}_q$, requiring $\lceil J/2 \rceil$ ring multiplications for encryption and $\lceil J/2 \rceil$ for one-step decryption ($\mathcal{O}(d\log n)$). MASER~\cite{al2025maser} slices majority-voted parameters into $\lceil \zeta J \rceil$ packs encrypted under multi-key CKKS ($\mathcal{R}_q^2$), incurring $2\lceil \zeta J \rceil$ ring multiplications for encryption plus $\lceil \zeta J \rceil$ ring multiplications to generate and upload interactive partial-decryption shares $p_{i,j} = [C_{j,1} s_i + e_{i,j}^*]_q$, totaling $3\lceil \zeta J \rceil \cdot \mathcal{O}(n\log n) = \mathcal{O}(\zeta d\log n)$. By operating on single-element ciphertexts in $\mathcal{R}_q$, \textsc{ECPFL} requires only $1+2k$ ring multiplications upstream (one for $\hat{v}_i^{(t)}$ and two per pack for $b_j^{(t)}z_i$ and $a_j^{(t)}\tilde{s}_{i,j}^{(t)}$, plus $2k$ only when upload-phase dropout compensation is triggered) and at most $k$ ring multiplications for share-free one-step decryption downstream, reducing total client complexity to $\mathcal{O}(k n\log n)$ with $k \ll J$.
+
+
+\subsubsection{Dropout Recovery Comparison}
+Because the four accuracy baselines above lack upload-phase dropout recovery under one-step decryption, Table~\ref{tab:dropout-comparison} compares \textsc{ECPFL} with five representative dropout-resilient multi-key and threshold HE schemes---SecFed~\cite{cai2023secfed}, FedOut~\cite{yuan2026fedout}, SAMK~\cite{li2025samk}, ATASSES~\cite{chang2025atasses}, and $\Pi_{\mathrm{StThFHE}}$~\cite{kim2026tfhead}---which perform uncompressed full-model aggregation (sharing the dense accuracy trajectory of FedAvg+CKKS) but differ fundamentally in dropout-recovery architecture. As summarized in Table~\ref{tab:dropout-comparison}, SecFed and FedOut avoid client-side compensation only by introducing an online hardware enclave (TEE) or two non-colluding servers, respectively, while still requiring full-model ($J$-pack) decryption interaction. SAMK and ATASSES operate with a single server and an offline KGC, but require each client to pre-encrypt secret shares under other participants' public keys, incurring $\mathcal{O}(N^2)$ setup complexity and $\mathcal{O}(N)$ to $\mathcal{O}(Nn)$ client key storage. Furthermore, ATASSES and $\Pi_{\mathrm{StThFHE}}$ perform threshold reconstruction during the decryption phase, requiring surviving clients to compute and upload $\mathcal{O}(d)$ partial decryption shares across all $J$ packs. In contrast, \textsc{ECPFL} embeds Shamir key-contribution restoration directly into upstream encryption: it requires neither TEEs nor dual servers, achieves $\mathcal{O}(Nn)$ setup with $\mathcal{O}(n)$ client storage, preserves share-free one-step local decryption, and confines both upstream dropout compensation ($\mathcal{O}(kn\log n)$) and downstream synchronization ($\le k$ packs) strictly to the $k \ll J$ consensus packs.
+
+
+\newcolumntype{Y}{>{\centering\arraybackslash}X}
+\begin{table}[!t]
+\centering
+\caption{\textsc{Ablation Study of the ESP Module on SVHN (ResNet-32, $\zeta = 0.5$, $\theta = 0.7$)}}
+\label{tab:esp_ablation_svhn}
+
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\columnwidth}{|Y|Y|Y|Y|Y|c|c|c|}
+\hline
+\multicolumn{5}{|c|}{\textbf{ESP Components}} & \multicolumn{3}{c|}{\textbf{Evaluation Metrics}} \\
+\hline
+\textbf{LS} & \textbf{RF} & \textbf{PRD} & \textbf{CRD} & \textbf{RK} &
+\textbf{AC (\%)} & \textbf{UV ($\mathrm{MB}$)} & \textbf{$\Delta$UV} \\
+\hline
+-- & -- & -- & -- & -- & \textbf{95.73} & 45{,}429.7 & Baseline \\
+\hline
+\checkmark & -- & -- & -- & -- & 95.07 & 41{,}553.9 & $-8.5\%$ \\
+\hline
+\checkmark & \checkmark & -- & -- & -- & 95.01 & 41{,}798.3 & $-8.0\%$ \\
+\hline
+\checkmark & \checkmark & \checkmark & -- & -- & 94.89 & 42{,}409.5 & $-6.6\%$ \\
+\hline
+\checkmark & \checkmark & \checkmark & \checkmark & -- & 94.91 & 41{,}528.6 & $-8.6\%$ \\
+\hline
+\checkmark & \checkmark & \checkmark & \checkmark & \checkmark & 94.90 & \textbf{31{,}869.6} & $\bm{-29.8\%}$ \\
+\hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[!t]
+\centering
+\caption{\textsc{Client-Level Bandwidth Profiles ($\mathrm{Mbps}$) and Downstream Prefetch Breakdown ($\mathrm{MB}$) on CIFAR-10}}
+\label{tab:communication}
+
+\scriptsize
+\setlength{\tabcolsep}{2.2pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\columnwidth}{|Y|Y|Y|Y|Y|Y|Y|Y|Y|}
+\hline
+\textbf{Client} & \textbf{Prt.} & \textbf{CTs} & \textbf{DL} & \textbf{UL} & \textbf{PV} & \textbf{FV} & \textbf{PDV} & \textbf{PV/PDV} \\
+\hline
+0 & 34 & 2,207 & 136.97 & 160.28 & 702.55 & 14.59 & 717.14 & 98.0\% \\
+\hline
+1 & 29 & 1,889 & 177.35 & 14.59 & 702.33 & \textbf{0.00} & 702.33 & \textbf{100.0\%} \\
+\hline
+2 & 9 & 592 & 278.73 & 8.22 & 571.69 & 14.59 & 586.28 & 97.5\% \\
+\hline
+3 & 1 & 67 & 67.15 & 2.18 & 702.77 & \textbf{0.00} & 702.77 & \textbf{100.0\%} \\
+\hline
+4 & 38 & 2,472 & 318.88 & 36.82 & 717.36 & 14.59 & 731.95 & 98.0\% \\
+\hline
+5 & 36 & 2,350 & 307.66 & 150.35 & 704.35 & \textbf{0.00} & 704.35 & \textbf{100.0\%} \\
+\hline
+6 & 3 & 199 & 30.87 & 0.12 & 717.36 & 14.59 & 731.95 & 98.0\% \\
+\hline
+\end{tabularx}
+\end{table}
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+
+We conduct systematic ablation experiments on SVHN and CIFAR-10 to isolate the contribution of each \textsc{ECPFL} module.
+
+\subsubsection{Effectiveness of ESP}
+Table~\ref{tab:esp_ablation_svhn} isolates the five components of \textsc{ESP} on SVHN ($\zeta=0.5, \theta=0.7$). Applying local sparsity (LS) alone yields only an $8.5\%$ UV reduction because unaligned client selections force the server to aggregate the union of nominated packs. Incorporating residual feedback (RF), per-round decay (PRD), and cross-round decay (CRD) bounds stale gradient accumulation under intermittent participation, maintaining accuracy within $0.82\%$ of the dense baseline. Enabling rank voting (RK) aligns selected packs across active clients, reducing UV by an additional $23.3\%$ ($1.30\times$) over the non-consensus stack and achieving a $29.8\%$ ($1.43\times$) total upstream reduction at $94.90\%$ accuracy.
+
+\subsubsection{Effectiveness of ECP}
+Table~\ref{tab:communication} reports the per-client communication breakdown for CIFAR-10 with union voting and $R=3$. 
+With ECP, asynchronous prefetching (PV) accounts for $97.5\%$ to $100.0\%$ of each client's total downstream volume, while synchronous fetch volume (FV) drops to $0$--$14.59$~$\mathrm{MB}$.
+Clients 1, 3, and 5 achieve $\mathrm{FV}=0.00$~$\mathrm{MB}$, completing synchronization entirely in the background, while frequently sampled clients (Clients 0 and 4) incur only $2.0\%$ synchronous downstream traffic.
+
+\begin{figure}[!t]
+ \centering
+ \begin{minipage}{0.48\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/fashion_mnist_vote_accuracy_grouped.pdf}
+ \subcaption{AC under voting variants.}
+ \label{fig:vote}
+ \end{minipage}
+ \hfill
+ \begin{minipage}{0.48\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/fashion_mnist_client_selection_accuracy_nature.pdf}
+ \subcaption{AC under selection strategies.}
+ \label{fig:select}
+ \end{minipage}
+
+ \vspace{0.6em}
+
+ \begin{minipage}{0.48\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/fashion_mnist-cnn_fmnist_accuracy_curves_vibrant_marker.pdf}
+ \subcaption{AC under sparsity ratios.}
+ \label{fig:sparsity}
+ \end{minipage}
+ \hfill
+ \begin{minipage}{0.48\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/accuracy_curves_by_window.pdf}
+ \subcaption{AC under prefetch windows.}
+ \label{fig:window}
+ \end{minipage}
+ \caption{Sensitivity analysis on FMNIST across voting variants, client selection strategies, local sparsity ratios, and prefetch window sizes.}
+ \label{fig:all_results}
+ 
+\end{figure}
+
+\begin{figure}[!t]
+ \centering
+ \begin{minipage}{0.49\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/upload_volume_accuracy.pdf}
+ \subcaption{Upload volume and accuracy under varying dropout rates.}
+ \label{fig:dropout_eval}
+ \end{minipage}
+ \hfill
+ \begin{minipage}{0.49\linewidth}
+ \centering
+ \includegraphics[width=\linewidth]{../figures/comm_volume_clients.pdf}
+ \subcaption{Communication volume across client scales.}
+ \label{fig:client_comm}
+ \end{minipage}
+ \caption{Impact of (a) upload-phase dropout rate $\rho_{\mathrm{drop}}$ and (b) client scale $N$ on communication volume and test accuracy.}
+ \label{fig:dropout_scale}
+\end{figure}
+
+\subsection{Sensitivity Analysis}
+\label{sec:sensitivity}
+
+To comprehensively evaluate the robustness of \textsc{ECPFL}, we conduct a sensitivity analysis on the FMNIST dataset across voting mechanisms, client selection strategies, local sparsity ratios, and prefetch window sizes in Fig.~\ref{fig:all_results}, followed by upload-phase dropout rates and client scales in Fig.~\ref{fig:dropout_scale}.
+
+\subsubsection{Impact of Voting Mechanisms}
+Fig.~\ref{fig:all_results}(a) compares the consensus variants. Union and rank-based variants (\textsc{RK-0.3}, \textsc{RK-0.5}) achieve the highest accuracy, converging to approximately $90\%$ within 20 rounds, whereas \textsc{TH-0.9} plateaus at $84\%$ because an overly strict $90\%$ agreement threshold filters out class-specific gradient packs under non-IID data. 
+
+\subsubsection{Impact of Client Selection Strategies}
+Fig.~\ref{fig:all_results}(b) evaluates seven client selection strategies: uniform \text{Random}~\cite{mcmahan2017communication}, \text{Sticky} sampling~\cite{he2023gluefl}, LSH-based \text{Sketch-Clustering}~\cite{li2025fedphe}, Power-of-Choice (\text{PoC})~\cite{cho2022towards}, tier-based selection (\text{TiFL})~\cite{chai2020tifl}, clustered selection (\text{HACCS})~\cite{wolfrath2022haccs}, and utility-guided selection (\text{Oort})~\cite{lai2021oort}. The accuracy trajectories of all seven strategies nearly coincide, converging to approximately $86\%$ under the evaluated non-IID configuration: because ECP prefetches global ciphertexts during idle periods and fetches only minimal residual data upon selection, historically inactive stragglers contribute immediately without stalling synchronous aggregation.
+
+
+\subsubsection{Impact of Local Sparsity Ratio}
+Fig.~\ref{fig:all_results}(c) varies the local sparsity ratio $\zeta \in \{0.1, 0.3, 0.5, 0.7, 0.9, 1.0\}$, where $\zeta=1.0$ corresponds to the dense baseline. For $\zeta \ge 0.3$, the trajectory closely matches the baseline and stabilizes near $90\%$ while pruning up to $70\%$ of local packs, whereas $\zeta=0.1$ lowers accuracy by roughly $10\%$ due to aggressive pre-consensus pruning. 
+
+\subsubsection{Impact of Prefetch Window Size $R$}
+Fig.~\ref{fig:all_results}(d) shows that trajectories for $R \leq 9$ are nearly indistinguishable (peak deviation below $0.3$ percentage points around $90\%$ test accuracy), since asynchronous prefetching decouples transmission from computation and prevents critical staleness across practical prefetch horizons.
+
+\subsubsection{Impact of Dropout Rate $\rho_{\mathrm{drop}}$}
+Fig.~\ref{fig:dropout_scale}(a) evaluates upload-phase dropout rates $\rho_{\mathrm{drop}} \in \{0\%, 10\%, 20\%, 30\%, 40\%\}$ on MNIST ($N=50, K=25, \tau=13$). Across all dropout regimes, \textsc{ECPFL} preserves non-interactive one-step decryption and maintains stable test accuracy between $97.93\%$ and $98.72\%$ (within $0.79\%$ of the dropout-free baseline). Because Phase-1 voting precedes upload-phase dropouts, voting traffic remains constant, whereas primary ciphertext upload volume decreases by $37.0\%$ ($1.59\times$) as $\rho_{\mathrm{drop}}$ rises from $0\%$ to $40\%$. Although activating Phase-3 compensation at $\rho_{\mathrm{drop}}=10\%$ introduces a bounded $1.48\times$ upstream overhead relative to the dropout-free setting, total upstream traffic subsequently declines by $20.7\%$ from $\rho_{\mathrm{drop}}=10\%$ to $40\%$ ($1.17\times$ the $0\%$ baseline) as fewer surviving uploaders transmit ciphertexts and compensation patches.
+
+\subsubsection{Impact of Client Scale $N$}
+Fig.~\ref{fig:dropout_scale}(b) evaluates scalability across $N \in \{50, 100, 500, 1000\}$ with $K = 0.5N$ active clients per round. As $N$ expands by $20\times$, total communication volume scales strictly linearly ($20.0\times$, from $0.50~\mathrm{GB}$ to $9.99~\mathrm{GB}$) without quadratic key-compensation growth. Crucially, \textsc{ECP} offloads $99.6\%$--$99.7\%$ of downstream traffic to background prefetching ($\mathrm{PV}$), restricting synchronous online fetch traffic ($\mathrm{FV}$, inset of Fig.~\ref{fig:dropout_scale}(b)) to just $0.3\%$--$0.4\%$ of total volume ($2$--$31~\mathrm{MB}$) across all scales.
+

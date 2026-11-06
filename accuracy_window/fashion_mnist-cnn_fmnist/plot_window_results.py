@@ -159,7 +159,7 @@ def plot_accuracy_curves(exps: List[Tuple[int, dict, dict]], save_dir: Path):
 
         ax.set_xlabel("Communication Round", fontsize=plotter.font_size)
         ax.set_ylabel("Test Accuracy (%)", fontsize=plotter.font_size)
-        ax.set_title("Fashion-MNIST — Prefetch Windows", pad=10, fontsize=plotter.font_size)
+        ax.set_title("FMNIST — Prefetch Windows", pad=10, fontsize=plotter.font_size)
         ax.grid(True, linestyle="--", alpha=0.5)
         ax.legend(
             loc="lower right",

@@ -1,0 +1,110 @@
+\documentclass[10pt,journal]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts,amsthm,mathtools,bm}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\graphicspath{{figures/}{../figures/}}
+\usepackage{xcolor}
+\usepackage{booktabs,colortbl,tabularx,array,multirow}
+\usepackage{caption}
+
+\captionsetup[table]{
+    justification=centering,
+    singlelinecheck=false,
+    font={small,sc},
+    labelfont={small,sc},
+    textfont={small,sc},
+    labelsep=space,
+    skip=5pt
+}
+\captionsetup[figure]{
+    font={footnotesize},
+    labelfont={footnotesize},
+    textfont={footnotesize},
+    labelsep=period,
+    skip=5pt
+}
+\usepackage{cite}
+\usepackage{enumitem}
+\usepackage[ruled,vlined,linesnumbered,commentsnumbered]{algorithm2e}
+
+\SetAlCapFnt{\small}
+\SetAlCapNameFnt{\small}
+\makeatletter
+\@ifundefined{algocf@caption@boxruled}{%
+  \typeout{!!! ALGO-PATCH SKIPPED: move this block BELOW \string\usepackage[ruled,...]{algorithm2e}}%
+}{%
+  \renewcommand{\algocf@caption@boxruled}{%
+    \hbox{%
+      \vrule width\fboxrule
+      \vbox{%
+        \addtolength{\hsize}{-2\fboxrule}%
+        \hrule height\fboxrule
+        \vskip\interspacetitleboxruled
+        \hbox to\hsize{\unhbox\algocf@capbox\hfill}%
+        \vskip\interspacetitleboxruled
+        \hrule height 0pt
+        \addtolength{\hsize}{2\fboxrule}%
+      }%
+      \vrule width\fboxrule
+    }\nointerlineskip
+  }%
+}
+\makeatother
+\setlength{\interspacetitleboxruled}{3pt}
+
+\usepackage{hyperref}
+
+\SetKwInput{KwInput}{Input}
+\SetKwInput{KwOutput}{Output}
+\SetKwInput{KwParam}{Parameter}
+\DontPrintSemicolon
+
+\setcounter{topnumber}{4}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{6}
+\setcounter{dbltopnumber}{3}
+\renewcommand{\topfraction}{0.95}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.05}
+\renewcommand{\floatpagefraction}{0.85}
+\renewcommand{\dbltopfraction}{0.95}
+\renewcommand{\dblfloatpagefraction}{0.85}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\DeclareMathOperator*{\argmax}{argmax}
+
+\begin{document}
+
+\title{ECPFL: Efficient Ciphertext Prefetching for Secure Cross-Device Federated Learning}
+
+\author{
+    Zhongyang Shi,
+    Hong Zhong,
+    Qingyang Zhang,
+    Ke Cheng,
+    Fengqun Wang,
+    and Jie Cui
+    \IEEEcompsocitemizethanks{
+        \IEEEcompsocthanksitem Zhongyang Shi, Hong Zhong, Qingyang Zhang, Fengqun Wang, and Jie Cui are with the Key Laboratory of Intelligent Computing and Signal Processing of Ministry of Education, School of Computer Science and Technology, Anhui University, Hefei 230039, China, and the Anhui Engineering Laboratory of IoT Security Technologies, Anhui University, Hefei 230039, China (e-mail: zhongh@ahu.edu.cn; cuijie@mail.ustc.edu.cn). (Corresponding author: Hong Zhong.)
+        \IEEEcompsocthanksitem Ke Cheng is with the School of Computer Science and Technology, Xidian University, Xi'an, Shaanxi 710126, China, and also with the Shaanxi Key Laboratory of Network and System Security, Xi'an, Shaanxi 710071, China (e-mail: chengke@xidian.edu.cn).
+    }
+}
+
+\maketitle
+
+\input{abstract}
+\input{introduction}
+\input{related_work}
+\input{preliminaries}
+\input{proposed_scheme}
+\input{security_analysis_pro}
+\input{performance_evaluation}
+\input{conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{ref_simple_version}
+
+\end{document}

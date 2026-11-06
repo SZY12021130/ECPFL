@@ -1,0 +1,110 @@
+# ESAFL PUREPY EP accuracy: fmnist + cnn_fmnist, n=4096, α=1, 25 clients, sampling=1.0
+client_selection:
+  strategy: "random"
+
+system:
+  num_clients: 25
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+  run_plaintext_baseline: false
+  client_sampling_rate: 1.0
+  upload_difference: true
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+  lr_scheduler:
+    enabled: false
+
+data:
+  dataset: "fashion_mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 1
+
+model:
+  name: "cnn_fmnist"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776
+  slot_packing: true
+  packing:
+    strategy: "esafl"
+    logq0: 10
+    slots2: 2
+    quant_bits: 10
+    pad_bits: 0
+  sparsification:
+    strategy: "topk"
+    sparsity_rate: 0.1
+    batch_size: 4096
+    seed: 42
+    scoring_method: "l2_norm"
+    use_warmup_skip_sparse: false
+    warmup_rounds: 0
+    local_completion:
+      enabled: false
+  ptopk:
+    enable: false
+    client_residual:
+      enabled: false
+      stale_gamma: 0.5
+      decay_gamma: 0.3
+      clip_tau: 0.0
+    server_accumulator:
+      enabled: false
+      mode: "none"
+      sync_interval: 1
+      momentum_beta: 0.9
+
+blinding_mask:
+  enabled: false
+  mask_range: 1.0
+  compensation_mode: "auto"
+  apply_mode: "post_topk"
+
+global_mask_vote:
+  mode: "threshold"
+  threshold_pct: 0.3
+  topk_count_k: 20
+  topk_pct: 0.1
+
+esafl:
+  enabled: true
+  mode: "PUREPY"
+  encoding: "ep"
+  prpg_seed: 42
+  logp: 56
+  eta: 4
+  num_clients: 25
+
+prefetch:
+  enable_prefetch: false
+  max_prefetch_round: 3
+
+tee:
+  enabled: false
+
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"
+  base_dl_bw: 10240.0
+  base_ul_bw: 10240.0
+  variance: 0.3
+  distribution: "lognormal"
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+
+output:
+  results_dir: "AAAAA_Rework/ESAFL/result/accuracy_n25_c1"
+  model_dir: "./models"
+  save_interval: 5

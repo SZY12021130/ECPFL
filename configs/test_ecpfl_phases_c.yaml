@@ -1,0 +1,51 @@
+# ============================================================================
+# ECPFL (V17) Phase C+D 端到端 smoke 配置
+# 8 客户端、活跃集 K=4、预采样提前 R=2 轮、过承诺 β=1.5、掉线率 0.3、ECP 预取开
+# ============================================================================
+system:
+  num_clients: 8
+  num_rounds: 3
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+# ECPFL 密码学参数（scheme/V17-ecpfl.md Phase 0）
+ecpfl:
+  n: 4096              # 环维度（每密文系数个数，Q≈2^60）
+  tau: 3               # Shamir 门限（|Ŝ| ≥ τ）
+  sparsity_rate: 0.3   # Top-ζ 投票比例
+  vote_rule: "rk"      # 共识规则：rk = RK-θ（前 ⌈θJ⌉ 名）
+  logp: 50             # 明文模数 p = 2^50
+  delta_scale: 1048576 # 定点缩放 Δ = 2^20
+  eta: 4               # 噪声中心二项参数
+  max_abs_x: 1.0       # 梯度上界估计（启动断言用）
+  # ---- Phase C：部分参与 + 掉线 ----
+  sampling:
+    active_count: 4        # 活跃集大小 K（≥ τ）
+    prefetch_rounds: 2     # 预采样提前轮数 R
+    overcommit: 1.5        # 过承诺倍数 β（候选池 ⌈βK⌉）
+  dropout_rate: 0.3        # 每轮每个活跃客户端掉线概率（保 |Ŝ| ≥ τ）
+  gamma_d: 1.0             # 残差双衰减（式 12）：γ_d·γ_s^{ℓ-1}
+  gamma_s: 1.0
+  # ---- Phase D：ECP 密文预取 ----
+  prefetch:
+    enabled: false
+    bandwidth:             # 预取带宽仿真（仅计时；字节数恒记录）
+      base_dl_bw: 1024.0   # kbps
+      base_ul_bw: 512.0
+      variance: 0.3
+      distribution: "uniform"

@@ -1,0 +1,19 @@
+{
+  "correctness_ok": true,
+  "config": {
+    "n": 4096,
+    "tau": 3,
+    "seed": 42
+  },
+  "perf": {
+    "N": 1000,
+    "wall_s": 43.2,
+    "total_cpu_s": null,
+    "per_client_keygen_ms": 0.8,
+    "per_client_eval_ms": 127.5,
+    "per_client_crypto_ms": 103.9,
+    "bytes_posted_per_client_mb": 131.1,
+    "bytes_posted_total_gb": 131.1,
+    "note": "total_cpu 统计口径已废弃；以 per_client_*_ms 与 wall_s 为准"
+  }
+}

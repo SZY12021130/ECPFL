@@ -1,0 +1,76 @@
+% ---------------------------------------------------------------------------
+% Encryption-complexity comparison of the five core schemes under a FIXED
+% client set (N, K treated as constants), expressed in PACK units:
+%     cost = (# encrypted packs) x (cost per pack).
+%
+% Rows: FedAvg+CKKS, FedPHE, ESAFL, MASER, ECPFL (ours).
+% The last column reports the TOTAL per-round client-side encryption
+% complexity; ECPFL's dropout-round variant is given in Note (iv).
+% (Extended 7-scheme version incl. SecFed/SAMK: encryption_complexity_table.tex)
+%
+% Requires : booktabs, amsmath
+% Symbols  : follow tab:comp-notation in computational_complexity.tex
+%            (d, n, J, s, k, L, N, K, O_ntt)
+% ---------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Per-round client-side \emph{encryption} complexity under a fixed
+client set, expressed in \emph{pack units}: cost $=$ (number of encrypted
+packs) $\times$ (cost per pack), with symbols as defined in
+Table~\ref{tab:comp-notation}.}
+\label{tab:encryption-complexity}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Scheme} & \textbf{Packs enc.} & \textbf{Cost / pack} &
+\textbf{Encryption complexity} \\
+\midrule
+FedAvg+CKKS  & $J$  & $\mathcal{O}(n\log n)$    &
+$J\cdot\mathcal{O}(n\log n)=\mathcal{O}(d\log n)$ \\[3pt]
+FedPHE       & $sJ$ & $\mathcal{O}(n\log n)$    &
+$sJ\cdot\mathcal{O}(n\log n)=\mathcal{O}(sd\log n)$ \\[3pt]
+ESAFL        & $J$  & $\mathcal{O}(n\log n)$    &
+$J\cdot\mathcal{O}(n\log n)=\mathcal{O}(d\log n)$ \\[3pt]
+MASER        & $J$  & $\mathcal{O}(n\log n+nL)$ &
+$J\cdot\mathcal{O}(n\log n+nL)=\mathcal{O}\!\left(d(\log n+L)\right)$ \\[3pt]
+\midrule
+ECPFL (ours) & $1+k$ & $\mathcal{O}(n\log n)$ &
+$(k{+}1)\cdot\mathcal{O}(n\log n)$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{4pt}
+\begin{minipage}{\linewidth}
+\footnotesize
+\emph{Notes.}
+(i) $J$ follows each scheme's own packing: $J=\lceil 2d/n\rceil$ for the
+slot-packed CKKS schemes (FedAvg+CKKS, FedPHE, MASER), $\lceil d/2n\rceil$
+for ESAFL's EP bit-packing, and $\lceil d/n\rceil$ for ECPFL's coefficient
+packing; in parameter units every $J$-term equals $\mathcal{O}(d\log n)$,
+so the pack-unit comparison is also a comparison in $d$.
+(ii) MASER's additive $nL$ term is the RNS-limb overhead of encrypting
+under the aggregated multi-key public key; if only the majority-vote mask
+subset ($m\le d$ parameters) is encrypted, replace $d$ by $m$.
+(iii) ECPFL encrypts one vote ciphertext per round---the whole $J$-bit
+ballot packed into the low coefficients of a single ring element---plus $k$
+consensus-pack ciphertexts, hence $1+k$ packs. Deriving the effective key
+$\tilde{s}_{i,j}$ (Eq.~11) additionally costs the share sums
+$\sum_{k\notin\mathcal{S}}s_{k,i}$, i.e.\ $\mathcal{O}(Nn)$ coefficient
+\emph{additions} paid once per round and cached across the $k$ packs; this
+is not an encryption, it involves no ring multiplication, and with $N$
+fixed it is $\mathcal{O}(n)$, hence absorbed by the
+$\mathcal{O}(n\log n)$ per-pack term and omitted from the table.
+(iv) On dropout rounds each surviving client additionally issues $k$
+compensatory ciphertexts, so the total becomes
+$(2k{+}1)\cdot\mathcal{O}(n\log n)$; the four baselines do
+not tolerate dropout---FedAvg+CKKS loses the dropped updates while FedPHE
+(uncancelled obfuscating factor), ESAFL (summed key $S=\sum_i s_i$) and
+MASER (majority-vote mask consensus plus xMK-CKKS $\mathrm{PartialDec}$ by
+every participant) cannot complete the round at all.
+(v) Each ECPFL pack encryption performs two ring multiplications
+($a_j\tilde{s}_{i,j}$ and $b_j z_i$) against one for the baselines, so
+ECPFL undercuts full-model encryption only while $2k+1<J$, i.e.\
+$\theta<\tfrac12$ under rank consensus $k=\lceil\theta J\rceil$.
+\end{minipage}
+\end{table}

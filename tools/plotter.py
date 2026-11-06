@@ -221,12 +221,16 @@ class Plotter:
         markers: Optional[Dict[str, str]] = None,
         linestyles: Optional[Dict[str, str]] = None,
         linewidth: float = 1.5,
+        linewidths: Optional[Dict[str, float]] = None,
         marker_size: float = 4,
         legend_loc: str = "best",
         legend_ncol: int = 1,
         legend_fontsize: Optional[float] = None,
         xlim: Optional[Tuple[float, float]] = None,
         ylim: Optional[Tuple[float, float]] = None,
+        yticks: Optional[List[float]] = None,
+        tick_pad: Optional[float] = None,
+        frame: bool = False,
         grid: bool = True,
         filename: str = "line",
         formats: Optional[List[str]] = None,
@@ -271,13 +275,14 @@ class Plotter:
                 c = colors.get(label) if colors else None
                 m = markers.get(label) if markers else None
                 ls = linestyles.get(label) if linestyles else None
+                lw = linewidths.get(label, linewidth) if linewidths else linewidth
                 ax.plot(
                     x, y,
                     label=label,
                     color=c,
                     marker=m,
                     linestyle=ls,
-                    linewidth=linewidth,
+                    linewidth=lw,
                     markersize=marker_size,
                 )
 
@@ -290,6 +295,17 @@ class Plotter:
                 ax.set_xlim(xlim)
             if ylim:
                 ax.set_ylim(ylim)
+            if yticks is not None:
+                ax.set_yticks(yticks)
+            if tick_pad is not None:
+                ax.tick_params(axis="both", pad=tick_pad)
+            if frame:
+                # 四边封框，全部黑色（右侧框线与左侧同粗细，且加粗到至少 2 pt 以保证视觉醒目）
+                lw = max(ax.spines["left"].get_linewidth(), 2.0)
+                for name in ("top", "right", "left", "bottom"):
+                    ax.spines[name].set_visible(True)
+                    ax.spines[name].set_color("black")
+                    ax.spines[name].set_linewidth(lw)
             if grid:
                 ax.grid(True, linestyle="--", alpha=0.5)
 

@@ -1,0 +1,55 @@
+# ============================================================================
+# ECPFL Non-IID 实验：Dirichlet alpha=5（iid: false）
+# ============================================================================
+# 公共参数：FMNIST + cnn_fmnist、τ=3、R=3、β=1.5、TH-0.3、ζ=0.3、
+#           γ_d=0.9/γ_s=0.8、n=4096、Δ=2^20、p=2^50、eta=4、cuda
+# 运行命令：
+#   python main_ecpfl.py --config AAAAA_Rework/ECPFL/config/<本文件> #       --output-dir AAAAA_Rework/ECPFL/result/<子目录>
+# ============================================================================
+system:
+  num_clients: 50
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "fashion_mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 5
+
+model:
+  name: "cnn_fmnist"
+
+ecpfl:
+  n: 4096
+  tau: 3
+  sparsity_rate: 0.3
+  vote_rule: "th"
+  vote_threshold: 0.3
+  logp: 50
+  delta_scale: 1048576
+  eta: 4
+  max_abs_x: 1.0
+  sampling:
+    active_count: 25
+    prefetch_rounds: 3
+    overcommit: 1.5
+  dropout_rate: 0.2
+  gamma_d: 0.9
+  gamma_s: 0.8
+  prefetch:
+    enabled: true
+    bandwidth:
+      base_dl_bw: 8192.0
+      base_ul_bw: 4096.0
+      distribution: "uniform"
+      filter_low_bandwidth: false
+      max_dl_bw_kbps: 8192.0
+      max_ul_bw_kbps: 4096.0
+      min_dl_bw_kbps: 5120
+      min_ul_bw_kbps: 5120

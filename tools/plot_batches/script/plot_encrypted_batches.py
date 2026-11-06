@@ -23,6 +23,7 @@
     python tools/plot_batches/script/plot_encrypted_batches.py --type batch_bar,scaling,step_cumulative --palette lancet
 """
 
+import math
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -40,6 +41,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from tools.plotter import Plotter
+from ckks_fed.eshe import RingContext
 
 # ---------------------------------------------------------------------------
 # 输出目录
@@ -72,18 +74,66 @@ MODELS = [
         "dataset": "SVHN",
         "model": "ResNet-32",
         "params": 460618,
-        "batches": 114,
+        "batches": 113,   # ceil(460618 / 4096) = 113（原写 114，与 460,618 参数量不符）
     },
 ]
 
-# 统一 per-batch ciphertext 大小（0.319 MB = 334,289 bytes / 1024^2）
-PER_BATCH_MB = 0.319
+# ECPFL 单密文结构：一个密文只包含一个 R_Q 多项式（CRT 双素数，默认 31+30 bits）。
+# 旧版 0.319 MB 是按 CKKS 双密文（a,b）或真实库序列化大小估算的，与当前 ECPFL 模拟不符。
+SLOT_N = 4096
+ring = RingContext(SLOT_N)
+PER_BATCH_BYTES = SLOT_N * ring.Q.bit_length() // 8   # 31232 bytes
+PER_BATCH_MB = PER_BATCH_BYTES / (1024 * 1024)        # ≈ 0.0298 MB
 
 for m in MODELS:
     m["total_mb"] = m["batches"] * PER_BATCH_MB
     m["per_batch_mb"] = PER_BATCH_MB
 
-ALL_TYPES = ["batch_bar", "scaling", "step_cumulative"]
+# ---------------------------------------------------------------------------
+# 五基线密文大小对比数据（全模型一次上传的密文字节数）
+# ---------------------------------------------------------------------------
+# 口径说明：
+#   • FedAvg+CKKS / FedPHE / MASER：使用 AAAAA_Rework 中实际配置的
+#     poly_modulus_degree=8192、coeff_mod_bit_sizes=[60,40,40,60]，单密文
+#     TenSEAL serialize() 实测约 334,401 B；每密文可装 4096 个浮点值。
+#   • FedPHE 按配置 sparsity_rate=0.1 只传 10% 的 batch；MASER 按 topk_ratio=0.5
+#     只传 50% 参数；两者均为配置中实际使用的稀疏/压缩策略。
+#   • ESAFL PUREPY EP：n=4096、logp=56、logq0=10、N=25，单密文 coeffs_nbytes()
+#     = 65,536 B，EP 位打包后每密文装 8192 个量化值。
+#   • ECPFL：n=4096、logQ≈61 B，单密文理论线上大小 = 4096×61/8 = 31,232 B，
+#     每密文装 4096 个值（单 R_Q 多项式结构）。
+BASELINE_SCHEMES = [
+    {"name": "FedAvg+CKKS", "single_ct": 334_401, "values_per_ct": 4096, "sparsity": 1.0, "sparse_kind": "dense"},
+    {"name": "FedPHE",      "single_ct": 334_401, "values_per_ct": 4096, "sparsity": 0.1, "sparse_kind": "batch top-10%"},
+    {"name": "MASER",       "single_ct": 334_401, "values_per_ct": 4096, "sparsity": 0.5, "sparse_kind": "param top-50%"},
+    {"name": "ESAFL",       "single_ct": 65_536,  "values_per_ct": 8192, "sparsity": 1.0, "sparse_kind": "EP 2× packing"},
+    {"name": "ECPFL",       "single_ct": 31_232,  "values_per_ct": 4096, "sparsity": 1.0, "sparse_kind": "single-ct"},
+]
+
+
+def compute_baseline_sizes():
+    """计算每个模型、每个基线的全模型加密大小（MB）。"""
+    rows = []
+    for m in MODELS:
+        d = m["params"]
+        row = {"dataset": m["dataset"], "model": m["model"], "params": d, "schemes": {}}
+        for s in BASELINE_SCHEMES:
+            total_batches = math.ceil(d / s["values_per_ct"])
+            if s["sparse_kind"] == "param top-50%":
+                selected_batches = math.ceil((d * s["sparsity"]) / s["values_per_ct"])
+            else:
+                selected_batches = max(1, math.ceil(s["sparsity"] * total_batches))
+            bytes_total = selected_batches * s["single_ct"]
+            row["schemes"][s["name"]] = {
+                "batches": selected_batches,
+                "bytes": bytes_total,
+                "mb": bytes_total / (1024 * 1024),
+            }
+        rows.append(row)
+    return rows
+
+
+ALL_TYPES = ["batch_bar", "scaling", "step_cumulative", "baseline_bar"]
 
 # ---------------------------------------------------------------------------
 # SCI 配色方案
@@ -335,6 +385,76 @@ def plot_step_cumulative(p, palette_name: str):
 
 
 # ===================================================================
+#  4. 五基线全模型密文大小分组柱状图
+# ===================================================================
+
+def _baseline_colors(palette_name: str) -> List[str]:
+    """为 5 个基线扩展出 5 色（原 SCI 配色只有 4 色）。"""
+    base = list(SCI_PALETTES[palette_name]["colors"])
+    extras = {
+        "nature": "#F39B7F",
+        "lancet": "#7D5BA6",
+        "jama": "#6A4C93",
+        "nejm": "#20854E",
+        "science": "#FF2C00",
+    }
+    base.append(extras.get(palette_name, "#999999"))
+    return base
+
+
+def plot_baseline_comparison(p, palette_name: str):
+    """
+    五基线全模型加密大小对比（按实际配置的加密参数与稀疏策略）。
+    纵轴为对数刻度，便于同时展示 CKKS 双多项式密文与 ECPFL/ESAFL 单多项式密文。
+    """
+    colors = _baseline_colors(palette_name)
+    data = compute_baseline_sizes()
+    n_models = len(data)
+    n_schemes = len(BASELINE_SCHEMES)
+    bar_width = 0.13
+    x = np.arange(n_models)
+
+    with plt.style.context(p.style):
+        fig, ax = plt.subplots(figsize=(10, 5.5))
+
+    for i, s in enumerate(BASELINE_SCHEMES):
+        vals = [row["schemes"][s["name"]]["mb"] for row in data]
+        bars = ax.bar(x + (i - n_schemes / 2 + 0.5) * bar_width, vals,
+                      width=bar_width, color=colors[i], alpha=0.85,
+                      edgecolor="white", linewidth=0.6, label=s["name"], zorder=3)
+        # 在柱顶标注 MB 值（小值旋转 90° 避免重叠）
+        for bar, val in zip(bars, vals):
+            height = bar.get_height()
+            text = f"{val:.2f}" if val >= 1 else f"{val:.3f}"
+            ax.text(bar.get_x() + bar.get_width() / 2, height * 1.08,
+                    text, ha="center", va="bottom", fontsize=7,
+                    rotation=90 if val < 5 else 0, fontweight="bold",
+                    color=colors[i])
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(
+        [f"{row['dataset']}\n{row['model']}\n({row['params']:,})" for row in data],
+        fontsize=12, linespacing=1.1,
+    )
+    ax.set_ylabel("Full-Model Encrypted Size (MB)", fontsize=16)
+    ax.set_yscale("log")
+    ax.tick_params(axis="y", labelsize=12)
+    ax.grid(True, linestyle="--", alpha=0.3, which="both", axis="y")
+    ax.grid(False, axis="x")
+
+    for spine in ax.spines.values():
+        spine.set_linewidth(1.2)
+
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.16),
+              fontsize=10, frameon=True, fancybox=True,
+              framealpha=0.9, edgecolor="gray", ncol=5)
+
+    fig.tight_layout()
+    p._save(f"baseline_ciphertext_size_{palette_name}", formats=["png", "pdf"])
+    plt.close(fig)
+
+
+# ===================================================================
 # 主入口
 # ===================================================================
 
@@ -394,6 +514,8 @@ def generate_plots(
                     plot_scaling(p, pname)
                 elif plot_type == "step_cumulative":
                     plot_step_cumulative(p, pname)
+                elif plot_type == "baseline_bar":
+                    plot_baseline_comparison(p, pname)
                 else:
                     print(f"  [SKIP] unknown type: {plot_type}")
                     continue

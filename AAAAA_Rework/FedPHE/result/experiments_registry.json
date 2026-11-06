@@ -1,0 +1,41 @@
+[
+  {
+    "timestamp": "20261104_131315",
+    "output_dir": "AAAAA_Rework/FedPHE/result\\experiment_20261104_131315_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 87.18,
+      "final_test_loss": 0.4075823124426945,
+      "total_time_sec": 1267.1376721858978,
+      "total_communication_mb": 4045.9061250686646,
+      "avg_round_time_sec": 25.342753443717957,
+      "avg_upload_kb": 24483.91623046875,
+      "avg_download_kb": 58376.2412109375,
+      "avg_expansion_ratio": 6.266315976005997,
+      "avg_encryption_time_sec": 0.013510755157470702,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.4767742156982,
+      "total_ciphertext_blocks": 3750,
+      "prefetch_enabled": false
+    }
+  }
+]

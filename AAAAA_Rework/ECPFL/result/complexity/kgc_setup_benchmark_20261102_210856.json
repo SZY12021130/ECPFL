@@ -1,0 +1,83 @@
+{
+  "config": {
+    "n": 4096,
+    "tau": 3,
+    "seed": 42,
+    "Ns": [
+      50,
+      100,
+      500,
+      1000
+    ]
+  },
+  "results": [
+    {
+      "N": 50,
+      "n": 4096,
+      "tau": 3,
+      "t_init_s": 0.0678,
+      "t_row_materialize_s": 0.5314,
+      "t_lazy_total_share_s": 0.5907,
+      "t_opt_psi_total_s": 0.0156,
+      "ring_element_bytes": 65536,
+      "per_client_storage_bytes_row_mode": 3473408,
+      "per_client_storage_mb": 3.473,
+      "kgc_storage_bytes": 10027008,
+      "kgc_storage_mb": 10.0,
+      "rss_mb_before": 37.675008,
+      "rss_mb_after_init": 48.693248,
+      "rss_mb_end": 49.5616
+    },
+    {
+      "N": 100,
+      "n": 4096,
+      "tau": 3,
+      "t_init_s": 0.0831,
+      "t_row_materialize_s": 2.4228,
+      "t_lazy_total_share_s": 3.0159,
+      "t_opt_psi_total_s": 0.0439,
+      "ring_element_bytes": 65536,
+      "per_client_storage_bytes_row_mode": 6750208,
+      "per_client_storage_mb": 6.75,
+      "kgc_storage_bytes": 19857408,
+      "kgc_storage_mb": 19.9,
+      "rss_mb_before": 49.5616,
+      "rss_mb_after_init": 69.246976,
+      "rss_mb_end": 69.8368
+    },
+    {
+      "N": 500,
+      "n": 4096,
+      "tau": 3,
+      "t_init_s": 0.3217,
+      "t_row_materialize_s": 69.9592,
+      "t_lazy_total_share_s": 74.9734,
+      "t_opt_psi_total_s": 0.1969,
+      "ring_element_bytes": 65536,
+      "per_client_storage_bytes_row_mode": 32964608,
+      "per_client_storage_mb": 32.965,
+      "kgc_storage_bytes": 98500608,
+      "kgc_storage_mb": 98.5,
+      "rss_mb_before": 69.8368,
+      "rss_mb_after_init": 168.665088,
+      "rss_mb_end": 170.971136
+    },
+    {
+      "N": 1000,
+      "n": 4096,
+      "tau": 3,
+      "t_init_s": 0.5245,
+      "t_row_materialize_s": 241.3303,
+      "t_lazy_total_share_s": 305.8359,
+      "t_opt_psi_total_s": 0.3606,
+      "ring_element_bytes": 65536,
+      "per_client_storage_bytes_row_mode": 65732608,
+      "per_client_storage_mb": 65.733,
+      "kgc_storage_bytes": 196804608,
+      "kgc_storage_mb": 196.8,
+      "rss_mb_before": 170.971136,
+      "rss_mb_after_init": 367.439872,
+      "rss_mb_end": 375.717888
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+# ============================================================================
+# ECPFL (V17) Phase A+B 端到端 smoke 配置
+# 25 客户端全参与，MNIST + LeNet，包级 Top-ζ=0.3 共识投票
+# ============================================================================
+system:
+  num_clients: 25
+  num_rounds: 2
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+
+model:
+  name: "lenet"
+  hidden_dims: [256, 128]
+  dropout: 0.2
+
+# ECPFL 密码学参数（scheme/V17-ecpfl.md Phase 0）
+ecpfl:
+  n: 4096              # 环维度（每密文系数个数，Q≈2^60）
+  tau: 3               # Shamir 门限
+  sparsity_rate: 0.3   # Top-ζ 投票比例
+  vote_rule: "rk"      # 共识规则：rk = RK-θ（前 ⌈θJ⌉ 名）
+  logp: 50             # 明文模数 p = 2^50
+  delta_scale: 1048576 # 定点缩放 Δ = 2^20
+  eta: 4               # 噪声中心二项参数
+  max_abs_x: 1.0       # 梯度上界估计（启动断言用）

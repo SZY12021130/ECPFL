@@ -1,0 +1,47 @@
+system:
+  num_clients: 50
+  num_rounds: 50
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: cuda
+  random_seed: 42
+data:
+  dataset: cifar10
+  data_dir: ./data
+  num_classes: 10
+  iid: false
+  alpha: 1.0
+model:
+  name: resnet20
+ecpfl:
+  n: 4096
+  tau: 3
+  sparsity_rate: 0.5
+  vote_rule: rk
+  vote_threshold: 0.7
+  logp: 50
+  delta_scale: 1048576
+  eta: 4
+  max_abs_x: 1.0
+  sampling:
+    active_count: 25
+    prefetch_rounds: 3
+    overcommit: 1.5
+  dropout_rate: 0
+  gamma_d: 0.9
+  gamma_s: 0.8
+  ablation:
+    local_sparse: true
+    residual_feedback: true
+  prefetch:
+    enabled: true
+    bandwidth:
+      base_dl_bw: 8192.0
+      base_ul_bw: 4096.0
+      distribution: uniform
+      filter_low_bandwidth: false
+      max_dl_bw_kbps: 8192.0
+      max_ul_bw_kbps: 4096.0
+      min_dl_bw_kbps: 5120
+      min_ul_bw_kbps: 5120

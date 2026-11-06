@@ -1,0 +1,6 @@
+dropout_rate,avg_online,upload_mb_per_round,download_mb_per_round,enc_s_per_client,agg_s,dec_s,round_s,max_abs_err,late_fetch_ok,dropout_blocked
+0.0,8.00,0.2877,0.1208,0.282,0.244,0.184,2.69,4.588e-05,True,True
+0.1,7.40,0.2662,0.1117,0.226,0.196,0.090,1.96,4.588e-05,True,True
+0.2,6.40,0.2302,0.0966,0.217,0.190,0.075,1.66,3.982e-05,True,True
+0.3,6.00,0.2158,0.0906,0.216,0.188,0.070,1.55,3.667e-05,True,True
+0.4,5.20,0.1870,0.0785,0.214,0.185,0.059,1.36,3.607e-05,True,True

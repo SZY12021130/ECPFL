@@ -1,0 +1,41 @@
+system:
+  num_clients: 12
+  num_rounds: 3
+  num_epochs: 1
+  batch_size: 64
+  learning_rate: 0.001
+  device: cpu
+  random_seed: 42
+data:
+  dataset: mnist
+  data_dir: ./data
+  num_classes: 10
+  iid: true
+  alpha: 0.5
+model:
+  name: mlp
+  hidden_dims:
+  - 32
+  dropout: 0.1
+samk:
+  mode: synthetic
+  n: 1024
+  t_bits: 40
+  scale_bits: 16
+  paillier_bits: 512
+  max_dim: 1024
+  dim: 1024
+  update_std: 0.05
+  min_online: 2
+sampling:
+  active_count: 8
+  overcommit: 1.5
+  prefetch_rounds: 2
+  dropout_rate: 0.25
+client_selection:
+  strategy: sticky
+  sticky:
+    score_decay: 0.9
+prefetch:
+  overcommitment: 1.5
+  sticky_change_num: 1

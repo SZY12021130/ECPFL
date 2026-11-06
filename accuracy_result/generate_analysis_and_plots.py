@@ -38,28 +38,58 @@ def normalize(values, higher_is_better=True):
 # ---------------------------------------------------------------------------
 
 # ---- Client Selection (7 strategies) ----
+# 图例显示名：统一大写规范（PoC / TiFL / HACCS / Sketch-Clustering）
+CS_LABELS = {
+    "random": "Random",
+    "sticky": "Sticky",
+    "poc": "PoC",
+    "tifl": "TiFL",
+    "haccs": "HACCS",
+    "oort": "Oort",
+    "sketch_clustering": "Sketch-Clustering",
+}
+# 图例顺序：Random → Sticky → PoC → TiFL → HACCS → Oort → Sketch-Clustering
+CS_ORDER = ["random", "sticky", "poc", "tifl", "haccs", "oort", "sketch_clustering"]
+CS_OURS = "sketch_clustering"   # 本文方案：线加粗、绘制在最上层
+
 CS_THEMES = {
+    # 默认（无后缀）版本：灰基线 + 彩色对比，本文方案用黑色加粗
+    "default": {
+        "colors": {
+            "random": "#7F7F7F", "sticky": "#1F77B4", "sketch_clustering": "#000000",
+            "poc": "#FF7F0E", "tifl": "#2CA02C", "haccs": "#D62728", "oort": "#9467BD",
+        },
+        "linestyles": {
+            "random": "-", "sticky": "--", "sketch_clustering": "-",
+            "poc": ":", "tifl": "-.", "haccs": (0, (3, 1, 1, 1)), "oort": (0, (5, 1)),
+        },
+        "linewidth": 1.6,
+        "ours_linewidth": 2.4,
+        "suffix": "",
+    },
     "classic": {
         "colors": {
             "random": "#1f77b4", "sticky": "#ff7f0e", "sketch_clustering": "#2ca02c",
             "poc": "#d62728", "tifl": "#9467bd", "haccs": "#8c564b", "oort": "#e377c2",
         },
         "linestyles": {
-            "random": "-", "sticky": "-", "sketch_clustering": "-",
-            "poc": "-", "tifl": "-", "haccs": "-", "oort": "-",
+            "random": "-", "sticky": "--", "sketch_clustering": "-",
+            "poc": ":", "tifl": "-.", "haccs": (0, (3, 1, 1, 1)), "oort": (0, (5, 1)),
         },
-        "linewidth": 1.8,
+        "linewidth": 1.6,
+        "ours_linewidth": 2.4,
     },
     "vibrant": {
         "colors": {
             "random": "#E31A1C", "sticky": "#1F78B4", "sketch_clustering": "#33A02C",
-            "poc": "#FF7F00", "tifl": "#6A3D9A", "haccs": "#08519C", "oort": "#FB9A99",
+            "poc": "#FF7F00", "tifl": "#6A3D9A", "haccs": "#B15928", "oort": "#E377C2",
         },
         "linestyles": {
-            "random": "-", "sticky": "--", "sketch_clustering": "-.",
-            "poc": ":", "tifl": (0, (5, 1)), "haccs": (0, (3, 1, 1, 1)), "oort": "-",
+            "random": "-", "sticky": "--", "sketch_clustering": "-",
+            "poc": ":", "tifl": "-.", "haccs": (0, (3, 1, 1, 1)), "oort": (0, (5, 1)),
         },
-        "linewidth": 2.2,
+        "linewidth": 1.6,
+        "ours_linewidth": 2.4,
     },
     "nature": {
         "colors": {
@@ -67,21 +97,23 @@ CS_THEMES = {
             "poc": "#CD5C5C", "tifl": "#708090", "haccs": "#8B4513", "oort": "#9370DB",
         },
         "linestyles": {
-            "random": "-", "sticky": "--", "sketch_clustering": "-.",
-            "poc": ":", "tifl": (0, (5, 1)), "haccs": (0, (3, 1, 1, 1)), "oort": "-",
+            "random": "-", "sticky": "--", "sketch_clustering": "-",
+            "poc": ":", "tifl": "-.", "haccs": (0, (3, 1, 1, 1)), "oort": (0, (5, 1)),
         },
-        "linewidth": 2.0,
+        "linewidth": 1.6,
+        "ours_linewidth": 2.4,
     },
     "cool_warm": {
         "colors": {
             "random": "#E63946", "sticky": "#457B9D", "sketch_clustering": "#2A9D8F",
-            "poc": "#F4A261", "tifl": "#264653", "haccs": "#E76F51", "oort": "#A8DADC",
+            "poc": "#F4A261", "tifl": "#264653", "haccs": "#1D3557", "oort": "#8E44AD",
         },
         "linestyles": {
-            "random": "-", "sticky": "--", "sketch_clustering": "-.",
-            "poc": ":", "tifl": (0, (5, 1)), "haccs": (0, (3, 1, 1, 1)), "oort": "-",
+            "random": "-", "sticky": "--", "sketch_clustering": "-",
+            "poc": ":", "tifl": "-.", "haccs": (0, (3, 1, 1, 1)), "oort": (0, (5, 1)),
         },
-        "linewidth": 2.0,
+        "linewidth": 1.6,
+        "ours_linewidth": 2.4,
     },
 }
 
@@ -149,7 +181,7 @@ VOTE_THEMES = {
 # ---------------------------------------------------------------------------
 def generate_summary():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
 
     lines = []
     lines.append("# 实验汇总分析与最平衡结果\n")
@@ -219,8 +251,7 @@ def generate_summary():
 # ---------------------------------------------------------------------------
 def draw_client_selection():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
-    methods = ["random", "sticky", "sketch_clustering", "poc", "tifl", "haccs", "oort"]
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
 
     out_dir = Path("client_selection/pic")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -229,36 +260,53 @@ def draw_client_selection():
         p = Plotter(
             style=["science", "grid"],
             use_latex=False,
-            font_size=16,
-            figsize=(6, 4),
+            font_size=21,
+            figsize=(8.4, 5.6),
             dpi=300,
             output_dir=out_dir,
         )
 
         for ds in datasets:
-            data_dict = {}
-            for method in methods:
+            data_dict, colors, linestyles, linewidths = {}, {}, {}, {}
+            lo, hi = 100.0, 0.0
+            for method in CS_ORDER:
                 exps = [e for e in experiments if e["dataset"] == ds and e["method"] == method and e["dir"] == "accuracy_client_selection"]
-                if exps:
-                    e = exps[0]
-                    data_dict[method] = {"x": e["rounds"], "y": e["acc"]}
+                if not exps:
+                    continue
+                e = exps[0]
+                label = CS_LABELS.get(method, method)
+                data_dict[label] = {"x": e["rounds"], "y": e["acc"]}
+                colors[label] = theme_cfg["colors"].get(method, "#333333")
+                linestyles[label] = theme_cfg["linestyles"].get(method, "-")
+                linewidths[label] = (theme_cfg.get("ours_linewidth", 2.8)
+                                     if method == CS_OURS else theme_cfg["linewidth"])
+                lo = min(lo, float(np.min(e["acc"])))
+                hi = max(hi, float(np.max(e["acc"])))
 
             if not data_dict:
                 continue
 
+            suffix = theme_cfg.get("suffix", f"_{theme_name}")
             p.line(
                 data=data_dict,
                 xlabel="Communication Round",
                 ylabel="Test Accuracy (%)",
-                title=f"{ds_labels[ds]} — Client Selection",
-                colors=theme_cfg["colors"],
-                linestyles=theme_cfg["linestyles"],
+                title=f"{ds_labels[ds]} — Client Selection Strategies",
+                colors=colors,
+                linestyles=linestyles,
                 linewidth=theme_cfg["linewidth"],
-                legend_loc="best",
+                linewidths=linewidths,
+                ylim=(lo - 5, hi + 3),
+                yticks=np.arange(np.ceil((lo - 5) / 10) * 10,
+                                 np.floor((hi + 3) / 10) * 10 + 1e-9, 10),
+                legend_loc="lower right",
                 legend_ncol=1,
-                filename=f"{ds}_client_selection_accuracy_{theme_name}",
+                legend_fontsize=18.5,
+                tick_pad=6.0,
+                frame=True,
+                filename=f"{ds}_client_selection_accuracy{suffix}",
             )
-            print(f"  Drawn: {ds}_client_selection_accuracy_{theme_name}")
+            print(f"  Drawn: {ds}_client_selection_accuracy{suffix}")
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +314,7 @@ def draw_client_selection():
 # ---------------------------------------------------------------------------
 def draw_vote_ratios():
     datasets = ["mnist", "fashion_mnist", "cifar10"]
-    ds_labels = {"mnist": "MNIST", "fashion_mnist": "Fashion-MNIST", "cifar10": "CIFAR-10"}
+    ds_labels = {"mnist": "MNIST", "fashion_mnist": "FMNIST", "cifar10": "CIFAR-10"}
 
     threshold_methods = [f"threshold_{x}" for x in [0.1, 0.3, 0.5, 0.7, 0.9]]
     topk_methods = [f"topk_{x}" for x in [0.1, 0.3, 0.5, 0.7, 0.9]]

@@ -1,0 +1,25 @@
+[2026-11-06 11:14:19] START ecpfl_mnist_un.yaml
+[2026-11-06 11:41:28] END   ecpfl_mnist_un.yaml -> OK  (27.2 min)
+[2026-11-06 11:41:28] START ecpfl_mnist_th.yaml
+[2026-11-06 12:01:17] END   ecpfl_mnist_th.yaml -> OK  (19.8 min)
+[2026-11-06 12:01:17] START ecpfl_mnist_rk.yaml
+[2026-11-06 12:18:39] END   ecpfl_mnist_rk.yaml -> OK  (17.4 min)
+[2026-11-06 12:18:39] START ecpfl_fmnist_un.yaml
+[2026-11-06 12:31:56] END   ecpfl_fmnist_un.yaml -> OK  (13.3 min)
+[2026-11-06 12:31:56] START ecpfl_fmnist_th.yaml
+[2026-11-06 12:45:12] END   ecpfl_fmnist_th.yaml -> OK  (13.3 min)
+[2026-11-06 12:45:12] START ecpfl_fmnist_rk.yaml
+[2026-11-06 12:59:24] END   ecpfl_fmnist_rk.yaml -> OK  (14.2 min)
+[2026-11-06 12:59:24] START ecpfl_cifar10_un.yaml
+[2026-11-06 13:41:17] END   ecpfl_cifar10_un.yaml -> OK  (41.9 min)
+[2026-11-06 13:41:17] START ecpfl_cifar10_th.yaml
+[2026-11-06 14:30:10] END   ecpfl_cifar10_th.yaml -> OK  (48.9 min)
+[2026-11-06 14:30:10] START ecpfl_cifar10_rk.yaml
+[2026-11-06 15:14:42] END   ecpfl_cifar10_rk.yaml -> OK  (44.5 min)
+[2026-11-06 15:14:42] START ecpfl_svhn_un.yaml
+[2026-11-06 16:26:18] END   ecpfl_svhn_un.yaml -> OK  (71.6 min)
+[2026-11-06 16:26:18] START ecpfl_svhn_th.yaml
+[2026-11-06 17:26:09] END   ecpfl_svhn_th.yaml -> OK  (59.9 min)
+[2026-11-06 17:26:09] START ecpfl_svhn_rk.yaml
+[2026-11-06 18:29:48] END   ecpfl_svhn_rk.yaml -> OK  (63.6 min)
+[2026-11-06 18:29:48] ALL DONE

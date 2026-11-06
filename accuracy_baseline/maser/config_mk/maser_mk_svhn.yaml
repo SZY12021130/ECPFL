@@ -1,0 +1,93 @@
+bandwidth:
+  base_dl_bw: 10240.0
+  base_ul_bw: 10240.0
+  distribution: uniform
+  fedfetch_trace_path: E:\GithubProjects\ckks_fed_robustness\fedfetch_bandwidth.pkl
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120
+  min_ul_bw_kbps: 5120
+  variance: 0.5
+ckks:
+  coeff_mod_bit_sizes:
+  - 60
+  - 40
+  - 40
+  - 60
+  global_scale: 1099511627776
+  poly_modulus_degree: 8192
+  slot_packing: true
+data:
+  alpha: 1.0
+  data_dir: ./data
+  dataset: svhn
+  iid: false
+  num_classes: 10
+global_mask_vote:
+  mode: none
+maser:
+  enable: true
+  mode: compressed
+  multi_key: true
+  topk_ratio: 0.5
+  use_server_threshold: true
+  voting_threshold: 0.5
+metrics:
+  accuracy: true
+  ciphertext_size: true
+  communication_cost: true
+  communication_rounds: true
+  compute_time: true
+  cpu_utilization: true
+  dropout_rate: true
+  expansion_ratio: true
+  key_distribution_cost: true
+  loss: true
+  memory_usage: true
+model:
+  name: resnet32
+output:
+  model_dir: ./history_models
+  results_dir: accuracy_baseline/maser/result_mk
+  save_interval: 999
+  viz_dir: ./visualization
+prefetch:
+  enabled: false
+ptopk:
+  client_residual:
+    clip_tau: 0.0
+    decay_gamma: 0.3
+    enabled: false
+    stale_gamma: 0.5
+  enable: false
+  server_accumulator:
+    enabled: false
+    mode: none
+    momentum_beta: 0.9
+    sync_interval: 1
+sparsification:
+  batch_size: 4096
+  local_completion:
+    enabled: false
+  scoring_method: l2_norm
+  seed: 42
+  sparsity_rate: 0.1
+  strategy: none
+  use_warmup_skip_sparse: false
+  warmup_rounds: 2
+system:
+  batch_size: 64
+  client_sampling_rate: 1.0
+  device: cuda
+  learning_rate: 0.001
+  lr_scheduler:
+    enabled: false
+  num_clients: 25
+  num_epochs: 3
+  num_rounds: 50
+  optimizer:
+    lr: 0.001
+    momentum: 0.9
+    name: adam
+  random_seed: 42
+  run_plaintext_baseline: false
+  upload_difference: true

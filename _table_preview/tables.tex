@@ -1,0 +1,68 @@
+% 预览用：按 IEEE 单栏宽度（≈3.5in）编译两张复杂度表
+\documentclass[10pt]{article}
+\usepackage[paperwidth=4.1in,paperheight=11in,margin=0.30in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf,skip=3pt}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+
+\begin{center}
+\captionof{table}{\textsc{Client-Side Encryption Complexity Per Round}}
+\label{tab:encryption-complexity}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.12}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Scheme} & \textbf{Packs enc.} & \textbf{Cost / pack} & \textbf{Encryption complexity} \\
+\midrule
+FedAvg+CKKS  & $J$                & $\mathcal{O}(n\log n)$ & $\Theta(d\log n)$ \\
+FedPHE       & $sJ$               & $\mathcal{O}(n\log n)$ & $\Theta(sd\log n)$ \\
+ESAFL        & $\lceil J/2\rceil$ & $\mathcal{O}(n\log n)$ & $\Theta(d\log n)$ \\
+MASER        & $J$                & $\mathcal{O}(n\log n)$ & $\Theta(d\log n)$ \\
+SAMK         & $J+N$              & $\mathcal{O}(n\log n)+\mathcal{O}(\log^{3}\mathcal{N})$ & $\Theta(d\log n)+\Theta(N\log^{3}\mathcal{N})$ \\
+\midrule
+\rowcolor{blue!5}
+ECPFL (ours) & $1{+}k$            & $\mathcal{O}(n\log n)$ & $\Theta\big((k{+}1)\,n\log n\big)=o(d\log n)$ \\
+\bottomrule
+\end{tabular}%
+}
+\end{center}
+
+\vspace{14pt}
+
+\begin{center}
+\captionof{table}{\textsc{Asymptotic Per-Round Cost and Dropout Robustness}}
+\label{tab:asymptotic-cost}
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\renewcommand{\arraystretch}{1.1}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{Scheme} & \textbf{Client dec.} & \textbf{Client uplink} & \textbf{Interaction} & \textbf{Exp. re-runs ($p$)} \\
+\midrule
+FedAvg+CKKS & $\Theta(d\log n)$ & $\Theta(d\log Q)$ & 1 up + 1 bcast & $\Theta(1)$ \\
+FedPHE      & $\Theta(d\log n)$ & $\Theta(sd\log Q)$ & 1 up + 1 bcast & $\Theta(1)$ \\
+ESAFL       & $\Theta(d\log n)$ & $\Theta(d\log Q)$ & 1 up + 1 bcast & $\Theta\big((1-p)^{-N}\big)$ \\
+MASER       & $\Theta(d\log n)$ & $\Theta(d\log Q)$ & 1 up + $N$ shares & $\Theta\big((1-p)^{-N}\big)$ \\
+SAMK        & $\Theta(d+N^{2})$ & $\Theta\big(d\log Q+\tfrac{Nd}{n}\log\mathcal{N}\big)$ & 1 up + 1 bcast & $\Theta(1)$ \\
+\midrule
+\rowcolor{blue!5}
+ECPFL (ours) & $\Theta(n\log n+kn)$ & $\Theta\big((k{+}1)n\log Q\big)$ & 1 up + 1 bcast & $\Theta(1)$ for $|H|\,{\ge}\,\tau$ \\
+\bottomrule
+\end{tabular}%
+}
+\par\vspace{2pt}
+{\footnotesize SAMK client decryption includes an $N$-point interpolation ($\Theta(N^{2})$ naive; $\mathcal{O}(N\log^{2}N)$ with fast multipoint evaluation).}
+\end{center}
+
+\end{document}

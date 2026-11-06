@@ -1,0 +1,131 @@
+% ---------------------------------------------------------------------------
+% Encryption-complexity comparison of the seven schemes under a FIXED client
+% set (N, K treated as constants), expressed in PACK units:
+%     cost = (# encrypted packs) x (cost per pack).
+%
+% ECPFL carries two complexity columns (no-dropout / dropout) because it is
+% the only scheme whose encryption workload depends on dropout:
+%   no-dropout : 1 vote ct (Eq. 9)  + k pack cts (Eq. 11)
+%   dropout    : the above          + k compensatory cts (Eq. 14, one per
+%                surviving client per consensus pack)
+% per ckks_fed/ecpfl_crypto.py and main_ecpfl.py (vote/pack/comp loops).
+%
+% Requires : booktabs, amsmath
+% Usage    : \input{encryption_complexity_table.tex}
+% Symbols  : follow tab:comp-notation in computational_complexity.tex
+%            (d, n, J, s, k, L, N, K, O_ntt)
+% ---------------------------------------------------------------------------
+\begin{table}[t]
+\centering
+\caption{Client-side encryption complexity per round under a fixed client
+set, expressed in \emph{pack units}: cost $=$ (number of encrypted packs)
+$\times$ (cost per pack). $J$ is the number of packs covering the full
+model under each scheme's own packing, $s\in(0,1]$ the FedPHE sparsity
+ratio, $k\le J$ the number of ECPFL consensus packs, and $L$ the number of
+RNS moduli of multi-key CKKS; $\kappa$ is the Paillier modulus bit length
+and $m=\big\lfloor(\kappa-1)/\lceil\log_2(nQ)\rceil\big\rfloor$ the number
+of sample points packed into one Paillier ciphertext (SAMK). The four
+baselines FedAvg+CKKS, FedPHE, MASER and ESAFL provide no dropout
+tolerance ($\times$ in the last column): their per-client encryption cost
+is only defined for a dropout-free round; SAMK's cost is dropout-invariant
+(survivors finish the round, the dropped client forfeits it by design);
+SecFed and ECPFL complete dropout rounds---SecFed via TEE-generated
+supplementary ciphertexts (no extra client encryption), ECPFL via
+compensatory encryptions paid by the surviving clients.}
+\label{tab:encryption-complexity}
+\small
+\renewcommand{\arraystretch}{1.22}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& & & \multicolumn{2}{c}{\textbf{Encryption complexity}} \\
+\cmidrule(lr){4-5}
+\textbf{Scheme} & \textbf{Packs enc.} & \textbf{Cost / pack} &
+\textbf{No dropout} & \textbf{Dropout} \\
+\midrule
+FedAvg+CKKS  & $J$    & $\mathcal{O}(n\log n)$    &
+$J\cdot\mathcal{O}(n\log n)$ & $\times$ \\[3pt]
+FedPHE       & $sJ$   & $\mathcal{O}(n\log n)$    &
+$sJ\cdot\mathcal{O}(n\log n)$ & $\times$ \\[3pt]
+MASER        & $J$    & $\mathcal{O}(n\log n+nL)$ &
+$J\cdot\mathcal{O}(n\log n+nL)$ & $\times$ \\[3pt]
+ESAFL        & $J$    & $\mathcal{O}(n\log n)$    &
+$J\cdot\mathcal{O}(n\log n)$ & $\times$ \\[3pt]
+SecFed       & $J$    & $\mathcal{O}(n\log n)$    &
+$J\cdot\mathcal{O}(n\log n)$ & (same) \\[3pt]
+SAMK         & \multicolumn{2}{c}{$J$ chunks:
+$1$ BFV enc.\ $+$ $\lceil\frac{n-1}{m}\rceil{+}N$ Paillier enc.\ each} &
+$J\cdot\mathcal{O}\!\left(n^{2}+\big(\lceil\tfrac{n-1}{m}\rceil{+}N\big)\kappa^{3}\right)$
+& (same) \\[3pt]
+\midrule
+ECPFL (ours) & $1+k\;(+k)$ & $\mathcal{O}(n\log n)$ &
+$(k{+}1)\cdot\mathcal{O}(n\log n)+\mathcal{O}(Nn)$ &
+$(2k{+}1)\cdot\mathcal{O}(n\log n)+\mathcal{O}(Nn)$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{4pt}
+\begin{minipage}{\linewidth}
+\footnotesize
+\emph{Notes.}
+(i) \emph{Packs enc.} for ECPFL $=$ one vote ciphertext (the whole $J$-bit
+bitmap packed into the low coefficients of a single ring element) $+$ $k$
+consensus-pack ciphertexts; the parenthesized $(+k)$ are compensatory
+ciphertexts, executed by each \emph{surviving} client per consensus pack on
+dropout rounds only.
+(ii) $\times$ marks the absence of dropout tolerance, with
+scheme-specific failure modes: with FedAvg+CKKS the dropped updates are
+simply lost and the round still completes for the survivors; with FedPHE
+the dropped client's obfuscating factor $\Delta_i$ (dispatched by the KDC)
+remains uncancelled in the aggregate, so deobfuscation fails for
+\emph{every} client and the round is invalid; with MASER both the
+majority-vote mask consensus and the xMK-CKKS decryption
+($\mathrm{PartialDec}$ by \emph{every} participant $+\ \mathrm{Merge}$)
+require the full participant set; with ESAFL the summed key
+$S=\sum_i s_i$ requires all contributions---in the last three cases the
+round cannot complete at all, and in none of them is a meaningful
+``dropout encryption complexity'' defined; ECPFL is the only scheme that
+pays additional encryptions in order to finish the round.
+(iii) The additive $\mathcal{O}(Nn)$ term is the share-sum key material
+$\tilde{s}_{i,j}=s_i+\lambda_i\sum_{k\notin\mathcal{S}}s_{k,i}
++\lambda_i b_j z_i$ (Eq.~11), paid once per round and cached across the $k$
+packs; with $N$ fixed it is a constant multiple of $n$.
+(iv) Pack units keep different packing densities comparable:
+$J=\lceil 2d/n\rceil$ for slot-packed CKKS, $\lceil d/2n\rceil$ for ESAFL's
+EP packing, $\lceil d/n\rceil$ for ECPFL's, SecFed's and SAMK's
+coefficient packing (SAMK uses its own ring degree, $n=1024$ in the
+reproduction); in
+parameter units every $J$-term equals $\mathcal{O}(d\log n)$, and MASER
+additionally pays the RNS term $nL$ per pack.
+(v) SecFed (TDSC 2024, EMK-BFV), per pack (Eq.~12):
+$\mathsf{ct}[0]=[\mathrm{pk}[0]\cdot\mu+e_1+\Delta\cdot\mathrm{pt}]_q$ and
+$\mathsf{ct}[1]=[\mathrm{pk}[1]\cdot\mu+e_2]_q$---two ring multiplications
+per pack, the same two-multiplication structure as ECPFL. Moreover,
+$\mathrm{pk}[0]\cdot\mu$ and $\mathrm{pk}[1]\cdot\mu$ are \emph{per-user
+constants} (the public key and the system parameter $\mu$ are fixed), so if
+cached across packs the marginal per-pack cost drops to $\mathcal{O}(n)$
+and the per-round total to $\mathcal{O}(n\log n+d)$, a $\log$-factor below
+$J\cdot\mathcal{O}(n\log n)$; the table reports the uncached count for
+uniformity. Its dropout column reads ``(same)'': the offline protection
+mechanism (Algorithm~8, \emph{supEnc}) runs in the TEE, which generates
+supplementary ciphertexts for the offline users under their public keys
+(tolerating up to $N-2$ dropouts) at no extra client-side encryption.
+(vi) SAMK (TDSC 2025), per chunk: one BFV encryption
+($\mathcal{O}(n\log n)$, one ring multiplication), one ring product
+$f_i=\mathrm{sk}_i\cdot c_{i,1}$ ($\mathcal{O}(n\log n)$), Horner
+evaluation of $f_i$ at the $n$ interpolation points ($\mathcal{O}(n^{2})$),
+and $\lceil(n-1)/m\rceil+N$ Paillier encryptions: the first $n-1$ points
+packed under the server's public key ($m$ points per ciphertext), and the
+last point separately under \emph{every} client's public key for access
+control. One Paillier encryption is a $\kappa$-bit modular exponentiation,
+$\mathcal{O}(\kappa^{3})$ bit operations---a different unit from the
+word-level ring operations, so SAMK's dominant term is not directly
+comparable in magnitude but is orders of magnitude heavier in practice.
+Its dropout column reads ``(same)'': survivors complete the round at
+unchanged cost, while the dropped client forfeits the round
+($\mathsf{SAMKAccessError}$)---access control by design, not compensation.
+(vii) Each ECPFL pack encryption performs two ring multiplications
+($a_j\tilde{s}_{i,j}$ and $b_j z_i$) against one for the baselines, so
+ECPFL is cheaper than full-model encryption only while $2k+1<J$, i.e.\
+$\theta<\tfrac12$ under rank consensus $k=\lceil\theta J\rceil$.
+\end{minipage}
+\end{table}

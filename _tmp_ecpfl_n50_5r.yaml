@@ -1,0 +1,50 @@
+# ============================================================================
+# ECPFL 扩展性实验：N=50、K=25（采样率 0.5）；基准规模
+# ============================================================================
+# 公共参数：FMNIST + cnn_fmnist、τ=3、R=3、β=1.5、TH-0.3、ζ=0.1、
+#           γ_d=0.9/γ_s=0.8、n=4096、Δ=2^20、p=2^50、eta=4、cuda
+# 运行命令：
+#   python main_ecpfl.py --config AAAAA_Rework/ECPFL/config/<本文件> #       --output-dir AAAAA_Rework/ECPFL/result/<子目录>
+# ============================================================================
+system:
+  num_clients: 50
+  num_rounds: 5
+  num_epochs: 3
+  batch_size: 64
+  learning_rate: 0.001
+  device: "cuda"
+  random_seed: 42
+
+data:
+  dataset: "fashion_mnist"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false
+  alpha: 1
+
+model:
+  name: "cnn_fmnist"
+
+ecpfl:
+  n: 4096
+  tau: 3
+  sparsity_rate: 0.1
+  vote_rule: "th"
+  logp: 50
+  delta_scale: 1048576
+  eta: 4
+  max_abs_x: 1.0
+  sampling:
+    active_count: 25
+    prefetch_rounds: 3
+    overcommit: 1.5
+  dropout_rate: 0.2
+  gamma_d: 0.9
+  gamma_s: 0.8
+  prefetch:
+    enabled: true
+    bandwidth:
+      base_dl_bw: 1024.0
+      base_ul_bw: 512.0
+      variance: 0.3
+      distribution: "uniform"

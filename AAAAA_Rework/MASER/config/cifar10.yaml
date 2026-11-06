@@ -1,0 +1,144 @@
+# ============================================================================
+# MASER模式配置文件 - CIFAR10
+# ============================================================================
+# 基于CKKS-Fed框架的MASER风格投票机制实验
+# ============================================================================
+
+# ============================================================================
+# 一、系统配置 (system)
+# ============================================================================
+system:
+  num_clients: 25                     # 客户端总数
+  num_rounds: 50                      # 训练轮数
+  num_epochs: 3                      # 本地epoch数
+  batch_size: 64                     # 批次大小
+  learning_rate: 0.001               # 学习率
+  device: "cuda"                    # 训练设备
+  random_seed: 42                    # 随机种子
+  run_plaintext_baseline: false      # 是否运行明文基线
+  client_sampling_rate: 1.0          # 客户端采样率（1.0=全参与）
+  upload_difference: true            # 上传差值
+
+  optimizer:
+    name: "adam"
+    lr: 0.001
+    momentum: 0.9
+
+  lr_scheduler:
+    enabled: false
+
+# ============================================================================
+# 二、数据集配置 (data)
+# ============================================================================
+data:
+  dataset: "cifar10"
+  data_dir: "./data"
+  num_classes: 10
+  iid: false                         # Non-IID划分
+  alpha: 1.0                         # Dirichlet参数
+
+# ============================================================================
+# 三、模型配置 (model)
+# ============================================================================
+model:
+  name: "resnet20"                   # CIFAR10用ResNet20
+
+# ============================================================================
+# 四、CKKS配置 (ckks)
+# ============================================================================
+ckks:
+  poly_modulus_degree: 8192
+  coeff_mod_bit_sizes: [60, 40, 40, 60]
+  global_scale: 1099511627776               # 2^20
+  slot_packing: true
+
+# ============================================================================
+# 五、预取配置 (prefetch)
+# ============================================================================
+prefetch:
+  enabled: false                     # 关闭预取，使用标准CKKS
+
+# ============================================================================
+# 六、MASER投票模式配置 (maser)
+# ============================================================================
+maser:
+  enable: true                       # 启用MASER模式
+  mode: "compressed"                 # compressed=原版MASER压缩上传(少batch), aligned=对齐原始位置密文累加
+  topk_ratio: 0.5                   # 客户端本地保留50%梯度
+  voting_threshold: 0.5              # 服务器阈值：超过50%客户端选中才纳入
+  use_server_threshold: true         # 使用阈值筛选
+  multi_key: false                   # true=真实xMKCKKS多密钥(慢，需MASER-main/xmkckks.dll), false=TenSEAL单密钥计算但按多密钥结构模拟通信量
+
+# ============================================================================
+# 七、稀疏化配置 (sparsification) - MASER启用时关闭
+# ============================================================================
+sparsification:
+  strategy: "none"                   # 关闭batch-level topk
+  sparsity_rate: 0.1
+  batch_size: 4096
+  seed: 42
+  scoring_method: "l2_norm"
+  use_warmup_skip_sparse: false
+  warmup_rounds: 2
+  local_completion:
+    enabled: false
+
+# ============================================================================
+# 八、PTopk配置 - MASER启用时关闭
+# ============================================================================
+ptopk:
+  enable: false
+  client_residual:
+    enabled: false
+    stale_gamma: 0.5
+    decay_gamma: 0.3
+    clip_tau: 0.0
+  server_accumulator:
+    enabled: false
+    mode: "none"
+    sync_interval: 1
+    momentum_beta: 0.9
+
+# ============================================================================
+# 九、全局掩码投票配置 - MASER启用时关闭
+# ============================================================================
+global_mask_vote:
+  mode: "none"
+
+# ============================================================================
+# 十、输出配置 (output)
+# ============================================================================
+output:
+  results_dir: "AAAAA_Rework/MASER/result"
+  model_dir: "./history_models"
+  viz_dir: "./visualization"
+  save_interval: 999
+
+# ============================================================================
+# 十一、指标配置 (metrics)
+# ============================================================================
+metrics:
+  compute_time: true
+  communication_cost: true
+  ciphertext_size: true
+  expansion_ratio: true
+  accuracy: true
+  loss: true
+  communication_rounds: true
+  dropout_rate: true
+  cpu_utilization: true
+  key_distribution_cost: true
+  memory_usage: true
+
+# ============================================================================
+# 带宽模拟配置 (bandwidth)
+# ============================================================================
+bandwidth:
+  fedfetch_trace_path: "fedfetch_bandwidth.pkl"   # 若不存在则回退到合成带宽
+  base_dl_bw: 10240.0      # 基础下行 10 Mbps，高于 min_dl 阈值
+  base_ul_bw: 10240.0      # 基础上行 10 Mbps，高于 min_ul 阈值
+  variance: 0.5            # 波动范围 [0.5, 1.5]
+  distribution: "uniform"  # uniform 更容易满足阈值约束
+  filter_low_bandwidth: true
+  min_dl_bw_kbps: 5120     # 最低下行 5 Mbps
+  min_ul_bw_kbps: 5120     # 最低上行 5 Mbps

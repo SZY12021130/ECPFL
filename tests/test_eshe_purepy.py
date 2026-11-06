@@ -390,6 +390,91 @@ def test_adapter_extended_decrypt_purepy():
                           expect_delta.double(), rtol=1e-2, atol=1e-6)
 
 
+# ---------------------------------------------------------------------------
+# 7. fixed 定点编码模式（CKKS 式，ct = a·s_i + e + m，无 p̃、无 mod p）
+# ---------------------------------------------------------------------------
+
+def _make_fixed_manager():
+    from ckks_fed.crypto import CKKSManager
+    config = {
+        'poly_modulus_degree': 4096,
+        'coeff_mod_bit_sizes': [40, 20, 40],
+        'global_scale': 2 ** 20,
+        'slot_packing': True,
+        'packing': {'strategy': 'esafl', 'quant_bits': 10},
+        'sparsification': {'strategy': None},
+        'esafl': {'enabled': True, 'mode': 'PUREPY', 'prpg_seed': 42,
+                  'num_clients': 5, 'encoding': 'fixed',
+                  'delta_scale': 1 << 20},
+    }
+    return CKKSManager(config)
+
+
+def test_fixed_roundtrip_precision():
+    """fixed 模式：单客户端加解密精度须 ≤ eta/Δ（约 4e-6）。"""
+    eshe = PurePyESHE(n=512, seed=5, encoding='fixed', delta_scale=1 << 20)
+    rng = np.random.default_rng(0)
+    x = rng.uniform(-0.05, 0.05, 512)
+    ct = eshe.encrypt_chunk_fixed(0, x, counter=2)
+    x_hat = eshe.decrypt_fixed(ct)
+    # 误差 = (e + 定点舍入残差)/Δ ≤ (eta + 0.5)/Δ
+    assert np.max(np.abs(x_hat - x)) <= (eshe.params.eta + 0.5) / eshe.delta + 1e-9
+
+
+def test_fixed_sum_aggregation_average():
+    """fixed 模式：密文求和 → 解密整数和 → 除 N、除 Δ = 平均。"""
+    N, n = 25, 512
+    eshe = PurePyESHE(n=n, seed=7, encoding='fixed', delta_scale=1 << 20)
+    rng = np.random.default_rng(1)
+    updates = [rng.uniform(-0.04, 0.04, n) for _ in range(N)]
+    cts = [eshe.encrypt_chunk_fixed(cid, x, counter=4) for cid, x in enumerate(updates)]
+    agg = PurePyESHE.aggregate(cts)
+    sums = eshe.decrypt_fixed_ints(agg)  # Σ round(x·Δ) + Σe
+    x_avg = sums.astype(np.float64) / (N * eshe.delta)
+    # 聚合误差 ≤ N·(eta + 0.5)/Δ ≈ 1e-4
+    assert np.max(np.abs(x_avg - np.mean(updates, axis=0))) <= N * (eshe.params.eta + 0.5) / eshe.delta + 1e-9
+
+
+def test_fixed_bounds_guard():
+    """fixed 模式：定点明文越界（|m| ≥ Q/8）须抛错。"""
+    eshe = PurePyESHE(n=512, seed=1, encoding='fixed', delta_scale=1 << 20)
+    big = np.full(512, 1e12, dtype=np.float64)  # 远超 Q/(8Δ) ≈ 1.4e11
+    with pytest.raises(ValueError, match="定点明文越界"):
+        eshe.encrypt_chunk_fixed(0, big, counter=0)
+
+
+def test_fixed_ckks_manager_e2e():
+    """fixed 模式全链路：加密 → 密文求和聚合 → 解密平均 ≈ 明文平均（1e-4 内）。"""
+    manager = _make_fixed_manager()
+    assert manager.purepy_encoding == 'fixed'
+    eshe = manager.purepy_eshe
+    n = eshe.n
+    rng = np.random.default_rng(0)
+    updates = [{"p.0": torch.rand(30, 10) * 0.04 - 0.02} for _ in range(5)]
+    weights = [1.0] * 5
+    shapes = {"p.0": (30, 10)}
+
+    enc = [manager.encrypt_model_update(u, round_num=0, client_id=cid,
+                                        skip_sparsification=False)
+           for cid, u in enumerate(updates)]
+    assert all(e['strategy'] == 'eshe_fixed' for e in enc)
+
+    agg = manager.aggregate_encrypted_updates(enc, weights)
+    assert agg.get('__num_sum__') == 5
+    dec = manager.decrypt_model_update(agg, shapes)
+    ref = sum(u["p.0"] for u in updates) / 5
+    err = (dec["p.0"].double() - ref.double()).abs().max().item()
+    assert err <= 5 * eshe.params.eta / eshe.delta + 1e-9
+
+    # 减法（delta）路径：自差分为 0
+    delta = manager.subtract_encrypted_updates(agg, agg)
+    assert np.all(eshe.decrypt_fixed_ints(delta['ciphertexts'][0]) == 0)
+
+    # 密文大小：论文口径只计 coeffs（4096 × 8B × 2 CRT = 64KB/密文）
+    size = manager.compute_encrypted_update_size(enc[0])
+    assert size == len(enc[0]['ciphertexts']) * n * 8 * 2
+
+
 def test_plaintext_range_guard():
     """明文系数越界（≥ p）须抛出清晰错误。"""
     eshe = PurePyESHE(n=512, seed=1)

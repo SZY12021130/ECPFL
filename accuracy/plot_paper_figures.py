@@ -143,7 +143,8 @@ def get_sparsity_label(config: dict) -> str:
 def _get_title(group_name: str, base_title: str) -> str:
     """生成图表标题"""
     if "fashion_mnist" in group_name:
-        return "Fashion-MNIST - Local Sparsity"
+        # 与另外三张敏感性分析图统一：数据集名写 FMNIST、分隔符统一用长破折号
+        return "FMNIST — Local Sparsity"
     return f"{base_title} — {group_name}"
 
 
@@ -178,7 +179,10 @@ def _prepare_line_data(exps: List[Tuple[Path, dict, dict]], metric_key: str, tra
 
         label = get_sparsity_label(config)
         rounds = list(range(1, len(values) + 1))
-        series_label = f"sparsity={label}"
+        # 图例用 ζ 代替 "sparsity"（mathtext 渲染，不依赖 LaTeX）；
+        # 无稀疏化那档标签是 "1"，图例里统一写成 1.0，与 0.1/0.3/... 位数对齐
+        display = "1.0" if label == "1" else label
+        series_label = rf"$\zeta={display}$"
 
         y_values = values if transform is None else transform(values)
         if hasattr(y_values, 'tolist'):
@@ -303,7 +307,8 @@ def plot_accuracy_curves_vibrant_marker(group_name: str, exps: List[Tuple[Path, 
 
         ax.set_xlabel("Communication Round", fontsize=plotter.font_size)
         ax.set_ylabel("Test Accuracy (%)", fontsize=plotter.font_size)
-        ax.set_title(title, pad=10, fontsize=plotter.font_size)
+        # 标题字号与 client_selection 系列保持一致（25.2/8.4in = 3.0 pt/in → 6in 画布对应 18pt）
+        ax.set_title(title, pad=12, fontsize=18)
         ax.grid(True, linestyle="--", alpha=0.5)
 
         # 图例：右下角，单列，字体 13pt

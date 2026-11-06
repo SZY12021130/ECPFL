@@ -1,0 +1,590 @@
+[
+  {
+    "timestamp": "20261104_145034",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_145034_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 81.98,
+      "final_test_loss": 0.5293609088963005,
+      "total_time_sec": 1109.0008971691132,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 22.180017943382264,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.054896129417419434,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.667890548706,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_150927",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_150927_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 82.49,
+      "final_test_loss": 0.6770428055600756,
+      "total_time_sec": 1144.706212759018,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 22.89412425518036,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.0527786600112915,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.6850090026855,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_152851",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_152851_fashion_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_152933",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_152933_fashion_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_152954",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_152954_fashion_mnist",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_153014",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_153014_cifar10",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_153041",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_153041_cifar10",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_153104",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_153104_cifar10",
+    "mode": "plain",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": null,
+      "poly_modulus_degree": null,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 0.0,
+      "final_test_loss": 0.0,
+      "total_time_sec": 0,
+      "total_communication_mb": 0.0,
+      "avg_round_time_sec": 0.0,
+      "avg_upload_kb": 0.0,
+      "avg_download_kb": 0.0
+    }
+  },
+  {
+    "timestamp": "20261104_153129",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_153129_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 55.77,
+      "final_test_loss": 1.5430958764568257,
+      "total_time_sec": 2615.711460828781,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 52.314229216575626,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.4036347150802612,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.9727802276611,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_161536",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_161536_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 56.06,
+      "final_test_loss": 1.5730739080222549,
+      "total_time_sec": 2800.4346766471863,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 56.008693532943724,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.4437741189956665,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.9296741485596,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_214115",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_214115_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 87.74,
+      "final_test_loss": 0.3985863290489859,
+      "total_time_sec": 1467.1269659996033,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 29.342539319992067,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.06608684921264649,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.5547847747803,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_220611",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_220611_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 87.81,
+      "final_test_loss": 0.42203954887238276,
+      "total_time_sec": 1083.531057357788,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 21.67062114715576,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.051260021591186526,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.5505409240723,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_222444",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_222444_fashion_mnist",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "fashion_mnist",
+      "model": "cnn_fmnist",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 88.26,
+      "final_test_loss": 0.3851943027441669,
+      "total_time_sec": 853.419193983078,
+      "total_communication_mb": 781.25,
+      "avg_round_time_sec": 17.06838387966156,
+      "avg_upload_kb": 8000.0,
+      "avg_download_kb": 8000.0,
+      "avg_expansion_ratio": 2.0590157341778514,
+      "avg_encryption_time_sec": 0.04111342964172363,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.3324356079102,
+      "total_ciphertext_blocks": 6250,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_223917",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_223917_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 33.65,
+      "final_test_loss": 1.8186517316065016,
+      "total_time_sec": 2177.916893720627,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 43.55833787441254,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.33791597537994383,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.6765213012695,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261104_231557",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261104_231557_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 53.79,
+      "final_test_loss": 1.3509346459321916,
+      "total_time_sec": 3024.91020154953,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 60.4982040309906,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.48008548450469973,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.672658920288,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  },
+  {
+    "timestamp": "20261105_000652",
+    "output_dir": "AAAAA_Rework/ESAFL/result/noniid\\experiment_20261105_000652_cifar10",
+    "mode": "encrypted",
+    "config_summary": {
+      "dataset": "cifar10",
+      "model": "resnet20",
+      "num_clients": 50,
+      "num_rounds": 50,
+      "client_sampling_rate": 0.5,
+      "local_epochs": 3,
+      "batch_size": 64,
+      "learning_rate": 0.001,
+      "iid": false,
+      "device": "cuda",
+      "upload_difference": true,
+      "slot_packing": true,
+      "poly_modulus_degree": 8192,
+      "adaptive_vote": {
+        "enabled": false,
+        "strategy": "none"
+      }
+    },
+    "metrics_summary": {
+      "final_test_acc": 46.58,
+      "final_test_loss": 1.8902888859912848,
+      "total_time_sec": 3037.6666717529297,
+      "total_communication_mb": 5312.5,
+      "avg_round_time_sec": 60.75333343505859,
+      "avg_upload_kb": 54400.0,
+      "avg_download_kb": 54400.0,
+      "avg_expansion_ratio": 2.044437267409,
+      "avg_encryption_time_sec": 0.4781900619506836,
+      "avg_decryption_time_sec": 0.0,
+      "key_distribution_mb": 1691.6472434997559,
+      "total_ciphertext_blocks": 42500,
+      "prefetch_enabled": false
+    }
+  }
+]

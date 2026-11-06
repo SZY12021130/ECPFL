@@ -19,46 +19,86 @@ from plotter import Plotter
 # ---------------------------------------------------------------------------
 # 1. 数据配置
 # ---------------------------------------------------------------------------
+# 口径约定（2026-11-06 锁定）：
+#   TV = UV + FV（同步下行），PV 预取单列不计入；MB = 10^6 字节；
+#   ECPFL 下行柱只含同步 FV（预取 PV 由图十单独展示）。
+#   基线三方案暂用论文旧数字（待基线核查/重跑后替换为自动读数）。
+import json
+import glob as _glob
+
+ROOT = r"E:\GithubProjects\ckks_fed_robustness"
 DATASETS = ["MNIST", "FMNIST", "CIFAR-10", "SVHN"]
 METHODS = [
     "ECPFL-TH",
     "FedPHE",
     "ESAFL",
     "MASER",
-    "FedAvg-CKKS",
+    "FedAvg+CKKS",
 ]
 
-# 真实实验数据 (单位: MB)
-DATA = {
-    "MNIST": {
-        "ECPFL-TH":     [2183.81, 35.46],
-        "FedPHE":       [797.03, 3133.42],
-        "ESAFL":        [2390.93, 2390.93],
-        "MASER":        [5531.23, 2977.45],
-        "FedAvg-CKKS":  [4383.87, 4383.87],
-    },
-    "FMNIST": {
-        "ECPFL-TH":     [414.45, 9.65],
-        "FedPHE":       [398.55, 3645.94],
-        "ESAFL":        [1992.65, 1992.65],
-        "MASER":        [4766.15, 2573.86],
-        "FedAvg-CKKS":  [3985.09, 3985.09],
-    },
-    "CIFAR-10": {
-        "ECPFL-TH":     [7587.58, 190.34],
-        "FedPHE":       [13548.73, 18960.94],
-        "ESAFL":        [13549.24, 13549.24],
-        "MASER":        [27066.40, 14839.93],
-        "FedAvg-CKKS":  [26699.46, 26699.46],
-    },
-    "SVHN": {
-        "ECPFL-TH":     [19263.73, 298.54],
-        "FedPHE":       [23112.74, 32567.46],
-        "ESAFL":        [23113.26, 23113.26],
-        "MASER":        [46991.57, 25733.91],
-        "FedAvg-CKKS":  [45828.08, 45828.08],
-    },
+
+def _load_ecpfl_th(ds):
+    """ECPFL-TH：自动读取重跑结果（TV=UV+FV 口径，MB=10^6）。"""
+    name = {"MNIST": "mnist", "FMNIST": "fashion_mnist",
+            "CIFAR-10": "cifar10", "SVHN": "svhn"}[ds]
+    exps = [e for e in sorted(_glob.glob(
+        ROOT + r"\AAAAA_Rework\ECPFL\result\accuracy_diri1_tt\experiment_*"))
+            if os.path.basename(e).endswith("_" + name)]
+    if not exps:
+        return None
+    d = json.load(open(_glob.glob(exps[-1] + r"\ecpfl_results.json")[0],
+                       encoding="utf-8"))
+    rounds = d["rounds"]
+    uv = sum(r["upload_bytes"] for r in rounds) / 1e6
+    fv = sum(r["download_bytes"] for r in rounds) / 1e6
+    return [uv, fv]
+
+
+def _load_esafl(ds):
+    """ESAFL：自动读取 α=1 结果（当前指向旧 T=3/10-bit 运行；
+    T=3 + 20-bit 修复重跑完成后，把目录换成新时间戳即可）。"""
+    paths = {
+        "MNIST": ROOT + r"\AAAAA_Rework\ESAFL\result\accuracy_diri1\experiment_20261105_121440_mnist",
+        "SVHN": ROOT + r"\AAAAA_Rework\ESAFL\result\accuracy_diri1\experiment_20261105_122858_svhn",
+        "FMNIST": ROOT + r"\AAAAA_Rework\ESAFL\result\noniid\experiment_20261104_214115_fashion_mnist",
+        "CIFAR-10": ROOT + r"\AAAAA_Rework\ESAFL\result\noniid\experiment_20261105_000652_cifar10",
+    }
+    m = json.load(open(paths[ds] + r"\metrics.json", encoding="utf-8"))
+    uv = sum(m["upload_cost"]) / 1e6
+    fv = sum(m["download_cost"]) / 1e6
+    return [uv, fv]
+
+
+# 基线：论文旧数字（MB，2^20 口径），待基线重跑/核查后替换
+_BASELINE_FIXED = {
+    "FedPHE": {
+        "MNIST": [797.03, 3133.42], "FMNIST": [398.55, 3645.94],
+        "CIFAR-10": [13548.73, 18960.94], "SVHN": [23112.74, 32567.46]},
+    "MASER": {
+        "MNIST": [5531.23, 2977.45], "FMNIST": [4766.15, 2573.86],
+        "CIFAR-10": [27066.40, 14839.93], "SVHN": [46991.57, 25733.91]},
+    "FedAvg+CKKS": {
+        "MNIST": [4383.87, 4383.87], "FMNIST": [3985.09, 3985.09],
+        "CIFAR-10": [26699.46, 26699.46], "SVHN": [45828.08, 45828.08]},
 }
+
+
+def _build_data():
+    data = {}
+    for ds in DATASETS:
+        row = {}
+        e = _load_ecpfl_th(ds)
+        row["ECPFL-TH"] = e if e else [0.0, 0.0]
+        if e is None:
+            print(f"[WARN] ECPFL-TH {ds} 结果缺失（SVHN 重跑未完成？），柱高置 0")
+        row["ESAFL"] = _load_esafl(ds)
+        for m in ("FedPHE", "MASER", "FedAvg+CKKS"):
+            row[m] = _BASELINE_FIXED[m][ds]
+        data[ds] = row
+    return data
+
+
+DATA = _build_data()
 
 # ===========================================================================
 # 配色方案库（8 组，与 plot_grouped_bar.py 一致）
@@ -141,7 +181,8 @@ def _draw_one_theme(upload_color, upload_hatch, fetch_color, fetch_hatch, theme_
                 fetch_h = fetches[i]
 
                 def _fmt_label(h):
-                    return f"{h/1024:.1f}G" if h >= 1000 else f"{h:.0f}M"
+                    # 与纵轴刻度（1K/10K/1M，单位 MB）保持同一单位体系
+                    return f"{h/1e3:.1f}K" if h >= 1000 else f"{h:.0f}"
 
                 min_h, max_h = min(up_h, fetch_h), max(up_h, fetch_h)
                 if min_h > 0 and max_h / min_h < 1.3:

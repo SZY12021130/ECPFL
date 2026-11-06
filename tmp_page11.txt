@@ -1,0 +1,263 @@
+11
+P
+i∈S(t) v(t)
+i (X)∥∞< q/2, server aggregation in Eq. (13)
+recovers the exact pack tally ν(t)
+j
+= P
+i∈S(t) v(t)
+i,j while keeping
+each honest vote bitmap v(t)
+h
+confidential.
+Proof. Since
+|S(t)|
+≥
+τ
+>
+deg(Ψ),
+Eq.
+(9)
+gives
+P
+i∈S(t) λ(t)
+i zi
+
+q = 0, so summing ˆv(t)
+i
+in Eq. (13) and
+reducing modulo q and p removes ˜pE(t)
+0
+without wrap-around
+and recovers V (t)(X) = PJ
+j=1 ν(t)
+j Xj−1. For confidentiality,
+a(t)
+0 λ(t)
+h zh + ˜pe(t)
+h,0 masks v(t)
+h (X) against Asrv under dRLWE,
+while zh is unknown to Acli (Theorem 3). Moreover, cross-
+round elimination D
+= [A2ˆv(1)
+h
+−A1ˆv(2)
+h ]q with At
+=
+[a(t)
+0 λ(t)
+h ]q causes ˜p(A2e(1)
+h,0 −A1e(2)
+h,0) to wrap around modulo
+q; since gcd(p, q) = 1, the unknown wrap-around residue
+modulo p conceals v(t)
+h .
+2) Dropout Compensation Security:
+Theorem 4 (Dropout Compensation Security). For any sur-
+viving set bS(t) ⊆S(t) with | bS(t)| ≥τ, aggregation in
+Eq. (16) and Eq. (19) restores the exact key contribution
+a(t)
+j S, and the compensation ciphertext δ(t)
+h,j is computationally
+indistinguishable from uniform over Rq against Asrv and Acli
+(κ ≤τ −2).
+Proof. When D(t)
+= ∅, Eq. (9) over |S(t)| ≥τ gives
+P
+i∈S(t) ˜s(t)
+i,j ≡S (mod q). When D(t) ̸= ∅, adding κ(t)
+i,j
+(Eq. (17)) cancels the stale λ(t)
+i
+terms in Eq. (18), and
+summing over | bS(t)| ≥τ reconstructs P
+k/∈b
+S(t) sk and cancels
+zi, yielding C(t)
+j
+= [a(t)
+j S + ˜p bE(t)
+j
++ pt(t)
+j ]q without revealing
+S to the server. Furthermore, δ(t)
+h,j = [a(t)
+j κ(t)
+h,j + ˜pˆe(t)
+h,j]q masks
+{sk,h} with (bλ(t)
+h
+−λ(t)
+h )b(t)
+j zh and fresh noise ˆe(t)
+h,j ←χe;
+since zh is unknown (Theorem 3) and b(t)
+j
+is fresh per pack
+and round, δ(t)
+h,j is indistinguishable from uniform over Rq
+under dRLWE.
+3) Cross-Round Prefetching Security:
+Theorem 5 (Cross-Round Prefetching Security). Whenever
+∥˜pEpre,j + ptpre,j∥∞
+< q/2, (i) one-step decryption in
+Eq. (21) recovers ptpre,j = P
+r∈Hi,j pt(r)
+j ; and (ii) Cpre,j
+is computationally indistinguishable from uniform over Rq to
+Asrv and leaks no single-client update to Acli.
+Proof. (i) Summing {C(r)
+j
+}r∈Hi,j in Eq. (20) gives Cpre,j =
+[Apre,jS + ˜pEpre,j + ptpre,j]q. Subtracting Apre,jS and re-
+ducing modulo q and p removes ˜pEpre,j without wrap-
+around, recovering ptpre,j in one step. (ii) Without (S, σa),
+Apre,jS + ˜pEpre,j hides ptpre,j from Asrv under dRLWE. For
+authorized clients, Cpre,j is a sum of public round aggregates
+{C(r)
+j
+}r∈Hi,j, revealing no additional information beyond
+{pt(r)
+j }r∈Hi,j, where individual updates remain protected by
+Theorem 3.
+VI. PERFORMANCE EVALUATION
+A. Experimental Setup
+1) Basic Configuration, Client Scalability, and Dropout
+Resilience: All experiments run on a workstation with an
+0
+1
+2
+3
+4
+Encrypted Size (MB)
+MNIST
+LeNet
+(44,426)
+FMNIST
+CNN
+(39,786)
+CIFAR-10
+ResNet-20
+(272,186)
+SVHN
+ResNet-32
+(460,618)
+Per-batch ciphertext:
+0.030 MB (4096 slots)
+0.33 MB
+(11 batches)
+0.30 MB
+(10 batches)
+2.00 MB
+(67 batches)
+3.40 MB
+(114 batches)
+(a) Encrypted model sizes and CKKS
+batch partitions across datasets.
+10 2
+10 1
+100
+101
+102
+103
+Bandwidth (Mbps)
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0
+Cumulative Distribution
+Upload  
+ P50=18 Mbps
+Download 
+ P50=81 Mbps
+Clients: 9242
+Upload
+Download
+P10=1
+P25=9
+P50=18
+P75=40
+P90=115
+(b) Cumulative distribution of client
+upload and download bandwidth.
+Fig. 5. Dataset batch partitions and bandwidth profiles. Model sizes and
+client bandwidth distributions across experimental datasets.
+TABLE II SCALABILITY ANALYSIS OF ACCURACY,
+COMMUNICATION VOLUME, AND CLIENT KEY STORAGE ACROSS
+CLIENT SCALES ON CIFAR-10
+Client Scale
+Training & Comm. (T = 50)
+Client Setup
+N
+K
+AC (%) TV (GB) Base (GB)
+TT (s) Storage O(N) Setup (s)
+50
+25
+82.77
+13.71
+52.15
+962.5
+3.33 MB
+0.42
+100
+50
+82.91
+27.42
+104.30
+1894.0
+6.44 MB
+1.65
+500
+250
+83.08
+137.10
+521.50
+9410.5
+31.44 MB
+41.20
+1000
+500
+83.15
+274.20
+1043.00 18790.0
+62.69 MB
+164.80
+Note: Base = FedAvg+CKKS TV; Storage O(N) = per-client key and share storage.
+Intel Core i7-14700, 32 GB RAM, and an NVIDIA RTX
+3050 GPU. We use PyTorch for local training and a compiled
+MKHE dynamic library for homomorphic encryption.
+2) Datasets and Models: Fig. 5(a) illustrates our evaluation
+of ECPFL across four diverse datasets [58], [59], [60] varying
+in data scales, model parameters, and SIMD batch sizes:
+• MNIST (LeNet, 11 packs): 10-class handwritten digits;
+60,000 training and 10,000 test samples.
+• Fashion-MNIST (FMNIST) (CNN, 10 packs): 10-class
+grayscale clothing images; 60,000 training and 10,000
+test samples.
+• CIFAR-10 (ResNet-20, 67 packs): 10-class color images;
+50,000 training and 10,000 test samples.
+• SVHN (ResNet-32, 114 packs): real-world RGB digits;
+73,257 training and 26,032 test samples.
+In addition, we use the bandwidth measurements of [61],
+collected from heterogeneous devices such as smartphones
+and PCs. The lowest upload and download bandwidths on this
+dataset are 0.03 Mbps and 0.01 Mbps, respectively. As shown
+in Fig. 5(b), the median download bandwidth is 81.29 Mbps,
+significantly higher than the median upload bandwidth of
+18.42 Mbps.
+3) Baselines for Comparison: To comprehensively evaluate
+the efficiency of ECPFL, we compare it with four represen-
+tative state-of-the-art protocols:
+• FedAvg+CKKS: a naive integration of single-key CKKS
+with standard FedAvg, encrypting updates with SIMD
+packing.
+• FedPHE [11]: a single-key CKKS framework with pack-
+level Top-k sparsification for selective gradient aggrega-
+tion.
+• ESAFL [31]: a multi-key secure aggregation protocol that
+improves ciphertext efficiency via SIMD slot packing.
+• MASER [40]: a multi-key HE framework that re-
+duces computation and communication overhead through
